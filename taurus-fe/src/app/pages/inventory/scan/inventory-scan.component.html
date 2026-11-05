@@ -18,7 +18,7 @@
         </div>
     </section>
     } @else if (result?.target === 'ADMIN_ITEM') {
-    <section class="card scan-card">
+    <section class="card scan-card" appTourAnchor="scan.summary">
         <span class="text-sm text-muted-color">{{ tenantCode }} · {{ result?.inventoryNumber }}</span>
         <h1 #resultTitle tabindex="-1">{{ result?.name }}</h1>
         @if (result?.conditionStatus) {
@@ -64,7 +64,7 @@
         <app-inline-alert severity="info" heading="Prese visione da completare"
             [detail]="result?.pendingDecisions + (result?.pendingDecisions === 1 ? ' assegnatario non ha' : ' assegnatari non hanno') + ' ancora confermato la presa visione.'" />
         }
-        <div class="scan-actions">
+        <div class="scan-actions" appTourAnchor="scan.actions">
             <p-button label="Apri scheda completa" icon="pi pi-external-link"
                 [routerLink]="['/inventory/items', result?.itemId]" />
             @if (rotatedVersion) {
@@ -98,7 +98,7 @@
         </div>
     </section>
     } @else {
-    <section class="card scan-card">
+    <section class="card scan-card" appTourAnchor="scan.summary">
         <span class="text-sm text-muted-color">{{ tenantCode }}</span>
         <h1 #resultTitle tabindex="-1">Le tue consegne</h1>
         <p>Il codice identifica un oggetto presente nel tuo inventario.</p>
@@ -126,7 +126,7 @@
                         }
                     </div>
                 </div>
-                <div class="scan-actions">
+                <div class="scan-actions" appTourAnchor="scan.actions">
                     <p-button label="Apri consegna" icon="pi pi-eye"
                         [routerLink]="['/inventory/assignments', assignment.assignmentId]" />
                     @for (link of assignmentLinks(assignment); track link.action) {

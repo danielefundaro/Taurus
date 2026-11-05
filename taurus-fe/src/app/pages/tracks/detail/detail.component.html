@@ -7,7 +7,7 @@
         [saved]="savedIndicator" [state]="track.state === StateEnum.PUBLIC ? 'Pubblica' : undefined">
         <div pageMetadata>{{ track.composer || 'Compositore non indicato' }}</div>
         <div pageActions class="flex gap-2">
-            <p-button label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()"
+            <p-button appTourAnchor="track.preview" label="Anteprima" icon="pi pi-print" severity="secondary" outlined (onClick)="preview()"
                 [disabled]="!track.scores?.length" />
             <p-button label="Salva traccia" icon="pi pi-check" [loading]="saving" [disabled]="!isDirtyForm"
                 (onClick)="save()" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]" />
@@ -28,13 +28,13 @@
     <div class="detail-page__zones">
         <p-tabs class="track-tabs" [value]="activeTab" [scrollable]="true" (valueChange)="onTabChange($event)">
             <p-tablist>
-                <p-tab value="details">Dettagli</p-tab>
-                <p-tab value="parts">Parti <span class="tab-count">{{ track.scores?.length ?? 0 }}</span></p-tab>
+                <p-tab value="details" appTourAnchor="track.tabDetails">Dettagli</p-tab>
+                <p-tab value="parts" appTourAnchor="track.tabParts">Parti <span class="tab-count">{{ track.scores?.length ?? 0 }}</span></p-tab>
                 @if (scorePlaybackEnabled) {
-                <p-tab value="playback">Ascolto</p-tab>
+                <p-tab value="playback" appTourAnchor="track.tabPlayback">Ascolto</p-tab>
                 }
                 @if (canManagePdf) {
-                <p-tab value="pdf">File PDF</p-tab>
+                <p-tab value="pdf" appTourAnchor="track.tabPdf">File PDF</p-tab>
                 }
             </p-tablist>
             <p-tabpanels>

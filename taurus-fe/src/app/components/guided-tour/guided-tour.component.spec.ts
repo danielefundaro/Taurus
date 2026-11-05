@@ -3,7 +3,8 @@ import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testin
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { RoleEnums } from '../../constants';
-import { GuidedTour, TenantFeature } from '../../module';
+import { GUIDED_TOUR_CATALOG_REVISION } from '../../constants/guided-tour-steps';
+import { GuidedTour, GuidedTourStep, TenantFeature } from '../../module';
 import { GuidedTourService, GuidedTourSession, KeycloakService, LayoutService, TenantFeatureService } from '../../service';
 import { GuidedTourComponent, place } from './guided-tour.component';
 
@@ -31,10 +32,10 @@ describe('GuidedTourComponent', () => {
         state = signal(tour());
         service = jasmine.createSpyObj<GuidedTourService>(
             'GuidedTourService',
-            ['useCatalogRevision', 'begin', 'visit', 'pause', 'postpone', 'skip', 'complete', 'acceptInvitation', 'declineInvitation', 'disableAutoStart'],
+            ['useCatalogRevision', 'begin', 'visit', 'pause', 'postpone', 'skip', 'complete', 'acceptInvitation', 'declineInvitation', 'disableAutoStart', 'closePage', 'pageGuideUnavailable'],
             { session, tour: state }
         );
-        ['pause', 'postpone', 'skip', 'complete', 'declineInvitation', 'disableAutoStart'].forEach((method) => (service as any)[method].and.callFake(() => session.set(null)));
+        ['pause', 'postpone', 'skip', 'complete', 'declineInvitation', 'disableAutoStart', 'closePage', 'pageGuideUnavailable'].forEach((method) => (service as any)[method].and.callFake(() => session.set(null)));
         router = {
             url: '/',
             navigateByUrl: jasmine.createSpy('navigateByUrl').and.callFake((url: string) => {
@@ -100,7 +101,7 @@ describe('GuidedTourComponent', () => {
     it('welcomes the person with organization, role and an accessible dialog', fakeAsync(() => {
         open();
 
-        expect(service.useCatalogRevision).toHaveBeenCalledWith(1);
+        expect(service.useCatalogRevision).toHaveBeenCalledWith(GUIDED_TOUR_CATALOG_REVISION);
         expect(card().getAttribute('role')).toBe('dialog');
         expect(card().getAttribute('aria-modal')).toBe('true');
         expect(card().querySelector('#guided-tour-title')?.textContent?.trim()).toBe('Benvenuto in Taurus, Maria');
@@ -227,6 +228,82 @@ describe('GuidedTourComponent', () => {
         open(false);
         expect(Array.from(card().querySelectorAll('button')).map((button) => button.textContent?.trim())).not.toContain('Non avviare più la guida automaticamente');
     }));
+
+    describe('page guide', () => {
+        const step = (id: string, anchor: string): GuidedTourStep => ({ id, anchors: [anchor], mobileAnchors: [anchor], icon: 'pi pi-info-circle', title: id, body: `Testo di ${id}`, points: [] });
+        const steps = [step('page.event.data', 'event.data'), step('page.event.preparation', 'event.preparation'), step('page.event.presence', 'event.presence')];
+
+        function openPage(): void {
+            session.set({ id: 3, presentation: 'page', automatic: false, steps, path: '/calendar/7' });
+            settle();
+        }
+
+        function title(): string | undefined {
+            return card().querySelector('#guided-tour-title')?.textContent?.trim();
+        }
+
+        it('speaks only of what the page shows, from the first step, and saves nothing', fakeAsync(() => {
+            anchor('event.data');
+            anchor('event.presence', 'position: fixed; top: 300px; left: 20px; width: 200px; height: 40px');
+            openPage();
+
+            expect(title()).toBe('page.event.data');
+            expect(card().textContent).toContain('1 di 2');
+            expect(Array.from(card().querySelectorAll('button')).map((button) => button.textContent?.trim())).not.toContain('Indietro');
+            click('Avanti');
+            settle();
+            expect(title()).toBe('page.event.presence');
+            click('Indietro');
+            settle();
+            expect(title()).toBe('page.event.data');
+            expect(router.navigateByUrl).not.toHaveBeenCalled();
+            expect(service.visit).not.toHaveBeenCalled();
+            expect(service.begin).not.toHaveBeenCalled();
+        }));
+
+        it('closes with «Chiudi», with Esc and with «Fine», never skipping the guided tour', fakeAsync(() => {
+            anchor('event.data');
+            openPage();
+            click('Chiudi');
+            expect(service.closePage).toHaveBeenCalledTimes(1);
+
+            openPage();
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+            expect(service.closePage).toHaveBeenCalledTimes(2);
+
+            openPage();
+            click('Fine');
+            expect(service.closePage).toHaveBeenCalledTimes(3);
+            expect(service.skip).not.toHaveBeenCalled();
+            expect(service.pause).not.toHaveBeenCalled();
+            expect(service.complete).not.toHaveBeenCalled();
+        }));
+
+        it('waits two seconds for a page still loading, then says the guide is not available', fakeAsync(() => {
+            openPage();
+            settle(1500);
+            expect(card()).toBeNull();
+            anchor('event.preparation');
+            settle(100);
+            expect(title()).toBe('page.event.preparation');
+            expect(card().textContent).toContain('1 di 1');
+            click('Fine');
+
+            anchors.forEach((element) => element.remove());
+            openPage();
+            settle(2100);
+            expect(service.pageGuideUnavailable).toHaveBeenCalled();
+            expect(card()).toBeNull();
+        }));
+
+        it('leaves out the steps whose anchor is hidden, as in a closed tab', fakeAsync(() => {
+            anchor('event.data');
+            anchor('event.preparation', 'display: none');
+            openPage();
+
+            expect(card().textContent).toContain('1 di 1');
+        }));
+    });
 
     it('invites the members present at the release with a banner', fakeAsync(() => {
         state.set(tour({ role: RoleEnums.ARCHIVIST, settings: { autoStartEnabled: true, legacyInvitation: true, version: 0 } }));

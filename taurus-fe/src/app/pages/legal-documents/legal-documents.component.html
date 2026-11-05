@@ -1,10 +1,10 @@
 <app-page-header heading="Documenti legali" appTourAnchor="legalDocuments.header"
     [subtitle]="documents.length + (documents.length === 1 ? ' documento' : ' documenti')">
-    <div pageActions><p-button label="Nuovo documento" icon="pi pi-plus" (onClick)="addDocument()" /></div>
+    <div pageActions appTourAnchor="legalDocuments.create"><p-button label="Nuovo documento" icon="pi pi-plus" (onClick)="addDocument()" /></div>
 </app-page-header>
 
-<app-inline-alert severity="info" heading="Versioni immutabili"
-    detail="I documenti già accettati non possono essere modificati. Per aggiornare il contenuto crea una nuova versione e impostala come attiva." />
+<div appTourAnchor="legalDocuments.notice"><app-inline-alert severity="info" heading="Versioni immutabili"
+    detail="I documenti già accettati non possono essere modificati. Per aggiornare il contenuto crea una nuova versione e impostala come attiva." /></div>
 
 <app-list-toolbar [search]="searchTerm" searchPlaceholder="Cerca documento…" [showLayout]="false"
     (searchChange)="onSearchChange($event)" />

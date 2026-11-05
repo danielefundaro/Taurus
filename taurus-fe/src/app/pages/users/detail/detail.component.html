@@ -5,7 +5,7 @@
         [dirty]="isDirty" [state]="user.active === false ? 'Non attivo' : undefined">
         <div pageMetadata>{{ user.email }}</div>
         <div pageActions class="flex gap-2">
-            <p-button label="Invita utente" icon="pi pi-envelope" severity="secondary" outlined [disabled]="locked"
+            <p-button appTourAnchor="user.invite" label="Invita utente" icon="pi pi-envelope" severity="secondary" outlined [disabled]="locked"
                 (onClick)="sendSetupEmail()" /><p-button label="Salva utente" icon="pi pi-check" [loading]="saving"
                 [disabled]="!isDirty || locked" (onClick)="save()" />
         </div>
@@ -16,7 +16,7 @@
         detail="Solo un amministratore può modificare, invitare o eliminare un amministratore." />
     }
 
-    <app-detail-section heading="Dati utente"
+    <app-detail-section appTourAnchor="user.data" heading="Dati utente"
         description="Anagrafica, ruoli e strumenti. Si salva con «Salva utente» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Nome" forId="name" required
@@ -64,21 +64,21 @@
     </app-detail-section>
 
     @if (tenantFeatureService.calendarEnabled()) {
-    <app-detail-section heading="Eventi a cui ha partecipato"
+    <app-detail-section appTourAnchor="user.events" heading="Eventi a cui ha partecipato"
         description="Sola lettura: le presenze si modificano dalla pagina dell’evento.">
         <app-calendar-events-table [userId]="user.id" />
     </app-detail-section>
     }
 
     @if (user.id && tenantFeatureService.inventoryEnabled()) {
-    <app-inventory-assignments [userIndex]="user.id" />
+    <app-inventory-assignments appTourAnchor="user.inventory" [userIndex]="user.id" />
     @if (tenantFeatureService.inventoryLoanSheetEnabled()) {
     <app-inventory-loan-sheets [userIndex]="user.id" />
     }
     }
 
     @if (!locked) {
-    <app-danger-zone [operations]="[
+    <app-danger-zone appTourAnchor="user.dangerZone" [operations]="[
             { id: 'deactivate', title: 'Disattiva utente', consequence: 'L’utente verrà rimosso conservandone i dati.', label: 'Disattiva utente', icon: 'pi pi-user-minus' },
             { id: 'gdpr', title: 'Cancellazione GDPR', consequence: 'I dati personali dell’utente verranno eliminati definitivamente.', label: 'Elimina definitivamente (GDPR)' }
         ]" (execute)="$event === 'deactivate' ? confirmDelete() : confirmGdprDeletion()" />

@@ -72,6 +72,18 @@ export interface GuidedTourStepDefinition {
     introducedIn: number;
 }
 
+/** A step of a page guide: it stays on its page, so it has no route. */
+export type GuidedTourPageStepDefinition = Omit<GuidedTourStepDefinition, 'route'>;
+
+/** The guide of one page, opened only from «Guida di questa pagina». */
+export interface GuidedTourPageDefinition {
+    /** Route paths with their parameters, for example `/calendar/:id`. */
+    pages: string[];
+    /** Tenant features required by the route: they apply to every step. */
+    requires?: TenantFeature[];
+    steps: GuidedTourPageStepDefinition[];
+}
+
 /** A step composed for the role and the features of the session. */
 export interface GuidedTourStep {
     id: string;

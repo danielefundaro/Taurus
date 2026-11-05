@@ -88,6 +88,14 @@
                             <span>Guida introduttiva</span>
                         </button>
                     </li>
+                    @if (pageGuideAvailable) {
+                    <li role="none">
+                        <button type="button" role="menuitem" (click)="openPageGuide()">
+                            <i class="pi pi-map" aria-hidden="true"></i>
+                            <span>Guida di questa pagina</span>
+                        </button>
+                    </li>
+                    }
                 </ul>
                 }
             </div>

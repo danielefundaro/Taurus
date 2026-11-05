@@ -16,7 +16,7 @@
         </div>
 
         <div class="preview-actions">
-            <button #filtersToggle type="button" class="secondary-action filter-action" aria-controls="preview-filters"
+            <button #filtersToggle type="button" appTourAnchor="preview.filters" class="secondary-action filter-action" aria-controls="preview-filters"
                 [attr.aria-expanded]="filtersOpen" (click)="openFilters()">
                 <i class="pi pi-filter"></i>
                 <span>Filtri</span>
@@ -29,7 +29,7 @@
     </header>
 
     <div class="preview-workspace" [class.filters-open]="filtersOpen" [class.filters-closed]="!filtersOpen">
-        <aside #filtersPanel id="preview-filters" class="preview-sidebar" aria-label="Parti da includere">
+        <aside #filtersPanel id="preview-filters" appTourAnchor="preview.parts" class="preview-sidebar" aria-label="Parti da includere">
             <div class="sidebar-header">
                 <div>
                     <span class="section-label">Parti da includere</span>
@@ -73,7 +73,7 @@
 
         <main class="preview-content">
             <div class="preview-toolbar">
-                <div class="zoom-controls">
+                <div class="zoom-controls" appTourAnchor="preview.pages">
                     <button type="button" class="tool-button fit-button" [class.active]="zoom === 100"
                         (click)="fitPage()" pTooltip="Adatta alla pagina" tooltipPosition="bottom">
                         <i class="pi pi-expand"></i>
@@ -91,7 +91,7 @@
                     </button>
                 </div>
 
-                <div class="print-options" aria-label="Impostazioni di stampa">
+                <div class="print-options" appTourAnchor="preview.print" aria-label="Impostazioni di stampa">
                     <label class="print-option">
                         <span>Pagine per foglio</span>
                         <select [(ngModel)]="printPagesPerSheet" aria-label="Pagine dello spartito per foglio">
@@ -104,7 +104,7 @@
                 </div>
 
                 @if (mediaStreams.length) {
-                <div class="page-navigation">
+                <div class="page-navigation" appTourAnchor="preview.pages">
                     <button type="button" class="tool-button" aria-label="Pagina precedente" (click)="previousPage()"
                         [disabled]="currentPage <= 1">
                         <i class="pi pi-chevron-left"></i>

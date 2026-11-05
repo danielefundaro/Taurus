@@ -1006,6 +1006,23 @@ La fase 2 si rilascia in tre blocchi, ciascuno con i propri test, controllo dell
 
 Il nuovo testo di `common.help` e il passaggio di `GUIDED_TOUR_CATALOG_REVISION` a 2 entrano con il blocco A.
 
+### Precisazioni dell'implementazione della fase 2
+
+Al 2026-11-05 i tre blocchi sono implementati insieme; la verifica manuale resta da eseguire blocco per blocco.
+
+- `GuidedTourPageDefinition` ha `pages`, un elenco di percorsi, al posto di `page`: il dettaglio di un oggetto dell'inventario risponde a `/inventory/:id` e `/inventory/items/:id`, la configurazione iniziale a `/onboarding` e `/onboarding/imports/:id`. Ha anche `requires`, per lasciare senza guida le pagine di una sezione spenta.
+- Nel riconoscimento dell'URL vincono i percorsi senza parametri, così `/inventory/loan-template` non diventa il dettaglio di un oggetto.
+- La composizione delle tappe è in `guided-tour-compose.ts`, condiviso dai due cataloghi senza portare la guida introduttiva nel chunk delle pagine.
+- Un elemento è visibile quando ha larghezza e altezza, cade almeno in parte nella larghezza della finestra e non ha `visibility: hidden`. Per questo le ancore stanno su elementi a blocco: dove l'elemento era in linea, come la firma del profilo o l'avviso dei documenti legali, l'ancora è su un `div` che lo contiene.
+- L'inventario usa un'ancora calcolata, `inventory.assignments` nella vista personale e `inventory.items` in quella dell'organizzazione; lo script delle ancore legge i letterali delle espressioni `[appTourAnchor]`.
+- La tappa delle parti dell'anteprima cita anche il pulsante **Filtri**, che resta visibile quando il pannello delle parti è chiuso, e il testo dice di aprirlo.
+- La tappa dei guasti di una consegna cita anche il pulsante **Segnala un guasto**, visibile quando l'elenco dei guasti è vuoto.
+- Le tappe della scansione di un oggetto hanno un testo per chi non gestisce l'inventario, che vede solo le proprie consegne.
+- Le ancore del feed calendario sono nel componente condiviso `calendar-feed-panel`, usato dal profilo e dalla pagina dei feed degli amministratori.
+- Con l'interruttore applicativo spento anche la voce **Guida di questa pagina** scompare.
+- Il componente di sovrapposizione è lo stesso della guida introduttiva: per la guida di pagina salta il benvenuto, non salva e mostra **Indietro** dalla seconda tappa.
+- Pesi misurati il 2026-11-05 rispetto a `9316cce`: bundle iniziale +0,38 kB stimati in trasferimento (limite 1 kB); chunk del catalogo delle pagine 7,8 kB compressi (limite 20 kB); chunk della guida introduttiva da 7,46 a 7,61 kB compressi, per la logica della guida di pagina nel componente condiviso.
+
 ## Piano di rilascio
 
 ### Fase 1 — Guida introduttiva

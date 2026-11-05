@@ -21,8 +21,10 @@ import { ConfiguratorComponent } from '../configurator/configurator.component';
 export class TopbarComponent implements OnInit {
     items!: MenuItem[];
 
-    /** Help menu: the guided tour today, the page guides and the news of the next phases. */
+    /** Help menu: the guided tour, the guide of the current page and, in a next phase, the news. */
     protected helpMenuOpen = false;
+    /** Shown once the catalog of the page guides says the current page has one for the session. */
+    protected pageGuideAvailable = false;
 
     @ViewChild('help') private help?: ElementRef<HTMLElement>;
 
@@ -70,12 +72,20 @@ export class TopbarComponent implements OnInit {
 
     protected toggleHelpMenu(): void {
         this.helpMenuOpen = !this.helpMenuOpen;
-        if (this.helpMenuOpen) setTimeout(() => this.help?.nativeElement.querySelector<HTMLElement>('[role="menuitem"]')?.focus());
+        if (!this.helpMenuOpen) return;
+        this.pageGuideAvailable = false;
+        this.guidedTour.pageGuideAvailable().then((available) => (this.pageGuideAvailable = available && this.helpMenuOpen));
+        setTimeout(() => this.help?.nativeElement.querySelector<HTMLElement>('[role="menuitem"]')?.focus());
     }
 
     protected openGuidedTour(): void {
         this.helpMenuOpen = false;
         this.guidedTour.open();
+    }
+
+    protected openPageGuide(): void {
+        this.helpMenuOpen = false;
+        this.guidedTour.openPage();
     }
 
     @HostListener('document:click', ['$event'])

@@ -7,7 +7,7 @@
         <div pageMetadata>{{ tenant.code }}</div>
         <div pageActions class="flex gap-2">
             @if (canConfigureData) {
-                <p-button label="Configura dati" icon="pi pi-file-import" severity="secondary" [outlined]="true" routerLink="/onboarding" />
+                <p-button appTourAnchor="tenant.configureData" label="Configura dati" icon="pi pi-file-import" severity="secondary" [outlined]="true" routerLink="/onboarding" />
             }
             <p-button label="Salva tenant" icon="pi pi-check" [loading]="saving" [disabled]="!isDirty || countryInvalid || logoUrlInvalid || timeZoneInvalid" (onClick)="save()" />
         </div>
@@ -21,7 +21,7 @@
         />
     }
 
-    <app-detail-section heading="Dati tenant" description="Anagrafica, limiti e sede. Si salva con «Salva tenant» in alto." [dirty]="isDirty">
+    <app-detail-section appTourAnchor="tenant.data" heading="Dati tenant" description="Anagrafica, limiti e sede. Si salva con «Salva tenant» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Nome" forId="name" required [error]="tenant.name?.trim() ? undefined : 'Inserisci il nome del tenant.'">
                 <input pInputText id="name" type="text" [(ngModel)]="tenant!.name" (ngModelChange)="isDirty = true" />
@@ -83,7 +83,7 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section heading="Funzionalità disponibili" description="Disponibilità dei moduli per gli utenti di questo tenant. I dati restano conservati quando un modulo viene disattivato." [dirty]="isDirty">
+    <app-detail-section appTourAnchor="tenant.features" heading="Funzionalità disponibili" description="Disponibilità dei moduli per gli utenti di questo tenant. I dati restano conservati quando un modulo viene disattivato." [dirty]="isDirty">
         @for (group of featureGroups; track group.heading) {
             <h3 class="text-base font-semibold mb-1" [class.mt-0]="$first" [class.mt-8]="!$first">{{ group.heading }}</h3>
             @if (group.description) {

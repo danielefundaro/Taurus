@@ -4,7 +4,7 @@
     actionLabel="Esci" (action)="logout()" />
 }
 <app-page-header heading="Tenant" appTourAnchor="tenants.header" [subtitle]="totalRecords + (totalRecords === 1 ? ' tenant' : ' tenant')">
-    <div pageActions><p-button label="Nuovo tenant" icon="pi pi-plus" (onClick)="addNew()" /></div>
+    <div pageActions appTourAnchor="tenants.create"><p-button label="Nuovo tenant" icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
 
 <app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
@@ -14,7 +14,7 @@
     deleteLabel="Elimina istanze selezionate" (toggleAll)="toggleSelectAll(tenants)" (clear)="selectedTenants = []"
     (delete)="deleteSelectedElements()" />
 
-<div class="card !p-0 overflow-hidden">
+<div class="card !p-0 overflow-hidden" appTourAnchor="tenants.list">
     <p-dataview [value]="tenants" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
         paginatorPosition="bottom" [showCurrentPageReport]="true"

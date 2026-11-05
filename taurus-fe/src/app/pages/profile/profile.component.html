@@ -18,7 +18,7 @@
         </div>
     </div>
 
-    <app-detail-section heading="Informazioni personali"
+    <app-detail-section appTourAnchor="profile.personal" heading="Informazioni personali"
         description="Nome, cognome, data di nascita ed email. Si salvano con «Salva profilo» in alto." [dirty]="isDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Nome" forId="firstName">
@@ -45,21 +45,21 @@
     </app-detail-section>
 
     @if (calendarEnabled()) {
-    <app-detail-section heading="Eventi a cui hai partecipato"
+    <app-detail-section appTourAnchor="profile.events" heading="Eventi a cui hai partecipato"
         description="Sola lettura: le presenze si registrano dalla pagina dell’evento.">
         <app-calendar-events-table />
     </app-detail-section>
     }
 
     @if (calendarFeedVisible) {
-    <app-detail-section heading="Calendario esterno"
+    <app-detail-section appTourAnchor="profile.calendarFeed" heading="Calendario esterno"
         description="Pubblica gli eventi che puoi consultare come calendario esterno in sola lettura.">
         <app-calendar-feed-panel />
     </app-detail-section>
     }
 
     @if (notificationPreferencesEnabled()) {
-    <app-detail-section heading="Notifiche"
+    <app-detail-section appTourAnchor="profile.notifications" heading="Notifiche"
         description="Scegli quali aggiornamenti ricevere, su quali canali e in quali orari."
         [dirty]="notificationPreferencesDirty">
         <div sectionActions>
@@ -207,11 +207,11 @@
     }
 
     @if (inventorySignatureEnabled()) {
-    <app-signature-method-settings (configureApp)="configureOTP()" />
+    <div appTourAnchor="profile.signature"><app-signature-method-settings (configureApp)="configureOTP()" /></div>
     }
 
     @if (guidedTour.tour()?.enabled) {
-    <app-detail-section heading="Guida" description="Ti mostra cosa puoi fare con il tuo ruolo.">
+    <app-detail-section appTourAnchor="profile.guide" heading="Guida" description="Ti mostra cosa puoi fare con il tuo ruolo.">
         <div class="flex flex-col gap-4">
             <div class="flex items-center justify-between gap-4 max-w-md">
                 <label for="guidedTourAutoStart">Avvia la guida automaticamente</label>
@@ -229,7 +229,7 @@
     </app-detail-section>
     }
 
-    <app-detail-section heading="Sicurezza" description="Gestisci la password e l’autenticazione a due fattori.">
+    <app-detail-section appTourAnchor="profile.security" heading="Sicurezza" description="Gestisci la password e l’autenticazione a due fattori.">
         <div class="flex flex-col sm:flex-row gap-3">
             <p-button label="Cambia password" icon="pi pi-lock" severity="secondary" (onClick)="changePassword()" />
             <p-button label="Configura autenticatore OTP" icon="pi pi-shield" severity="secondary"
@@ -243,7 +243,7 @@
         </div>
     </app-detail-section>
 
-    <app-danger-zone [operations]="[
+    <app-danger-zone appTourAnchor="profile.dangerZone" [operations]="[
             { id: 'deactivate', title: 'Disattiva account', consequence: 'I dati verranno conservati per un eventuale ripristino.', label: 'Disattiva account', icon: 'pi pi-user-minus' },
             { id: 'gdpr', title: 'Cancellazione GDPR', consequence: 'L’account e i dati personali verranno eliminati definitivamente.', label: 'Elimina definitivamente (GDPR)' }
         ]" (execute)="$event === 'deactivate' ? confirmDeleteAccount() : confirmGdprDeletion()" />

@@ -31,7 +31,7 @@
     @if (eventPreparationEnabled()) {
     <div class="sr-only" aria-live="polite">{{ preparationAnnouncement }}</div>
 
-    <app-detail-section id="preparation" heading="Preparazione operativa"
+    <app-detail-section id="preparation" appTourAnchor="event.preparation" heading="Preparazione operativa"
         description="Un indicatore di prontezza: non modifica lo stato, non blocca lo svolgimento e non rappresenta l’esito dell’evento."
         [dirty]="isDirtyPreparation"
         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.TREASURER]">
@@ -70,7 +70,7 @@
     }
 
     @if (preparation?.configuration?.programRequired) {
-    <app-detail-section id="preparation-program" heading="Programma" [count]="preparation?.program?.length"
+    <app-detail-section id="preparation-program" appTourAnchor="event.program" heading="Programma" [count]="preparation?.program?.length"
         [description]="canManageProgram ? 'Aggiungi le tracce una alla volta o collega un album; riordina trascinando o con i pulsanti di ogni brano.' : 'La scaletta dell’evento, con gli spartiti da consultare.'"
         [dirty]="isDirtyProgram"
         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]">
@@ -84,7 +84,7 @@
     }
 
     @if (preparation?.configuration?.materialsRequired) {
-    <app-detail-section id="preparation-materials" heading="Materiali" [count]="preparation?.materials?.length"
+    <app-detail-section id="preparation-materials" appTourAnchor="event.materials" heading="Materiali" [count]="preparation?.materials?.length"
         description="Oggetti e assegnazioni necessari per questa singola occorrenza." [dirty]="isDirtyMaterials"
         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]">
         <app-preparation-materials [eventId]="event.id" [materials]="preparation?.materials ?? []"
@@ -97,7 +97,7 @@
     }
     }
 
-    <app-detail-section id="event-data"
+    <app-detail-section id="event-data" appTourAnchor="event.data"
         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
         heading="Dati evento" description="Pianificazione, luogo e compenso. Si salva con «Salva evento» in alto."
         [dirty]="isDirtyForm">
@@ -230,7 +230,7 @@
     </app-detail-section>
 
     @if (financeEnabled()) {
-    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]" heading="Costi"
+    <app-detail-section appTourAnchor="event.costs" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]" heading="Costi"
         [count]="event.costs?.length"
         description="Voci di costo previste per l’evento. Si salvano con «Salva evento» in alto." [dirty]="isDirtyForm">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
@@ -292,7 +292,7 @@
     }
 
     @if (financeEnabled() && economicSummary) {
-    <app-detail-section id="preparation-finance"
+    <app-detail-section id="preparation-finance" appTourAnchor="event.finance"
         *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.TREASURER]" heading="Consuntivo economico"
         description="Movimenti effettivamente associati all’evento.">
         <div sectionActions class="flex flex-wrap gap-2">
@@ -329,7 +329,7 @@
     </app-detail-section>
     }
 
-    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]" heading="La tua disponibilità"
+    <app-detail-section appTourAnchor="event.myAvailability" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]" heading="La tua disponibilità"
         description="La risposta si registra subito: è un’operazione autonoma.">
         <div class="flex flex-col gap-3">
             @if (event.seriesId) {
@@ -385,7 +385,7 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section id="availability" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
+    <app-detail-section id="availability" appTourAnchor="event.availability" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
         heading="Utenti disponibili" [count]="event.availableUsers?.length">
         <p-table [value]="event.availableUsers ?? []" [rowHover]="true">
             <ng-template #header>
@@ -418,7 +418,7 @@
         </p-table>
     </app-detail-section>
 
-    <app-detail-section *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
+    <app-detail-section appTourAnchor="event.availability" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST, RolesEnum.USER, RolesEnum.USER_EXTERNAL]"
         heading="Utenti non disponibili" [count]="event.unavailableUsers?.length">
         <p-table [value]="event.unavailableUsers ?? []" [rowHover]="true">
             <ng-template #header>
@@ -451,7 +451,7 @@
         </p-table>
     </app-detail-section>
 
-    <app-detail-section id="presence" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]" heading="Gestisci presenze"
+    <app-detail-section id="presence" appTourAnchor="event.presence" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD]" heading="Gestisci presenze"
         [count]="event.presentUsers?.length"
         description="Le presenze si salvano per conto proprio con «Salva presenze»." [dirty]="isDirtyPresence">
         <div sectionActions>

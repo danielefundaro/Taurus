@@ -1,10 +1,10 @@
 <p-confirmdialog />
 <app-page-header heading="Album" [subtitle]="totalRecords + (totalRecords === 1 ? ' album' : ' album')">
-    <div pageActions *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]"><p-button
+    <div pageActions appTourAnchor="albums.create" *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]"><p-button
             label="Nuovo album" icon="pi pi-plus" (onClick)="addNew()" /></div>
 </app-page-header>
 
-<app-list-toolbar [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
+<app-list-toolbar appTourAnchor="albums.toolbar" [search]="searchTerm" [sortOptions]="sortOptions" [layout]="layout"
     (searchChange)="onSearchChange($event)" (sortChange)="onSortValue($event)"
     (layoutChange)="onLayoutChange($event)" />
 <app-selection-bar *hasRoles="[RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.BOARD, RolesEnum.ARCHIVIST]"

@@ -1,16 +1,18 @@
 /**
- * Confronta le ancore citate dal catalogo della guida introduttiva con quelle dichiarate nell'interfaccia e fallisce
- * se una manca: protegge dalla deriva più probabile, una pagina rifatta che perde l'ancora della guida.
+ * Confronta le ancore citate dai cataloghi della guida, quello introduttivo e quello delle guide di pagina, con quelle
+ * dichiarate nell'interfaccia e fallisce se una manca: protegge dalla deriva più probabile, una pagina rifatta che
+ * perde l'ancora della guida.
  *
- * Le ancore si dichiarano nei template con `appTourAnchor="id"` (o `[appTourAnchor]="'id'"`) e nel modello del
- * menu con `tourAnchor: 'id'`. Node 22, senza dipendenze.
+ * Le ancore si dichiarano nei template con `appTourAnchor="id"` o con un'espressione come
+ * `[appTourAnchor]="vista ? 'a' : 'b'"`, di cui contano tutti i letterali, e nel modello del menu con
+ * `tourAnchor: 'id'`. Node 22, senza dipendenze.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const catalogPath = join(root, 'src/app/constants/guided-tour-steps.ts');
+const catalogPaths = ['guided-tour-steps.ts', 'guided-tour-pages.ts'].map((name) => join(root, 'src/app/constants', name));
 const appPath = join(root, 'src/app');
 
 /** Ancore citate dal catalogo, in `anchors` e `mobileAnchors`. */
@@ -24,8 +26,13 @@ export function catalogAnchors(source) {
 
 /** Ancore dichiarate da un template HTML o da un sorgente TypeScript. */
 export function declaredAnchors(source, fileName) {
-    const pattern = fileName.endsWith('.html') ? /\[?appTourAnchor\]?\s*=\s*"'?([^"']+)'?"/g : /\btourAnchor\s*:\s*['"]([^'"]+)['"]/g;
-    return new Set(Array.from(source.matchAll(pattern), (match) => match[1]));
+    if (!fileName.endsWith('.html')) return new Set(Array.from(source.matchAll(/\btourAnchor\s*:\s*['"]([^'"]+)['"]/g), (match) => match[1]));
+    const anchors = new Set();
+    for (const match of source.matchAll(/(\[?)appTourAnchor\]?\s*=\s*"([^"]*)"/g)) {
+        if (!match[1]) anchors.add(match[2]);
+        else for (const literal of match[2].matchAll(/'([^']+)'/g)) anchors.add(literal[1]);
+    }
+    return anchors;
 }
 
 export function missingAnchors(cited, declared) {
@@ -36,12 +43,12 @@ function* sources(directory) {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
         const path = join(directory, entry.name);
         if (entry.isDirectory()) yield* sources(path);
-        else if ((entry.name.endsWith('.html') || entry.name.endsWith('.ts')) && !entry.name.endsWith('.spec.ts') && path !== catalogPath) yield path;
+        else if ((entry.name.endsWith('.html') || entry.name.endsWith('.ts')) && !entry.name.endsWith('.spec.ts') && !catalogPaths.includes(path)) yield path;
     }
 }
 
 function main() {
-    const cited = catalogAnchors(readFileSync(catalogPath, 'utf8'));
+    const cited = new Set(catalogPaths.flatMap((path) => [...catalogAnchors(readFileSync(path, 'utf8'))]));
     const declared = new Map();
     for (const path of sources(appPath)) {
         for (const anchor of declaredAnchors(readFileSync(path, 'utf8'), path)) {

@@ -15,7 +15,7 @@
                 severity="info" /></span>
         <div pageActions>
             @if (inventoryQrEnabled() && value.outstandingQuantity > 0) {
-            <p-button label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="reportIssue()" />
+            <p-button appTourAnchor="assignment.reportIssue" label="Segnala guasto" icon="pi pi-wrench" severity="warn" (onClick)="reportIssue()" />
             }
         </div>
     </app-page-header>
@@ -32,7 +32,7 @@
         </div>
     </div>
 
-    <app-detail-section heading="Dati della consegna"
+    <app-detail-section appTourAnchor="assignment.data" heading="Dati della consegna"
         description="Sola lettura: i dati sono quelli registrati dall’amministratore.">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
             <div>
@@ -95,7 +95,7 @@
         }
     </app-detail-section>
 
-    <app-detail-section heading="Presa visione" headingId="presa-visione"
+    <app-detail-section appTourAnchor="assignment.decision" heading="Presa visione" headingId="presa-visione"
         description="La conferma è un’operazione autonoma e definitiva.">
         @if (value.decision) {
         <div class="flex items-center gap-3">
@@ -129,7 +129,7 @@
         }
     </app-detail-section>
 
-    <app-detail-section heading="Riconsegna" headingId="riconsegna" [count]="value.returns.length"
+    <app-detail-section appTourAnchor="assignment.return" heading="Riconsegna" headingId="riconsegna" [count]="value.returns.length"
         description="Ogni riconsegna si avvia e si documenta per conto proprio.">
         @if (returnableQuantity > 0) {
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
@@ -193,7 +193,7 @@
     </app-detail-section>
 
     @if (inventoryQrEnabled()) {
-    <app-inventory-issue-list [assignmentId]="value.id" [totalQuantity]="value.outstandingQuantity"
+    <app-inventory-issue-list appTourAnchor="assignment.issues" [assignmentId]="value.id" [totalQuantity]="value.outstandingQuantity"
         headingId="segnalazioni" />
     }
     }

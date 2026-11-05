@@ -55,7 +55,7 @@ describe('GuidedTourService', () => {
                 { provide: Router, useValue: router },
                 { provide: KeycloakService, useValue: { currentUserId: 'user-1', currentUserTenantCode: 'banda', currentUserRole: RoleEnums.USER } },
                 { provide: TenantStatusService, useValue: { load: () => of({ tenantCode: 'banda', provisioned }) } },
-                { provide: TenantFeatureService, useValue: { loaded: () => featuresLoaded } },
+                { provide: TenantFeatureService, useValue: { loaded: () => featuresLoaded, isEnabled: () => true } },
                 { provide: ToastService, useValue: toast }
             ]
         });
@@ -325,4 +325,43 @@ describe('GuidedTourService', () => {
         http.expectNone(`${url}/progress`);
         expect(service.tour()?.progress).toBeNull();
     }));
+
+    describe('page guide', () => {
+        it('is offered only on a page with steps for the role and the features', async () => {
+            router.url = '/profile?tab=1';
+            expect(await service.pageGuideAvailable()).toBeTrue();
+            router.url = '/finance';
+            expect(await service.pageGuideAvailable()).toBeFalse();
+            router.url = '/notfound';
+            expect(await service.pageGuideAvailable()).toBeFalse();
+        });
+
+        it('opens without writing on the server and closes when the page changes', async () => {
+            router.url = '/profile';
+            await service.openPage();
+            expect(service.session()?.presentation).toBe('page');
+            expect(service.session()?.steps?.[0].id).toBe('page.profile.personal');
+
+            service.open();
+            expect(service.session()?.presentation).toBe('page');
+
+            router.url = '/';
+            router.events.next(new NavigationEnd(1, '/', '/'));
+            expect(service.session()).toBeNull();
+        });
+
+        it('says when the page has no guide', async () => {
+            router.url = '/notfound';
+            await service.openPage();
+            expect(service.session()).toBeNull();
+            expect(toast.info).toHaveBeenCalled();
+        });
+
+        it('stays closed with the switch of the application off', async () => {
+            service.load().subscribe();
+            http.expectOne(url).flush(tour({ enabled: false }));
+            router.url = '/profile';
+            expect(await service.pageGuideAvailable()).toBeFalse();
+        });
+    });
 });

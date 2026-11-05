@@ -57,9 +57,13 @@
             <span>{{ index() + 1 }} di {{ steps().length }}</span>
         </div>
         <footer class="guided-tour__footer">
+            @if (pageGuide()) {
+            <p-button label="Chiudi" [link]="true" size="small" (onClick)="tour.closePage()" />
+            } @else {
             <p-button label="Salta la guida" [link]="true" size="small" (onClick)="tour.skip()" />
+            }
             <div class="guided-tour__navigation">
-                @if (index() > 1) {
+                @if (canGoBack()) {
                 <p-button label="Indietro" severity="secondary" [outlined]="true" (onClick)="back()" />
                 }
                 <p-button [label]="last() ? 'Fine' : 'Avanti'" data-tour-primary (onClick)="next()" />

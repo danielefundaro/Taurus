@@ -1,11 +1,12 @@
-import { GuidedTourStep, GuidedTourStepDefinition, GuidedTourText, TenantFeature } from '../module';
+import { GuidedTourStep, GuidedTourStepDefinition, TenantFeature } from '../module';
+import { composeSteps } from './guided-tour-compose';
 import { RoleEnums } from './role.enums';
 
 // Kept out of `constants/index.ts`: the catalog belongs to the deferred chunk of the guided tour, not to the
 // initial bundle. Texts and paths follow docs/guided-tour-spec.md.
 
-/** Raised when a step is added or changes meaning: it is saved with the progress of each role. */
-export const GUIDED_TOUR_CATALOG_REVISION = 1;
+/** Raised when a step is added or changes meaning: it is saved with the progress of each role. 2: the page guides. */
+export const GUIDED_TOUR_CATALOG_REVISION = 2;
 
 /** No path may exceed it, welcome included. */
 export const GUIDED_TOUR_MAX_STEPS = 10;
@@ -267,25 +268,12 @@ export const GUIDED_TOUR_STEPS: readonly GuidedTourStepDefinition[] = [
         anchors: ['topbar.help'],
         icon: 'pi pi-question-circle',
         title: 'Quando ti serve',
-        body: 'Riapri la guida quando vuoi da qui. Se preferisci che non parta da sola, disattivala dal profilo.',
+        body: 'Riapri la guida quando vuoi da qui; in ogni pagina trovi anche la guida di quella pagina. Se preferisci che non parta da sola, disattivala dal profilo.',
         introducedIn: 1
     }
 ];
 
 /** The path of the role with the features of the tenant: evaluated once, when the tour opens. Sections off are left out. */
 export function composeGuidedTour(role: RoleEnums, isEnabled: (feature: TenantFeature) => boolean): GuidedTourStep[] {
-    return GUIDED_TOUR_STEPS.filter((step) => step.roles.includes(role) && (step.requires ?? []).every(isEnabled)).map((step) => ({
-        id: step.id,
-        route: step.route,
-        anchors: step.anchors ?? [],
-        mobileAnchors: step.mobileAnchors ?? step.anchors ?? [],
-        icon: step.icon,
-        title: step.title,
-        body: textFor(step.body, role),
-        points: (step.points ?? []).filter((point) => (!point.roles || point.roles.includes(role)) && (point.requires ?? []).every(isEnabled)).map((point) => point.text)
-    }));
-}
-
-function textFor(text: GuidedTourText, role: RoleEnums): string {
-    return typeof text === 'string' ? text : (text[role] ?? text.default);
+    return composeSteps(GUIDED_TOUR_STEPS, role, isEnabled);
 }
