@@ -76,6 +76,7 @@ abstract class TenantAwareResourceIT {
         tenant.setCode(TENANT_CODE);
         tenant.setActive(true);
         tenant.setFinanceEnabled(true);
+        tenant.setCalendarEnabled(true);
         tenant.setInventoryEnabled(true);
         tenant.setNotificationPreferencesEnabled(true);
         tenant.setDeleted(false);

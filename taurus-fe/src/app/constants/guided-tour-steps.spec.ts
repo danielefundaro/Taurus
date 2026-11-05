@@ -24,12 +24,12 @@ describe('Guided tour catalog', () => {
 
     it('composes the path of every role with all the features off', () => {
         expect(ids(RoleEnums.SUPER_ADMIN, allOff)).toEqual([...START, 'superAdmin.tenants', 'superAdmin.legalDocuments', 'admin.users', 'admin.tools', ...END]);
-        expect(ids(RoleEnums.ADMIN, allOff)).toEqual([...START, 'admin.users', 'admin.calendar', 'admin.tools', ...END]);
-        expect(ids(RoleEnums.BOARD, allOff)).toEqual([...START, 'admin.users', 'admin.calendar', ...END]);
+        expect(ids(RoleEnums.ADMIN, allOff)).toEqual([...START, 'admin.users', 'admin.tools', ...END]);
+        expect(ids(RoleEnums.BOARD, allOff)).toEqual([...START, 'admin.users', ...END]);
         expect(ids(RoleEnums.TREASURER, allOff)).toEqual([...START, ...END]);
-        expect(ids(RoleEnums.ARCHIVIST, allOff)).toEqual([...START, 'catalog.manage', 'catalog.instruments', 'calendar.program', ...END]);
-        expect(ids(RoleEnums.USER, allOff)).toEqual([...START, 'calendar.availability', 'catalog.tracks', ...END]);
-        expect(ids(RoleEnums.USER_EXTERNAL, allOff)).toEqual([...START, 'calendar.availability', 'catalog.tracks', ...END]);
+        expect(ids(RoleEnums.ARCHIVIST, allOff)).toEqual([...START, 'catalog.manage', 'catalog.instruments', ...END]);
+        expect(ids(RoleEnums.USER, allOff)).toEqual([...START, 'catalog.tracks', ...END]);
+        expect(ids(RoleEnums.USER_EXTERNAL, allOff)).toEqual([...START, 'catalog.tracks', ...END]);
     });
 
     it('never shows a section that is off', () => {
@@ -40,6 +40,17 @@ describe('Guided tour catalog', () => {
                 .withContext(role)
                 .toEqual([]);
         }
+    });
+
+    it('leaves the steps of the events out without the calendar', () => {
+        const allButCalendar = (feature: TenantFeature) => feature !== TenantFeature.CALENDAR;
+
+        for (const role of ROLES) {
+            expect(ids(role, allButCalendar).filter((id) => id.startsWith('calendar.') || id === 'admin.calendar' || id === 'finance.events'))
+                .withContext(role)
+                .toEqual([]);
+        }
+        expect(ids(RoleEnums.TREASURER, allButCalendar)).toEqual([...START, 'finance.overview', 'finance.movements', ...END]);
     });
 
     it('keeps the points whose features are on', () => {

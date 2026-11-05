@@ -188,6 +188,50 @@ class FinanceServiceGuardsTest {
     }
 
     @Test
+    void keepsTheEventOfAMovementWithoutTheCalendar() {
+        CalendarEvents concert = event(70L, "Concerto di Natale", LocalDate.of(2026, 12, 20), null, null);
+        FinancialMovement movement = movement(30L);
+        movement.setEvent(concert);
+        movement.setEventNameSnapshot("Concerto di Natale");
+        FinancialAccount account = account(10L, "Cassa");
+        when(movementRepository.findByIdAndDeletedFalse(30L)).thenReturn(Optional.of(movement));
+        when(accountRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(account));
+        when(yearRepository.findByYearAndDeletedFalse(2026)).thenReturn(Optional.of(year(2026, AccountingYearStatus.OPEN)));
+        when(movementRepository.save(any(FinancialMovement.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(accountRepository.findAllByDeletedFalseOrderByDisplayOrderAscNameAsc()).thenReturn(List.of(account));
+        lenient().when(yearRepository.findAllByDeletedFalseOrderByYearAsc()).thenReturn(List.of());
+        service.setTenantFeatureService(calendar(false));
+
+        // The client without the calendar sends no event: the link stays as it was.
+        service.updateMovement(30L, movementRequest(0L), authentication());
+
+        assertThat(movement.getEvent()).isSameAs(concert);
+        assertThat(movement.getEventNameSnapshot()).isEqualTo("Concerto di Natale");
+        verify(eventRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    void leavesTheEventsOutOfTheYearWithoutTheCalendar() {
+        AccountingYear year = year(2026, AccountingYearStatus.OPEN);
+        when(yearRepository.findByYearAndDeletedFalse(2026)).thenReturn(Optional.of(year));
+        when(movementRepository.findAllByDeletedFalseAndBookingDateBetween(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
+            .thenReturn(List.of());
+        when(accountRepository.findAllByDeletedFalseOrderByDisplayOrderAscNameAsc()).thenReturn(List.of(account(10L, "Cassa")));
+        service.setTenantFeatureService(calendar(false));
+
+        YearSummaryDTO summary = service.yearSummary(2026, authentication());
+
+        assertThat(summary.openEvents()).isEmpty();
+        verify(eventRepository, never()).findAll();
+    }
+
+    private static com.fundaro.zodiac.taurus.service.TenantFeatureService calendar(boolean enabled) {
+        var features = org.mockito.Mockito.mock(com.fundaro.zodiac.taurus.service.TenantFeatureService.class);
+        when(features.isEnabled(com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature.CALENDAR)).thenReturn(enabled);
+        return features;
+    }
+
+    @Test
     void replaysATransferInsteadOfMovingTheMoneyTwice() {
         UUID requestKey = UUID.randomUUID();
         UUID group = UUID.randomUUID();

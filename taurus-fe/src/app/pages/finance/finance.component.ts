@@ -1,9 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
-import { first, forkJoin } from 'rxjs';
+import { first, forkJoin, of } from 'rxjs';
 import { AccountDialogResult, FinanceAccountDialogComponent } from '../../dialogs/finance-account-dialog/finance-account-dialog.component';
 import { FinanceCategoryDialogComponent } from '../../dialogs/finance-category-dialog/finance-category-dialog.component';
 import { EventBudgetResult, FinanceEventBudgetDialogComponent } from '../../dialogs/finance-event-budget-dialog/finance-event-budget-dialog.component';
@@ -26,7 +26,7 @@ import {
     FinancialMovementNature,
     FinancialTransferRequest
 } from '../../module';
-import { ConfirmService, FinanceService, MovementFilters, ReportFormat, ToastService, toIsoDate } from '../../service';
+import { ConfirmService, FinanceService, MovementFilters, ReportFormat, TenantFeatureService, ToastService, toIsoDate } from '../../service';
 
 /** Chiave di idempotenza del salvataggio: un retry non deve creare un secondo movimento. */
 const newRequestKey = (): string =>
@@ -111,6 +111,8 @@ export class FinanceComponent implements OnInit {
         { label: 'Saldato', value: 'SETTLED' }
     ];
 
+    /** Without the calendar the economics of the events are not shown and no movement can be linked to an event. */
+    protected readonly calendarEnabled = inject(TenantFeatureService).calendarEnabled;
     private movementLazyEvent: TableLazyLoadEvent = { first: 0, rows: 20, sortField: 'bookingDate', sortOrder: -1 };
     private eventLazyEvent: TableLazyLoadEvent = { first: 0, rows: 12, sortField: 'startDate', sortOrder: -1 };
     private handledRouteAction = false;
@@ -241,6 +243,7 @@ export class FinanceComponent implements OnInit {
                 accounts: this.accounts,
                 categories: this.categories,
                 events: this.eventOptions,
+                eventsEnabled: this.calendarEnabled(),
                 eventId,
                 direction
             },
@@ -652,7 +655,7 @@ export class FinanceComponent implements OnInit {
             dashboard: this.financeService.getDashboard(toIsoDate(this.dashboardFrom), toIsoDate(this.dashboardTo)),
             accounts: this.financeService.getAccounts(true),
             categories: this.financeService.getCategories(true),
-            eventOptions: this.financeService.getEvents({ page: 0, size: 100 }),
+            eventOptions: this.calendarEnabled() ? this.financeService.getEvents({ page: 0, size: 100 }) : of({ content: [] as FinancialEventSummary[] }),
             years: this.financeService.getYears()
         })
             .pipe(first())
@@ -671,7 +674,8 @@ export class FinanceComponent implements OnInit {
         this.handledRouteAction = true;
         const params = this.route.snapshot.queryParamMap;
         const tab = params.get('tab');
-        if (tab && ['movements', 'accounts', 'categories', 'events', 'years'].includes(tab)) this.activeTab = tab;
+        if (tab && ['movements', 'accounts', 'categories', 'years'].includes(tab)) this.activeTab = tab;
+        if (tab === 'events' && this.calendarEnabled()) this.activeTab = tab;
 
         const eventId = Number(params.get('eventId'));
         if (params.get('action') === 'new') {
@@ -722,6 +726,7 @@ export class FinanceComponent implements OnInit {
 
     private loadEvents(event: TableLazyLoadEvent): void {
         this.eventLazyEvent = event;
+        if (!this.calendarEnabled()) return;
         const rows = event.rows ?? 12;
         const page = Math.floor((event.first ?? 0) / rows);
         const sortField = typeof event.sortField === 'string' ? event.sortField : 'startDate';

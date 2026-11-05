@@ -406,6 +406,7 @@ class EventPreparationIT {
         tenant.setCode(code);
         tenant.setActive(true);
         tenant.setFinanceEnabled(true);
+        tenant.setCalendarEnabled(true);
         tenant.setInventoryEnabled(true);
         tenant.setTimeZone("Europe/Rome");
         tenant.setDeleted(false);
@@ -421,7 +422,11 @@ class EventPreparationIT {
     }
 
     private void enableFeatures(Set<TenantFeature> enabled) {
-        when(tenantFeatureService.isEnabled(any(TenantFeature.class))).thenAnswer(invocation -> enabled.contains(invocation.getArgument(0, TenantFeature.class)));
+        when(tenantFeatureService.isEnabled(any(TenantFeature.class))).thenAnswer(invocation -> {
+            // The calendar is the base of these scenarios: it stays on unless a test says otherwise.
+            TenantFeature feature = invocation.getArgument(0, TenantFeature.class);
+            return feature == TenantFeature.CALENDAR || enabled.contains(feature);
+        });
     }
 
     private void sql(String tenant, String statement) {

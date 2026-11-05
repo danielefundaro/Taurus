@@ -213,6 +213,7 @@ public class NoticesServiceImpl extends CommonServiceImpl<Notices, NoticesDTO, N
         List<String> disabled = new ArrayList<>();
         if (!features.financeEnabled()) disabled.add("FINANCE");
         if (!features.inventoryEnabled()) disabled.add("INVENTORY");
+        if (!features.calendarEnabled()) disabled.add("CALENDAR");
         if (disabled.isEmpty()) disabled.add("__NONE__");
         return disabled;
     }

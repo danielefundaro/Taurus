@@ -21,10 +21,19 @@ class NotificationFeaturePolicyTest {
     @Test
     void tiesTheMaterialNoticesOfThePreparationToTheInventory() {
         assertThat(policy.requiredFeatures(NotificationSource.CALENDAR, "EVENT_PREPARATION", "MATERIALS_UPDATED"))
-            .containsExactlyInAnyOrder(TenantFeature.EVENT_PREPARATION, TenantFeature.INVENTORY);
+            .containsExactlyInAnyOrder(TenantFeature.CALENDAR, TenantFeature.EVENT_PREPARATION, TenantFeature.INVENTORY);
         assertThat(policy.requiredFeatures(NotificationSource.CALENDAR, "EVENT_PREPARATION", "MATERIAL_CONFIRMATION_INVALIDATED"))
-            .containsExactlyInAnyOrder(TenantFeature.EVENT_PREPARATION, TenantFeature.INVENTORY);
+            .containsExactlyInAnyOrder(TenantFeature.CALENDAR, TenantFeature.EVENT_PREPARATION, TenantFeature.INVENTORY);
         assertThat(policy.requiredFeatures(NotificationSource.CALENDAR, "EVENT_PREPARATION", "PROGRAM_UPDATED"))
-            .containsExactly(TenantFeature.EVENT_PREPARATION);
+            .containsExactlyInAnyOrder(TenantFeature.CALENDAR, TenantFeature.EVENT_PREPARATION);
+    }
+
+    @Test
+    void tiesEveryNoticeOfTheEventsToTheCalendar() {
+        assertThat(policy.requiredFeatures(NotificationSource.CALENDAR, "EVENTO", "NUOVO_EVENTO"))
+            .containsExactly(TenantFeature.CALENDAR);
+        assertThat(policy.requiredFeatures(NotificationSource.CALENDAR, "EVENT_REMINDER", null))
+            .containsExactly(TenantFeature.CALENDAR);
+        assertThat(policy.requiredFeatures(NotificationSource.CONTENT, "TRACCIA", "NUOVA_TRACCIA")).isEmpty();
     }
 }

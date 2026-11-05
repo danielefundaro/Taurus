@@ -37,6 +37,7 @@
                 'it-IT' }}</strong>
             <small>{{ dashboard.unreconciledCount }} movimenti da verificare</small>
         </div>
+        @if (calendarEnabled()) {
         <div class="summary-card income">
             <span>Da incassare dagli eventi</span>
             <strong>{{ dashboard.eventsToCollect | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
@@ -46,6 +47,7 @@
             <span>Da pagare per gli eventi</span>
             <strong>{{ dashboard.eventsToPay | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
         </div>
+        }
         <div class="summary-card">
             <span>Ultimo riporto</span>
             @if (dashboard.lastRollover) {
@@ -58,7 +60,7 @@
         </div>
     </div>
 
-    @if (dashboard.openEvents.length) {
+    @if (calendarEnabled() && dashboard.openEvents.length) {
     <p-table [value]="dashboard.openEvents" dataKey="eventId" styleClass="open-events">
         <ng-template #caption>Posizioni aperte degli eventi</ng-template>
         <ng-template #header>
@@ -90,7 +92,9 @@
                 <p-tab value="movements">Movimenti</p-tab>
                 <p-tab value="accounts">Conti</p-tab>
                 <p-tab value="categories">Categorie</p-tab>
+                @if (calendarEnabled()) {
                 <p-tab value="events">Eventi</p-tab>
+                }
                 <p-tab value="years">Esercizi</p-tab>
             </p-tablist>
             <p-tabpanels>
@@ -139,12 +143,14 @@
                             <p-select inputId="filter-nature" [(ngModel)]="movementFilters.nature" [options]="natures"
                                 optionLabel="label" optionValue="value" placeholder="Tutte" [showClear]="true" />
                         </div>
+                        @if (calendarEnabled()) {
                         <div>
                             <label for="filter-event">Evento</label>
                             <p-select inputId="filter-event" [(ngModel)]="movementFilters.eventId"
                                 [options]="eventOptions" optionLabel="eventName" optionValue="eventId"
                                 placeholder="Tutti" [showClear]="true" [filter]="true" filterBy="eventName" />
                         </div>
+                        }
                         <div>
                             <label for="filter-counterparty">Controparte</label>
                             <input id="filter-counterparty" pInputText [(ngModel)]="movementFilters.counterparty"
@@ -493,6 +499,7 @@
                     </p-table>
                 </p-tabpanel>
 
+                @if (calendarEnabled()) {
                 <p-tabpanel value="events">
                     <div class="section-heading">
                         <div>
@@ -737,6 +744,7 @@
                     }
                 </p-tabpanel>
 
+                }
                 <p-tabpanel value="years">
                     <div class="section-heading">
                         <div>
@@ -925,6 +933,7 @@
                             </ng-template>
                         </p-table>
 
+                        @if (calendarEnabled()) {
                         <h3 class="report-subtitle">Eventi economicamente aperti</h3>
                         <p-table [value]="yearSummary.openEvents" dataKey="eventId">
                             <ng-template #header>
@@ -956,6 +965,7 @@
                                 </tr>
                             </ng-template>
                         </p-table>
+                        }
                     </section>
                     }
                 </p-tabpanel>

@@ -26,7 +26,7 @@ Le notifiche applicative immediate continuano a passare dalla pipeline generaliz
 | Multi-tenancy | enumerazione tenant attivi e transazione nel relativo schema |
 | Preferenze | profilo notifiche tipizzato, con fallback temporaneo alla preferenza legacy |
 | Navigazione | rotta applicativa `/calendar/{eventId}` |
-| Funzionalità tenant | sottoscrizioni e preferenze dietro `NOTIFICATION_PREFERENCES`; promemoria dietro `WEB_PUSH_REMINDERS`, che richiede la prima e chiavi VAPID configurate |
+| Funzionalità tenant | sottoscrizioni e preferenze dietro `NOTIFICATION_PREFERENCES`; promemoria dietro `WEB_PUSH_REMINDERS`, che richiede la prima, il Calendario (`CALENDAR`) e chiavi VAPID configurate |
 
 RabbitMQ resta presente per altri flussi del progetto, ma non gestisce il ritardo dei promemoria calendario. La persistenza PostgreSQL evita di perdere le pianificazioni al riavvio e rende gli esiti consultabili dalla console amministrativa.
 

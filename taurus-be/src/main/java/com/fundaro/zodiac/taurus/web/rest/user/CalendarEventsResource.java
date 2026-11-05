@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController("LowPermissionsCalendarEventsResource")
 @RequestMapping("/api/user/calendar-events")
+@RequiresTenantFeature(TenantFeature.CALENDAR)
 public class CalendarEventsResource extends CommonOpenSearchResource<CalendarEvents, CalendarEventsDTO, CalendarEventsCriteria, CalendarEventsService> {
 
     public CalendarEventsResource(@Qualifier("LowPermissionsCalendarEventsService") CalendarEventsService service) {

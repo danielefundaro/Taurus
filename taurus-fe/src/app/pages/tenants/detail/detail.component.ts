@@ -22,40 +22,59 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     public cols: string[];
     public selectedTracks: ChildrenEntities[];
     protected readonly tenantFeatures: TenantFeatureItem[] = [
+        { key: 'calendarEnabled', feature: TenantFeature.CALENDAR, label: 'Calendario', description: 'Eventi, serie ricorrenti, disponibilità, presenze e informazioni economiche degli eventi.' },
         { key: 'financeEnabled', feature: TenantFeature.FINANCE, label: 'Economia', description: 'Conti, movimenti, rendiconti e informazioni economiche degli eventi.' },
         { key: 'inventoryEnabled', feature: TenantFeature.INVENTORY, label: 'Inventario', description: 'Oggetti, assegnazioni, fotografie, riconsegne e report.' },
         { key: 'onboardingImportEnabled', feature: TenantFeature.ONBOARDING_IMPORT, label: 'Onboarding e importazione iniziale', description: 'Wizard, template e importazioni iniziali del tenant.' },
-        { key: 'externalCalendarFeedEnabled', feature: TenantFeature.EXTERNAL_CALENDAR_FEED, label: 'Feed calendario esterno', description: 'Feed personali e condivisi in formato iCalendar.' },
-        { key: 'eventPreparationEnabled', feature: TenantFeature.EVENT_PREPARATION, label: 'Preparazione evento', description: 'Workspace operativo, indicatori, materiali e follow-up.' },
         { key: 'scorePlaybackEnabled', feature: TenantFeature.SCORE_PLAYBACK, label: 'Ascolto delle parti', description: 'Ascolto di parti e partiture, caricamento MusicXML e versioni delle parti.' },
-        { key: 'inventoryQrEnabled', feature: TenantFeature.INVENTORY_QR, label: 'QR code inventario', description: 'Etichette, scansione, azioni rapide e segnalazioni.', dependency: 'inventoryEnabled' },
+        { key: 'notificationPreferencesEnabled', feature: TenantFeature.NOTIFICATION_PREFERENCES, label: 'Preferenze notifiche', description: 'Categorie, canali, digest, pausa e ore silenziose.' },
+        {
+            key: 'externalCalendarFeedEnabled',
+            feature: TenantFeature.EXTERNAL_CALENDAR_FEED,
+            label: 'Feed calendario esterno',
+            description: 'Feed personali e condivisi in formato iCalendar.',
+            dependencies: ['calendarEnabled']
+        },
+        {
+            key: 'eventPreparationEnabled',
+            feature: TenantFeature.EVENT_PREPARATION,
+            label: 'Preparazione evento',
+            description: 'Workspace operativo, indicatori, materiali e follow-up.',
+            dependencies: ['calendarEnabled']
+        },
+        { key: 'inventoryQrEnabled', feature: TenantFeature.INVENTORY_QR, label: 'QR code inventario', description: 'Etichette, scansione, azioni rapide e segnalazioni.', dependencies: ['inventoryEnabled'] },
         {
             key: 'inventoryLoanSheetEnabled',
             feature: TenantFeature.INVENTORY_LOAN_SHEET,
             label: 'Fogli di affidamento',
             description: 'Emissione, registro delle variazioni, chiusura e modello dei fogli di consegna e affidamento in comodato.',
-            dependency: 'inventoryEnabled'
+            dependencies: ['inventoryEnabled']
         },
         {
             key: 'inventorySignatureEnabled',
             feature: TenantFeature.INVENTORY_SIGNATURE,
             label: 'Firma elettronica',
             description: 'Firma con un codice o con CieSign dei fogli di affidamento e delle prese visione, con sigillo, attestazioni e fascicolo.',
-            dependency: 'inventoryLoanSheetEnabled'
+            dependencies: ['inventoryLoanSheetEnabled']
         },
-        { key: 'notificationPreferencesEnabled', feature: TenantFeature.NOTIFICATION_PREFERENCES, label: 'Preferenze notifiche', description: 'Categorie, canali, digest, pausa e ore silenziose.' },
-        { key: 'webPushRemindersEnabled', feature: TenantFeature.WEB_PUSH_REMINDERS, label: 'Promemoria eventi Web Push', description: 'Pianificazione e invio dei promemoria prima degli eventi.', dependency: 'notificationPreferencesEnabled' }
+        {
+            key: 'webPushRemindersEnabled',
+            feature: TenantFeature.WEB_PUSH_REMINDERS,
+            label: 'Promemoria eventi Web Push',
+            description: 'Pianificazione e invio dei promemoria prima degli eventi.',
+            dependencies: ['notificationPreferencesEnabled', 'calendarEnabled']
+        }
     ];
     private originalFeatureValues: Partial<Record<TenantFeatureField, boolean>> = {};
 
     /** I moduli autonomi e le funzionalità che ne estendono uno, nei due gruppi mostrati dalla pagina. */
     protected get featureGroups(): TenantFeatureGroup[] {
         return [
-            { heading: 'Moduli principali', items: this.tenantFeatures.filter((item) => !item.dependency) },
+            { heading: 'Moduli principali', items: this.tenantFeatures.filter((item) => !item.dependencies) },
             {
                 heading: 'Estensioni',
                 description: 'Richiedono un modulo principale: restano inefficaci finché il modulo da cui dipendono è spento.',
-                items: this.tenantFeatures.filter((item) => !!item.dependency)
+                items: this.tenantFeatures.filter((item) => !!item.dependencies)
             }
         ];
     }
@@ -208,10 +227,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         return !!this.tenant.id && this.tenant.active !== false && this.tenant.code !== this.keycloakService.currentUserTenantCode && this.tenant.onboardingImportEnabled === true;
     }
 
-    protected featureStatus(item: { feature: TenantFeature; dependency?: TenantFeatureField }): string | undefined {
+    protected featureStatus(item: { feature: TenantFeature; dependencies?: TenantFeatureField[] }): string | undefined {
         const capability = this.tenantFeatureService.capabilities()?.[item.feature];
         if (capability && !capability.available) return 'Non disponibile nell’installazione';
-        if (item.dependency && !this.effective(item.dependency, this.tenant)) return 'Richiede un’altra funzionalità';
+        if (item.dependencies?.some((dependency) => !this.effective(dependency, this.tenant))) return 'Richiede un’altra funzionalità';
         return 'Disponibile';
     }
 
@@ -219,7 +238,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
      * Con la funzionalità spenta nell'installazione il flag resta modificabile e viene salvato:
      * serve a preparare un rollout, quindi la pagina spiega che cosa significa il valore scelto.
      */
-    protected featureHint(item: { key: TenantFeatureField; feature: TenantFeature; dependency?: TenantFeatureField }): string | undefined {
+    protected featureHint(item: { key: TenantFeatureField; feature: TenantFeature; dependencies?: TenantFeatureField[] }): string | undefined {
         const capability = this.tenantFeatureService.capabilities()?.[item.feature];
         if (!capability || capability.available) return undefined;
 
@@ -230,8 +249,8 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     /** Una funzionalità è effettiva quando è attiva insieme a tutte quelle da cui dipende. */
     private effective(key: TenantFeatureField, values: Partial<Record<TenantFeatureField, boolean>>): boolean {
-        const dependency = this.tenantFeatures.find((item) => item.key === key)?.dependency;
-        return values[key] === true && (!dependency || this.effective(dependency, values));
+        const dependencies = this.tenantFeatures.find((item) => item.key === key)?.dependencies ?? [];
+        return values[key] === true && dependencies.every((dependency) => this.effective(dependency, values));
     }
 
     private loadElement(id: number | string) {
@@ -268,7 +287,8 @@ interface TenantFeatureItem {
     feature: TenantFeature;
     label: string;
     description: string;
-    dependency?: TenantFeatureField;
+    /** Le funzionalità da cui dipende, come `TenantFeature.dependencies()` del backend. */
+    dependencies?: TenantFeatureField[];
 }
 
 type TenantFeatureField =
@@ -282,4 +302,5 @@ type TenantFeatureField =
     | 'eventPreparationEnabled'
     | 'scorePlaybackEnabled'
     | 'inventoryLoanSheetEnabled'
-    | 'inventorySignatureEnabled';
+    | 'inventorySignatureEnabled'
+    | 'calendarEnabled';

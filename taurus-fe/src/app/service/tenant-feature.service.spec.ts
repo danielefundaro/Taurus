@@ -92,6 +92,24 @@ describe('TenantFeatureService', () => {
         expect(service.isEnabled(TenantFeature.INVENTORY_SIGNATURE)).toBeFalse();
     });
 
+    it('exposes the calendar as computed by the backend', async () => {
+        const result = firstValueFrom(service.refresh());
+        http.expectOne(`${environment.baseUrl}/tenant-features/current`).flush({
+            tenantCode: 'A',
+            version: 4,
+            calendarEnabled: true
+        });
+        await result;
+
+        expect(service.calendarEnabled()).toBeTrue();
+        expect(service.isEnabled(TenantFeature.CALENDAR)).toBeTrue();
+
+        const disabled = firstValueFrom(service.refresh(true));
+        http.expectOne(`${environment.baseUrl}/tenant-features/current`).flush({ tenantCode: 'A', version: 5, calendarEnabled: false });
+        await disabled;
+        expect(service.isEnabled(TenantFeature.CALENDAR)).toBeFalse();
+    });
+
     it('turns every feature off without calling the backend while the tenant has no schema', async () => {
         const status = firstValueFrom(TestBed.inject(TenantStatusService).load());
         http.expectOne(`${environment.baseUrl}/tenant-status`).flush({ tenantCode: 'temp', provisioned: false });
@@ -105,6 +123,7 @@ describe('TenantFeatureService', () => {
         expect(features.inventoryEnabled).toBeFalse();
         expect(features.inventoryLoanSheetEnabled).toBeFalse();
         expect(features.inventorySignatureEnabled).toBeFalse();
+        expect(features.calendarEnabled).toBeFalse();
         expect(service.loaded()).toBeFalse();
     });
 });

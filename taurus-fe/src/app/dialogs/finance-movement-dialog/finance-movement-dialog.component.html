@@ -29,10 +29,12 @@
             <p-select inputId="movement-category" [(ngModel)]="movement.categoryId" [options]="movementCategories"
                 optionLabel="name" optionValue="id" [showClear]="true" placeholder="Nessuna" />
         </app-form-field>
+        @if (eventsEnabled) {
         <app-form-field class="md:col-span-2" label="Evento" forId="movement-event">
             <p-select inputId="movement-event" [(ngModel)]="movement.eventId" [options]="events" optionLabel="eventName"
                 optionValue="eventId" [filter]="true" [showClear]="true" placeholder="Nessun evento" />
         </app-form-field>
+        }
         <app-form-field class="md:col-span-2" label="Descrizione" forId="movement-description" required
             [error]="shell.validationAttempted ? descriptionError : undefined">
             <input id="movement-description" pInputText [(ngModel)]="movement.description" />

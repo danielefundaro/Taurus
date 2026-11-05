@@ -89,6 +89,7 @@ class NotificationOutboxPublisherIT {
         tenant.setCode(code);
         tenant.setActive(true);
         tenant.setInventoryEnabled(true);
+        tenant.setCalendarEnabled(true);
         tenant.setDeleted(false);
         tenant.setInsertBy("test");
         tenant.setInsertDate(now);

@@ -9,7 +9,8 @@ export enum TenantFeature {
     EVENT_PREPARATION = 'EVENT_PREPARATION',
     SCORE_PLAYBACK = 'SCORE_PLAYBACK',
     INVENTORY_LOAN_SHEET = 'INVENTORY_LOAN_SHEET',
-    INVENTORY_SIGNATURE = 'INVENTORY_SIGNATURE'
+    INVENTORY_SIGNATURE = 'INVENTORY_SIGNATURE',
+    CALENDAR = 'CALENDAR'
 }
 
 export interface TenantFeatures {
@@ -27,6 +28,7 @@ export interface TenantFeatures {
     scorePlaybackEnabled: boolean;
     inventoryLoanSheetEnabled: boolean;
     inventorySignatureEnabled: boolean;
+    calendarEnabled: boolean;
 }
 
 export interface TenantFeatureCapability {

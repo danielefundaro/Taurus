@@ -62,10 +62,37 @@ describe('Tenant DetailComponent', () => {
         expect(main.heading).toBe('Moduli principali');
         expect(extension.heading).toBe('Estensioni');
 
+        expect(modules[0]).toBe('Calendario');
         expect(modules).toContain('Inventario');
         expect(modules).toContain('Preferenze notifiche');
-        expect(extensions).toEqual(['QR code inventario', 'Fogli di affidamento', 'Firma elettronica', 'Promemoria eventi Web Push']);
+        expect(extensions).toEqual(['Feed calendario esterno', 'Preparazione evento', 'QR code inventario', 'Fogli di affidamento', 'Firma elettronica', 'Promemoria eventi Web Push']);
         expect(modules.length + extensions.length).toBe(component['tenantFeatures'].length);
+    });
+
+    it('lists the features of the events among those that a disabled calendar turns off', () => {
+        const { component, confirmService } = create();
+        const enabled = { calendarEnabled: true, externalCalendarFeedEnabled: true, eventPreparationEnabled: true, notificationPreferencesEnabled: true, webPushRemindersEnabled: true };
+        component['originalFeatureValues'] = { ...enabled };
+        component.tenant = tenant({ ...enabled, calendarEnabled: false });
+
+        component.save();
+
+        const consequence = confirmService.confirmReversible.calls.mostRecent().args[0].consequence;
+        expect(consequence).toContain('Calendario');
+        expect(consequence).toContain('Feed calendario esterno (per dipendenza)');
+        expect(consequence).toContain('Preparazione evento (per dipendenza)');
+        expect(consequence).toContain('Promemoria eventi Web Push (per dipendenza)');
+        expect(consequence).not.toContain('Preferenze notifiche');
+    });
+
+    it('asks every module of the Web Push reminders before calling them available', () => {
+        const { component } = create();
+        const reminders = component['tenantFeatures'].find((item) => item.feature === TenantFeature.WEB_PUSH_REMINDERS)!;
+        component.tenant = tenant({ notificationPreferencesEnabled: true, calendarEnabled: false, webPushRemindersEnabled: true });
+
+        expect(component['featureStatus'](reminders)).toBe('Richiede un’altra funzionalità');
+        component.tenant.calendarEnabled = true;
+        expect(component['featureStatus'](reminders)).toBe('Disponibile');
     });
 
     it('explains that a flag saved without the installation capability is a planned enablement', () => {

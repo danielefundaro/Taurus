@@ -248,12 +248,43 @@ class OperationalDashboardServiceTest {
         properties.getDashboard().setEnabled(true);
         when(tenantFeatureService.isEnabled(TenantFeature.INVENTORY)).thenReturn(false);
         when(tenantFeatureService.isEnabled(TenantFeature.FINANCE)).thenReturn(false);
+        when(tenantFeatureService.isEnabled(TenantFeature.CALENDAR)).thenReturn(true);
         OperationalDashboardService service = new OperationalDashboardService(providers, timeZoneService, metrics, properties, tenantFeatureService, calendarOperations);
 
         try (TenantContext.Scope ignored = TenantContext.use("tenant-a")) {
             assertThat(service.getOperations(authentication("tenant-a")).status()).isEqualTo(DashboardResultStatus.COMPLETE);
         }
         assertThat(asked).containsExactly(DashboardDomain.CALENDAR);
+    }
+
+    @Test
+    void skipsTheCalendarWithoutItsTenantFeature() {
+        List<DashboardDomain> asked = new ArrayList<>();
+        List<DashboardOperationProvider> providers = List.of(DashboardDomain.CALENDAR, DashboardDomain.FINANCE).stream()
+            .map(domain -> (DashboardOperationProvider) new DashboardOperationProvider() {
+                @Override
+                public DashboardDomain domain() {
+                    return domain;
+                }
+
+                @Override
+                public List<OperationalItemDTO> getOperations(DashboardRequestContext context) {
+                    asked.add(domain);
+                    return List.of();
+                }
+            })
+            .toList();
+        when(timeZoneService.currentZoneId()).thenReturn(ZoneId.of("Europe/Rome"));
+        ApplicationProperties properties = new ApplicationProperties();
+        properties.getDashboard().setEnabled(true);
+        when(tenantFeatureService.isEnabled(TenantFeature.FINANCE)).thenReturn(true);
+        when(tenantFeatureService.isEnabled(TenantFeature.CALENDAR)).thenReturn(false);
+        OperationalDashboardService service = new OperationalDashboardService(providers, timeZoneService, metrics, properties, tenantFeatureService, calendarOperations);
+
+        try (TenantContext.Scope ignored = TenantContext.use("tenant-a")) {
+            assertThat(service.getOperations(authentication("tenant-a")).status()).isEqualTo(DashboardResultStatus.COMPLETE);
+        }
+        assertThat(asked).containsExactly(DashboardDomain.FINANCE);
     }
 
     @Test
@@ -374,6 +405,7 @@ class OperationalDashboardServiceTest {
         properties.getDashboard().setEnabled(true);
         org.mockito.Mockito.lenient().when(tenantFeatureService.isEnabled(TenantFeature.FINANCE)).thenReturn(true);
         org.mockito.Mockito.lenient().when(tenantFeatureService.isEnabled(TenantFeature.INVENTORY)).thenReturn(true);
+        org.mockito.Mockito.lenient().when(tenantFeatureService.isEnabled(TenantFeature.CALENDAR)).thenReturn(true);
         return new OperationalDashboardService(providers, timeZoneService, metrics, properties, tenantFeatureService, calendarOperations);
     }
 

@@ -63,6 +63,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     protected operationsRefreshWarning = false;
     protected operationsAnnouncement = '';
     protected readonly inventoryEnabled;
+    protected readonly calendarEnabled;
     private operationsLoadedAt = 0;
     /** Tenant del token con cui è stato letto lo snapshot: uno snapshot di un altro tenant non si mostra mai. */
     private operationsTenant?: string;
@@ -89,6 +90,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         private readonly guidedTourService: GuidedTourService
     ) {
         this.inventoryEnabled = this.tenantFeatureService.inventoryEnabled;
+        this.calendarEnabled = this.tenantFeatureService.calendarEnabled;
     }
 
     ngOnInit(): void {
@@ -358,6 +360,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     private loadUpcomingEvents(page: number = 0, size: number = 10): void {
+        // Without the calendar the widget is not created and the events are not read.
+        if (!this.calendarEnabled()) return;
         const upcomingCriteria = new CalendarEventsCriteria();
         upcomingCriteria.page = page;
         upcomingCriteria.size = size;

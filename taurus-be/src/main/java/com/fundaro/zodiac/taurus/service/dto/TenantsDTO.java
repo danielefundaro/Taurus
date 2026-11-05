@@ -60,6 +60,7 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
     private Boolean scorePlaybackEnabled = false;
     private Boolean inventoryLoanSheetEnabled = false;
     private Boolean inventorySignatureEnabled = false;
+    private Boolean calendarEnabled = false;
     private Long entityVersion;
 
     public String getCode() {
@@ -286,6 +287,14 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
         inventorySignatureEnabled = value;
     }
 
+    public Boolean getCalendarEnabled() {
+        return calendarEnabled;
+    }
+
+    public void setCalendarEnabled(Boolean value) {
+        calendarEnabled = value;
+    }
+
     public Long getEntityVersion() {
         return entityVersion;
     }
@@ -331,12 +340,13 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             Objects.equals(scorePlaybackEnabled, that.scorePlaybackEnabled) &&
             Objects.equals(inventoryLoanSheetEnabled, that.inventoryLoanSheetEnabled) &&
             Objects.equals(inventorySignatureEnabled, that.inventorySignatureEnabled) &&
+            Objects.equals(calendarEnabled, that.calendarEnabled) &&
             Objects.equals(entityVersion, that.entityVersion);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, phone, pec, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled, scorePlaybackEnabled, inventoryLoanSheetEnabled, inventorySignatureEnabled, entityVersion);
+        return Objects.hash(super.hashCode(), code, email, domain, maxUsers, expireDate, active, address, postalCode, city, province, country, taxCode, vatNumber, logoUrl, phone, pec, timeZone, financeEnabled, inventoryEnabled, onboardingImportEnabled, externalCalendarFeedEnabled, inventoryQrEnabled, notificationPreferencesEnabled, webPushRemindersEnabled, eventPreparationEnabled, scorePlaybackEnabled, inventoryLoanSheetEnabled, inventorySignatureEnabled, calendarEnabled, entityVersion);
     }
 
     @Override
@@ -373,6 +383,7 @@ public class TenantsDTO extends CommonFieldsOpenSearchDTO {
             ", scorePlaybackEnabled=" + scorePlaybackEnabled +
             ", inventoryLoanSheetEnabled=" + inventoryLoanSheetEnabled +
             ", inventorySignatureEnabled=" + inventorySignatureEnabled +
+            ", calendarEnabled=" + calendarEnabled +
             ", entityVersion=" + entityVersion +
             '}';
     }

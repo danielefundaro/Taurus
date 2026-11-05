@@ -44,10 +44,12 @@
         </div>
     </app-detail-section>
 
+    @if (calendarEnabled()) {
     <app-detail-section heading="Eventi a cui hai partecipato"
         description="Sola lettura: le presenze si registrano dalla pagina dell’evento.">
         <app-calendar-events-table />
     </app-detail-section>
+    }
 
     @if (calendarFeedVisible) {
     <app-detail-section heading="Calendario esterno"

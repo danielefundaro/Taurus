@@ -134,6 +134,7 @@ class TenantIsolationIT {
         tenant.setCode(code);
         tenant.setActive(true);
         tenant.setInventoryEnabled(true);
+        tenant.setCalendarEnabled(true);
         tenant.setFinanceEnabled(true);
         tenant.setDeleted(false);
         tenant.setInsertBy("test");

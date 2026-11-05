@@ -290,6 +290,7 @@ class FinanceIT {
         tenant.setCode(code);
         tenant.setActive(true);
         tenant.setFinanceEnabled(true);
+        tenant.setCalendarEnabled(true);
         tenant.setDeleted(false);
         tenant.setInsertBy("user-1");
         tenant.setInsertDate(now);

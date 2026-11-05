@@ -85,6 +85,23 @@ class TenantsServiceImplTest {
         );
     }
 
+    @Test
+    void listsTheFeaturesOfTheEventsThatLoseEffectWithTheCalendar() {
+        Map<String, Boolean> before = new java.util.HashMap<>(flags(true, true, true));
+        before.put("externalCalendarFeed", true);
+        before.put("eventPreparation", true);
+        before.put("notificationPreferences", true);
+        before.put("webPushReminders", true);
+        Map<String, Boolean> after = new java.util.HashMap<>(before);
+        after.put("calendar", false);
+
+        assertThat(service().dependentChanges(before, after)).containsOnly(
+            entry("externalCalendarFeed", false),
+            entry("eventPreparation", false),
+            entry("webPushReminders", false)
+        );
+    }
+
     private static Map<String, Boolean> flags(boolean inventory, boolean loanSheet, boolean signature) {
         return Map.ofEntries(
             Map.entry("finance", false),
@@ -97,7 +114,8 @@ class TenantsServiceImplTest {
             Map.entry("eventPreparation", false),
             Map.entry("scorePlayback", false),
             Map.entry("inventoryLoanSheet", loanSheet),
-            Map.entry("inventorySignature", signature)
+            Map.entry("inventorySignature", signature),
+            Map.entry("calendar", true)
         );
     }
 

@@ -26,6 +26,7 @@ export class MenuComponent implements OnInit {
             this.tenantFeatureService.inventoryEnabled();
             this.tenantFeatureService.onboardingImportEnabled();
             this.tenantFeatureService.externalCalendarFeedEnabled();
+            this.tenantFeatureService.calendarEnabled();
             this.buildMenu();
         });
     }
@@ -141,17 +142,23 @@ export class MenuComponent implements OnInit {
                     },
                     {
                         separator: true,
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
+                        visible: this.calendarVisible()
                     },
                     {
                         label: 'Calendario',
                         icon: 'pi pi-fw pi-calendar',
                         routerLink: ['/calendar'],
-                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL]
+                        hasRoles: [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.ARCHIVIST, RoleEnums.USER, RoleEnums.USER_EXTERNAL],
+                        visible: this.calendarVisible()
                     }
                 ]
             }
         ];
+    }
+
+    private calendarVisible(): boolean {
+        return this.tenantFeatureService.loaded() && this.tenantFeatureService.calendarEnabled();
     }
 
     /** Un tenant senza schema non ha dati: al super amministratore resta solo la creazione del primo tenant. */

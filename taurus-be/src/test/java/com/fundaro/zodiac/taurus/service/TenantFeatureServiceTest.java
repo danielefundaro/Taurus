@@ -104,7 +104,48 @@ class TenantFeatureServiceTest {
         assertThat(service.capabilities().get(TenantFeature.INVENTORY_QR).dependencies())
             .containsExactly(TenantFeature.INVENTORY);
         assertThat(service.capabilities().get(TenantFeature.WEB_PUSH_REMINDERS).dependencies())
-            .containsExactly(TenantFeature.NOTIFICATION_PREFERENCES);
+            .containsExactly(TenantFeature.NOTIFICATION_PREFERENCES, TenantFeature.CALENDAR);
+    }
+
+    @Test
+    void chainsTheFeaturesOfTheEventsToTheCalendar() {
+        Tenants tenant = tenant("A", true, true);
+        tenant.setExternalCalendarFeedEnabled(true);
+        tenant.setNotificationPreferencesEnabled(true);
+        tenant.setWebPushRemindersEnabled(true);
+        tenant.setEventPreparationEnabled(true);
+        when(repository.findByCodeAndDeletedFalse("A")).thenReturn(Optional.of(tenant));
+        properties.getVapid().setPublicKey("public-key");
+        properties.getVapid().setPrivateKey("private-key");
+        properties.getEventPreparation().setEnabled(true);
+
+        TenantContext.run("A", () -> {
+            tenant.setCalendarEnabled(false);
+            assertThat(service.current())
+                .returns(false, result -> result.calendarEnabled())
+                .returns(false, result -> result.externalCalendarFeedEnabled())
+                .returns(false, result -> result.webPushRemindersEnabled())
+                .returns(false, result -> result.eventPreparationEnabled())
+                .returns(true, result -> result.financeEnabled())
+                .returns(true, result -> result.notificationPreferencesEnabled());
+            assertThatThrownBy(() -> service.requireEnabled(TenantFeature.CALENDAR))
+                .extracting(error -> ((RequestAlertException) error).getErrorKey())
+                .isEqualTo("tenantFeature.calendar.disabled");
+
+            tenant.setCalendarEnabled(true);
+            assertThat(service.current())
+                .returns(true, result -> result.calendarEnabled())
+                .returns(true, result -> result.externalCalendarFeedEnabled())
+                .returns(true, result -> result.webPushRemindersEnabled())
+                .returns(true, result -> result.eventPreparationEnabled());
+        });
+
+        assertThat(service.capabilities().get(TenantFeature.CALENDAR).available()).isTrue();
+        assertThat(service.capabilities().get(TenantFeature.CALENDAR).dependencies()).isEmpty();
+        assertThat(service.capabilities().get(TenantFeature.EXTERNAL_CALENDAR_FEED).dependencies())
+            .containsExactly(TenantFeature.CALENDAR);
+        assertThat(service.capabilities().get(TenantFeature.EVENT_PREPARATION).dependencies())
+            .containsExactly(TenantFeature.CALENDAR);
     }
 
     @Test
@@ -154,6 +195,7 @@ class TenantFeatureServiceTest {
         assertThat(tenant.getEventPreparationEnabled()).isFalse();
         assertThat(tenant.getInventoryLoanSheetEnabled()).isFalse();
         assertThat(tenant.getInventorySignatureEnabled()).isFalse();
+        assertThat(tenant.getCalendarEnabled()).isFalse();
     }
 
     private static Tenants tenant(String code, boolean finance, boolean inventory) {
@@ -163,6 +205,7 @@ class TenantFeatureServiceTest {
         tenant.setDeleted(false);
         tenant.setFinanceEnabled(finance);
         tenant.setInventoryEnabled(inventory);
+        tenant.setCalendarEnabled(true);
         return tenant;
     }
 }

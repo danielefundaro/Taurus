@@ -14,6 +14,7 @@ public record TenantFeaturesDTO(
     boolean eventPreparationEnabled,
     boolean scorePlaybackEnabled,
     boolean inventoryLoanSheetEnabled,
-    boolean inventorySignatureEnabled
+    boolean inventorySignatureEnabled,
+    boolean calendarEnabled
 ) {
 }
