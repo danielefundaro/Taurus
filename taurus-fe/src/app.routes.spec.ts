@@ -67,3 +67,21 @@ describe('appRoutes calendar', () => {
         expect(list?.data?.['role']).not.toContain(RoleEnums.TREASURER);
     });
 });
+
+describe('appRoutes legal documents', () => {
+    it('opens the published versions outside the layout, without guards', () => {
+        const expected: [string, string][] = [
+            ['legal/terms', 'TERMS'],
+            ['legal/terms/:version', 'TERMS'],
+            ['legal/privacy', 'PRIVACY'],
+            ['legal/privacy/:version', 'PRIVACY']
+        ];
+        for (const [path, documentType] of expected) {
+            const route = appRoutes.find((candidate) => candidate.path === path);
+            expect(route?.loadComponent).withContext(path).toBeDefined();
+            expect(route?.canActivate).withContext(path).toBeUndefined();
+            expect(route?.data?.['documentType']).withContext(path).toBe(documentType);
+            expect(layoutRoute(path)).withContext(path).toBeUndefined();
+        }
+    });
+});

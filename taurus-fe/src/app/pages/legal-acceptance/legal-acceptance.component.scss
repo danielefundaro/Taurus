@@ -82,6 +82,45 @@ h1 {
     white-space: nowrap;
 }
 
+.changes {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border-left: 4px solid var(--p-primary-color);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--p-primary-color) 7%, transparent);
+
+    h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.95rem;
+    }
+
+    p {
+        margin: 0;
+        line-height: 1.6;
+        white-space: pre-line;
+    }
+}
+
+.text-box {
+    max-height: 50vh;
+    margin-top: 1rem;
+    padding: 1rem 1.25rem;
+    overflow-y: auto;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 0.75rem;
+    background: var(--p-surface-ground);
+
+    &:focus-visible {
+        outline: 2px solid var(--p-primary-color);
+        outline-offset: 2px;
+    }
+}
+
+app-inline-alert {
+    display: block;
+    margin-top: 1rem;
+}
+
 .confirmation {
     display: flex;
     align-items: flex-start;

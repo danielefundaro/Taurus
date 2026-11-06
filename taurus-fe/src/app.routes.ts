@@ -6,6 +6,17 @@ import { LayoutComponent } from './app/pages/layout/layout.component';
 
 export const appRoutes: Routes = [
     { path: 'legal/accept', loadComponent: () => import('./app/pages/legal-acceptance/legal-acceptance.component').then((module) => module.LegalAcceptanceComponent) },
+    // Published legal documents, read by anyone without login: the version in force and the permanent address of each one.
+    ...[
+        { path: 'legal/terms', documentType: 'TERMS' },
+        { path: 'legal/terms/:version', documentType: 'TERMS' },
+        { path: 'legal/privacy', documentType: 'PRIVACY' },
+        { path: 'legal/privacy/:version', documentType: 'PRIVACY' }
+    ].map(({ path, documentType }) => ({
+        path,
+        loadComponent: () => import('./app/pages/legal-document/legal-document.component').then((module) => module.LegalDocumentComponent),
+        data: { documentType }
+    })),
     // Public signature page of a parent or guardian without an account: no layout, guards or login.
     { path: 'firma/:token', loadComponent: () => import('./app/pages/signature-link/signature-link.component').then((module) => module.SignatureLinkComponent) },
     {

@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { publicSignaturePage } from '../../constants';
+import { publicPage } from '../../constants';
 import { SignatureActFlow } from '../../dialogs/signature-act-dialog/signature-act-flow';
 import { SignatureAct, SignatureLinkAct } from '../../module';
 import { PublicSignatureService, ToastService } from '../../service';
@@ -129,8 +129,8 @@ describe('SignatureLinkComponent', () => {
     });
 
     it('recognizes the public page, where the application starts without login', () => {
-        expect(publicSignaturePage('/firma/' + 'A'.repeat(43))).toBeTrue();
-        expect(publicSignaturePage('/inventory')).toBeFalse();
-        expect(publicSignaturePage('/firmare')).toBeFalse();
+        expect(publicPage('/firma/' + 'A'.repeat(43))).toBeTrue();
+        expect(publicPage('/inventory')).toBeFalse();
+        expect(publicPage('/firmare')).toBeFalse();
     });
 });

@@ -1,21 +1,20 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { SelectItem } from 'primeng/api';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { Router } from '@angular/router';
 import { Table } from 'primeng/table';
 import { finalize, first } from 'rxjs';
-import { LegalDocumentDialogComponent } from '../../dialogs/legal-document-dialog/legal-document-dialog.component';
+import { legalDocumentActionLabel, legalDocumentStateLabel, legalDocumentStateSeverity, legalDocumentTypeLabel, shortHash } from '../../constants';
 import { ImportsModule } from '../../imports';
-import { LegalDocument, LegalDocumentAction, LegalDocumentType } from '../../module';
-import { LegalService, ToastService, withErrorSummary } from '../../service';
+import { LegalDocument } from '../../module';
+import { LegalService, withErrorSummary } from '../../service';
 
+/** Elenco delle versioni dei documenti legali; ogni versione si apre nella sua pagina di dettaglio. */
 @Component({
     selector: 'app-legal-documents',
     standalone: true,
     imports: [ImportsModule, DatePipe],
     templateUrl: './legal-documents.component.html',
-    styleUrl: './legal-documents.component.scss',
-    providers: [DialogService]
+    styleUrl: './legal-documents.component.scss'
 })
 export class LegalDocumentsComponent implements OnInit {
     @ViewChild('documentTable') private readonly documentTable?: Table;
@@ -23,82 +22,34 @@ export class LegalDocumentsComponent implements OnInit {
     protected documents: LegalDocument[] = [];
     protected searchTerm = '';
     protected loading = false;
-    protected saving = false;
 
-    protected readonly documentTypes: SelectItem<LegalDocumentType>[] = [
-        { label: 'Termini di utilizzo', value: 'TERMS' },
-        { label: 'Informativa Privacy', value: 'PRIVACY' }
-    ];
-
-    protected readonly actions: SelectItem<LegalDocumentAction>[] = [
-        { label: 'Accettazione', value: 'ACCEPT' },
-        { label: 'Presa visione', value: 'ACKNOWLEDGE' }
-    ];
+    protected readonly typeLabel = legalDocumentTypeLabel;
+    protected readonly actionLabel = legalDocumentActionLabel;
+    protected readonly stateLabel = legalDocumentStateLabel;
+    protected readonly stateSeverity = legalDocumentStateSeverity;
+    protected readonly shortHash = shortHash;
 
     constructor(
         private readonly legalService: LegalService,
-        private readonly toastService: ToastService,
-        private readonly dialogService: DialogService
+        private readonly router: Router
     ) { }
+
+    ngOnInit(): void {
+        this.loadDocuments();
+    }
 
     protected onSearchChange(value: string): void {
         this.searchTerm = value;
         this.documentTable?.filterGlobal(value, 'contains');
     }
 
-    ngOnInit(): void {
-        this.loadDocuments();
-    }
-
     protected addDocument(): void {
-        this.openDialog();
+        void this.router.navigate(['/legal-documents/new']);
     }
 
-    protected editDocument(document: LegalDocument): void {
-        this.openDialog(document);
-    }
-
-    private openDialog(document?: LegalDocument): void {
-        const ref: DynamicDialogRef = this.dialogService.open(LegalDocumentDialogComponent, {
-            inputValues: { document: document ? { ...document } : undefined },
-            closable: false,
-            modal: true,
-            showHeader: false,
-            width: '40rem',
-            breakpoints: { '960px': '75vw', '640px': '94vw' }
-        });
-
-        ref.onClose.pipe(first()).subscribe((result?: LegalDocument) => {
-            if (result) this.saveDocument(result);
-        });
-    }
-
-    private saveDocument(document: LegalDocument): void {
-        if (this.saving) return;
-        this.saving = true;
-        const context = withErrorSummary('Salvataggio non riuscito');
-        const request = document.id ? this.legalService.updateDocument(document.id, document, context) : this.legalService.createDocument(document, context);
-
-        request
-            .pipe(
-                first(),
-                finalize(() => (this.saving = false))
-            )
-            .subscribe({
-                next: () => {
-                    this.toastService.success('Documenti legali', document.id ? 'Documento aggiornato.' : 'Documento creato.');
-                    this.loadDocuments();
-                },
-                error: () => undefined
-            });
-    }
-
-    protected typeLabel(type: LegalDocumentType): string {
-        return this.documentTypes.find((item) => item.value === type)?.label ?? type;
-    }
-
-    protected actionLabel(action: LegalDocumentAction): string {
-        return this.actions.find((item) => item.value === action)?.label ?? action;
+    /** Documento pubblicato prima che il testo stesse in Taurus: il testo si inserisce una volta. */
+    protected toComplete(document: LegalDocument): boolean {
+        return !document.contentSha256 && !!document.url;
     }
 
     private loadDocuments(): void {

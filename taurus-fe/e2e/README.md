@@ -52,6 +52,18 @@ Le prove sono in `specs`:
   che chiama soltanto `/api/finance/**`, axe-core e nessuno scorrimento orizzontale a 320 pixel. Le
   prove non salvano nulla e si saltano senza `E2E_PREPARATION_EVENT_ID`; isolamento fra tenant,
   limiti, conflitti di versione e prestazioni sono in `EventPreparationIT` del backend.
+- `legal-documents.spec.ts`: i documenti legali dentro l'applicativo — visitatore senza sessione
+  che legge i termini in vigore senza passare da Keycloak, con `Cache-Control` della risposta
+  pubblica, apre una versione precedente con l'avviso e il `noindex` e torna a quella in vigore,
+  versione inesistente con il rimando, axe-core e nessuno scorrimento orizzontale a 320 pixel sulla
+  pagina pubblica, link del piè di pagina che aprono i documenti in una nuova scheda. Queste prove
+  leggono soltanto e valgono con qualunque versione in vigore. Lo scenario di pubblicazione — il
+  super amministratore salva una bozza dei termini e la pubblica, l'utente al passaggio successivo
+  legge il testo nella pagina di accettazione e conferma, un visitatore trova la versione nuova e
+  quella di prima — si abilita con `E2E_LEGAL_PUBLISH=true`, gira solo sul profilo desktop e alla
+  fine rimette in vigore la versione di prima. Una versione pubblicata non si elimina: ogni
+  esecuzione lascia nell'ambiente una versione `e2e-…` ritirata. Ciclo di vita, immutabilità,
+  cache con `ETag` e vincoli sono in `LegalResourceIT` del backend.
 
 ## Prerequisiti
 
@@ -94,6 +106,7 @@ quando non sono configurati.
 | `E2E_INVENTORY_QR_CODE` | Identificatore pubblico del QR di un oggetto del primo tenant con `INVENTORY_QR` attivo, letto dall'etichetta stampata; senza di esso le prove sull'oggetto si saltano |
 | `E2E_SECOND_INVENTORY_QR_CODE` | Identificatore di un oggetto del secondo tenant, per provare che dal primo risponde come un codice sconosciuto; facoltativo |
 | `E2E_PREPARATION_EVENT_ID` | Evento del primo tenant con `EVENT_PREPARATION` attivo, piano configurato e programma richiesto, possibilmente con almeno due brani e una criticità; senza di esso le prove della preparazione si saltano |
+| `E2E_LEGAL_PUBLISH` | `true` per pubblicare una versione dei termini nello scenario dei documenti legali; servono il super amministratore e un utente del primo tenant. Senza di essa lo scenario si salta |
 | `E2E_LARGE_TRACK_ID` | Traccia del primo tenant con 200 parti e 1.000 pagine, per il gate prestazionale del workspace; senza di essa quella prova si salta |
 
 I ruoli ammessi sono `SUPERADMIN`, `ADMIN`, `BOARD` (direttivo), `ARCHIVIST`, `USER`, `EXTERNAL` e `TREASURER`.

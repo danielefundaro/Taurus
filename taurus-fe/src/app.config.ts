@@ -10,7 +10,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { HttpInterceptorService } from './app/interceptor/http-interceptor.service';
-import { ACCESSIBLE_BUTTON, ACCESSIBLE_LIGHT_SCHEME, PRIMENG_TRANSLATION_IT, publicSignaturePage } from './app/constants';
+import { ACCESSIBLE_BUTTON, ACCESSIBLE_LIGHT_SCHEME, PRIMENG_TRANSLATION_IT, publicPage } from './app/constants';
 import { LoadingService } from './app/service';
 import { environment } from "./environments/environment";
 
@@ -31,8 +31,8 @@ export const appConfig: ApplicationConfig = {
                 realm: environment.keycloak.realm,
                 clientId: environment.keycloak.clientId,
             },
-            // The public signature page of a parent works without login: Keycloak is not initialized there.
-            initOptions: publicSignaturePage()
+            // The public pages (legal documents, signature of a parent) work without login: Keycloak is not initialized there.
+            initOptions: publicPage()
                 ? undefined
                 : {
                       onLoad: 'login-required',

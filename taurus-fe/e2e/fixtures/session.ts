@@ -43,10 +43,11 @@ export const tenants = (): Tenant[] =>
 export const mainMenu = (page: Page) => page.getByRole('navigation', { name: /menu principale/i });
 
 /**
- * Entra nell'applicazione con un utente dell'ambiente di prova. Il percorso attraversa la pagina
- * di accesso di Keycloak e, quando l'utente ha più ruoli nel tenant, la scelta del ruolo.
+ * Compila la pagina di accesso di Keycloak e, quando l'utente ha più ruoli nel tenant, sceglie il
+ * ruolo. Non aspetta l'applicazione: serve anche a chi deve fermarsi prima del menu, per esempio
+ * sulla pagina di accettazione dei documenti legali.
  */
-export const signIn = async (page: Page, user: Credentials, role?: Role): Promise<void> => {
+export const enterCredentials = async (page: Page, user: Credentials, role?: Role): Promise<void> => {
     await page.goto('/');
 
     const username = page.getByLabel(/username|nome utente|utente/i).first();
@@ -58,6 +59,14 @@ export const signIn = async (page: Page, user: Credentials, role?: Role): Promis
     // La scelta del ruolo compare soltanto per gli utenti che ne hanno più di uno nel tenant.
     const roleChoice = page.getByRole('button', { name: roleLabel(role) });
     if (role && (await roleChoice.count()) > 0) await roleChoice.first().click();
+};
+
+/**
+ * Entra nell'applicazione con un utente dell'ambiente di prova. Il percorso attraversa la pagina
+ * di accesso di Keycloak e, quando l'utente ha più ruoli nel tenant, la scelta del ruolo.
+ */
+export const signIn = async (page: Page, user: Credentials, role?: Role): Promise<void> => {
+    await enterCredentials(page, user, role);
 
     // Il landmark del menu: l'host <app-topbar> non ha un box proprio, perché la barra è a posizione fissa.
     await expect(mainMenu(page)).toBeVisible();

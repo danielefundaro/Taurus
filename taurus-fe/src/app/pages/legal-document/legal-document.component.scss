@@ -1,0 +1,145 @@
+:host {
+    display: block;
+}
+
+.legal-document-page {
+    min-height: 100vh;
+    padding: 1.5rem 1rem 3rem;
+    background: var(--p-surface-ground);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: min(48rem, 100%);
+    margin: 0 auto 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+
+    img {
+        width: 2.25rem;
+        height: 2.25rem;
+    }
+}
+
+.legal-document {
+    width: min(48rem, 100%);
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 3rem);
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 1.5rem;
+    background: var(--p-content-background);
+    box-shadow: var(--p-overlay-popover-shadow);
+}
+
+h1 {
+    margin: 0 0 0.5rem;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    line-height: 1.2;
+}
+
+.facts {
+    margin: 0 0 1.5rem;
+    color: var(--p-text-muted-color);
+}
+
+app-inline-alert {
+    display: block;
+    margin-bottom: 1.5rem;
+}
+
+.change-summary {
+    margin-bottom: 2rem;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid var(--p-primary-color);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--p-primary-color) 7%, transparent);
+
+    h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+    }
+
+    p {
+        margin: 0;
+        line-height: 1.6;
+        white-space: pre-line;
+    }
+}
+
+.external a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--p-primary-color);
+    font-weight: 600;
+}
+
+.document-footer {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--p-content-border-color);
+}
+
+.fingerprint {
+    margin: 0 0 1.5rem;
+    color: var(--p-text-muted-color);
+    font-size: 0.875rem;
+
+    code {
+        overflow-wrap: anywhere;
+        font-size: 0.8rem;
+    }
+}
+
+.versions {
+    margin-bottom: 1.5rem;
+
+    h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+    }
+
+    ul {
+        display: grid;
+        gap: 0.35rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    a {
+        color: var(--p-primary-color);
+        font-weight: 600;
+    }
+
+    span {
+        color: var(--p-text-muted-color);
+    }
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+@media print {
+    .legal-document-page {
+        min-height: 0;
+        padding: 0;
+        background: none;
+    }
+
+    .legal-document {
+        width: auto;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+    }
+
+    app-inline-alert ::ng-deep p-button {
+        display: none;
+    }
+}

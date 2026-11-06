@@ -1,0 +1,97 @@
+:host {
+    display: block;
+}
+
+app-inline-alert {
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 1rem 1.5rem;
+    margin: 0;
+
+    dt {
+        color: var(--text-color-secondary);
+        font-size: 0.875rem;
+    }
+
+    dd {
+        margin: 0.2rem 0 0;
+        font-weight: 600;
+    }
+
+    a {
+        color: var(--primary-color);
+        overflow-wrap: anywhere;
+    }
+}
+
+.facts__wide {
+    grid-column: 1 / -1;
+}
+
+.editor__switch {
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.editor {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.editor__panel {
+    min-width: 0;
+}
+
+.editor__panel--hidden {
+    display: none;
+}
+
+.editor__text {
+    width: 100%;
+    min-height: 30rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    resize: vertical;
+}
+
+.editor__label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.editor__preview {
+    max-height: 70vh;
+    padding: 1.25rem 1.5rem;
+    overflow-y: auto;
+    border: 1px solid var(--surface-border);
+    border-radius: 0.75rem;
+    background: var(--surface-ground);
+}
+
+.editor__preview--read {
+    max-height: none;
+}
+
+// Wide screens: text and preview side by side, no switch.
+@media (min-width: 1024px) {
+    .editor__switch {
+        display: none;
+    }
+
+    .editor {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .editor__panel--hidden {
+        display: block;
+    }
+}

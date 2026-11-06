@@ -1,0 +1,88 @@
+<main class="legal-document-page">
+    <header class="brand not-print">
+        <img src="assets/images/logo.svg" alt="" width="36" height="36" />
+        <span>TAURUS</span>
+    </header>
+
+    <article class="legal-document" aria-labelledby="legal-document-title">
+        @switch (state) {
+            @case ('loading') {
+                <h1 id="legal-document-title">{{ typeLabel }}</h1>
+                <div class="flex flex-col gap-3" role="status" aria-live="polite">
+                    <p-skeleton height="1.25rem" width="16rem" />
+                    <p-skeleton height="14rem" />
+                    <span class="text-sm text-muted-color">Caricamento del documento…</span>
+                </div>
+            }
+            @case ('unavailable') {
+                <h1 id="legal-document-title">{{ typeLabel }}</h1>
+                <app-inline-alert severity="warn" heading="Documento non disponibile" detail="Al momento non c’è una versione in vigore di questo documento." />
+            }
+            @case ('notFound') {
+                <h1 id="legal-document-title">{{ typeLabel }}</h1>
+                <app-inline-alert severity="warn" heading="Versione non trovata" [detail]="'La versione ' + version + ' di questo documento non esiste o non è stata pubblicata.'" actionLabel="Vai alla versione in vigore" [actionLink]="currentPath" />
+            }
+            @case ('error') {
+                <h1 id="legal-document-title">{{ typeLabel }}</h1>
+                <app-inline-alert severity="error" heading="Caricamento non riuscito" detail="Non è stato possibile raggiungere Taurus: controlla la connessione e riprova." actionLabel="Riprova" (action)="load()" />
+            }
+            @case ('ready') {
+                @if (document; as document) {
+                    <h1 id="legal-document-title">{{ document.title }}</h1>
+                    <p class="facts">Versione {{ document.version }} · {{ document.active ? 'in vigore dal' : 'pubblicata il' }} {{ document.publishedAt | date: 'd MMMM y' }}</p>
+
+                    @if (!document.active) {
+                        <app-inline-alert
+                            severity="warn"
+                            heading="Questa versione non è più in vigore"
+                            [detail]="activeVersion ? 'La versione in vigore è la ' + activeVersion.version + '.' : 'Al momento non c’è una versione in vigore di questo documento.'"
+                            [actionLabel]="activeVersion ? 'Vai alla versione in vigore' : undefined"
+                            [actionLink]="activeVersion ? currentPath : undefined"
+                        />
+                    }
+
+                    @if (document.changeSummary) {
+                        <section class="change-summary" aria-labelledby="change-summary-title">
+                            <h2 id="change-summary-title">Cosa cambia</h2>
+                            <p>{{ document.changeSummary }}</p>
+                        </section>
+                    }
+
+                    @if (document.html) {
+                        <app-legal-text [html]="document.html" [followFragment]="true" />
+                    } @else if (document.url) {
+                        <p class="external">
+                            Il testo di questa versione è pubblicato su un’altra pagina.
+                            <a [href]="document.url" target="_blank" rel="noopener noreferrer">Apri il documento <i class="pi pi-external-link" aria-hidden="true"></i></a>
+                        </p>
+                    }
+
+                    <footer class="document-footer">
+                        @if (document.contentSha256) {
+                            <p class="fingerprint">
+                                Impronta SHA-256 del testo<br />
+                                <code>{{ document.contentSha256 }}</code>
+                            </p>
+                        }
+                        @if (otherVersions.length) {
+                            <nav class="versions not-print" aria-labelledby="legal-versions-title">
+                                <h2 id="legal-versions-title">Altre versioni</h2>
+                                <ul>
+                                    @for (item of otherVersions; track item.version) {
+                                        <li>
+                                            <a [routerLink]="versionPath(item.version)">Versione {{ item.version }}</a>
+                                            <span> · {{ item.active ? 'in vigore dal' : 'pubblicata il' }} {{ item.publishedAt | date: 'd MMMM y' }}</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </nav>
+                        }
+                        <div class="actions not-print">
+                            <p-button label="Stampa" icon="pi pi-print" severity="secondary" [outlined]="true" (onClick)="print()" />
+                        </div>
+                    </footer>
+                }
+            }
+        }
+    </article>
+</main>

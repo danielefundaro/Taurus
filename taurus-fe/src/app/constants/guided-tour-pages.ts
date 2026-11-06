@@ -1118,7 +1118,7 @@ export const GUIDED_TOUR_PAGES: readonly GuidedTourPageDefinition[] = [
                 anchors: ['legalDocuments.create'],
                 icon: 'pi pi-plus',
                 title: 'Nuova versione',
-                body: "Pubblica una nuova versione di privacy o condizioni d'uso: gli utenti la accettano al prossimo ingresso.",
+                body: "Scrivi una nuova versione dei termini o dell'informativa: resta una bozza finché non la pubblichi, poi gli utenti la confermano al prossimo ingresso.",
                 introducedIn: 2
             },
             {
@@ -1127,8 +1127,40 @@ export const GUIDED_TOUR_PAGES: readonly GuidedTourPageDefinition[] = [
                 anchors: ['legalDocuments.notice'],
                 icon: 'pi pi-lock',
                 title: 'Versioni immutabili',
-                body: 'Le versioni pubblicate non si modificano: per cambiare un testo pubblicane una nuova.',
+                body: 'Dalla pubblicazione una versione non si modifica più. Per cambiare un testo crea una nuova versione a partire da quella in vigore.',
                 introducedIn: 2
+            }
+        ]
+    },
+    {
+        pages: ['/legal-documents/new', '/legal-documents/:id'],
+        steps: [
+            {
+                id: 'page.legalDocument.text',
+                roles: [SUPER_ADMIN],
+                anchors: ['legalDocument.text'],
+                icon: 'pi pi-file-edit',
+                title: 'Testo e anteprima',
+                body: "Scrivi il testo in Markdown: l'anteprima accanto lo mostra come lo vedranno gli utenti, nella pagina pubblica e in quella di accettazione.",
+                introducedIn: 3
+            },
+            {
+                id: 'page.legalDocument.publish',
+                roles: [SUPER_ADMIN],
+                anchors: ['legalDocument.publish'],
+                icon: 'pi pi-send',
+                title: 'Pubblicazione',
+                body: 'Pubblica mette in vigore la versione al posto della precedente: da quel momento non si modifica più. Una versione in vigore si ritira, una ritirata si riattiva.',
+                introducedIn: 3
+            },
+            {
+                id: 'page.legalDocument.newVersion',
+                roles: [SUPER_ADMIN],
+                anchors: ['legalDocument.newVersion', 'legalDocument.publish'],
+                icon: 'pi pi-copy',
+                title: 'Nuova versione',
+                body: 'Da una versione pubblicata, «Nuova versione da questa» apre una bozza con tipo, titolo e testo già compilati: cambia il testo e indica la nuova versione.',
+                introducedIn: 3
             }
         ]
     }
