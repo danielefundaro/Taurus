@@ -185,7 +185,7 @@ Il dialogo diventa una pagina di dettaglio: il testo ha bisogno di spazio e di u
 
 **Guida introduttiva**
 - La tappa `page.legalDocuments.versions` prende il testo del nuovo avviso.
-- La pagina di dettaglio riceve le sue tappe: testo e anteprima, pubblicazione, nuova versione. Valgono le regole di `introducedIn` e della revisione del catalogo della guida.
+- La pagina di dettaglio riceve le sue tappe: testo e anteprima, pubblicazione, nuova versione. Valgono le regole di `introducedIn` e della revisione del catalogo della guida: le tappe nuove hanno `introducedIn: 3` e `GUIDED_TOUR_CATALOG_REVISION` passa a 3.
 
 ### 8. Documenti esistenti
 
@@ -201,7 +201,7 @@ Il dialogo diventa una pagina di dettaglio: il testo ha bisogno di spazio e di u
 
 ### 9. Sito informativo
 
-- `termini-applicativo.astro` e `privacy-applicativo.astro` diventano pagine di rimando a `${appUrl}/legal/terms` e `${appUrl}/legal/privacy`, con `meta refresh` immediato, `link rel="canonical"`, un link visibile e `noindex`. I vecchi indirizzi, nei segnalibri e nelle e-mail, continuano a funzionare.
+- `termini-applicativo.astro` e `privacy-applicativo.astro` diventano pagine di rimando a `${appUrl}/legal/terms` e `${appUrl}/legal/privacy`, con `meta refresh` immediato, `link rel="canonical"`, un link visibile e `noindex`, ed escono dalla sitemap. I vecchi indirizzi, nei segnalibri e nelle e-mail, continuano a funzionare.
 - Il piè di pagina, `termini.astro` e `privacy.astro` collegano direttamente le pagine dell'applicativo.
 - La sezione «Documenti legali dell'applicativo» del README spiega che i testi si gestiscono in Taurus.
 - Il sito passa ai rimandi solo dopo che i testi sono in vigore nell'applicativo, vedi il [piano di adozione](#piano-di-adozione-e-compatibilità).
@@ -302,7 +302,7 @@ Nuove chiavi nel catalogo dello [Standard degli errori applicativi](application-
   - normalizzazione del testo, impronta, limiti di testo e versione;
   - l'accettazione registra l'impronta; `previousVersionAccepted` vero solo con una conferma precedente dello stesso tipo nel tenant.
 - `LegalMarkdownRendererTest`: costrutti ammessi; HTML scritto a mano mostrato come testo; link `javascript:` e `data:` tolti; immagini tolte; adattamento dei livelli dei titoli e `id`; attributi dei link esterni; tabelle.
-- `LegalResourceIT`, con `DockerRequirement.required()`:
+- `LegalResourceIT`, come le altre IT delle risorse, sul contesto Spring con i container di prova. Non chiama `DockerRequirement.required()`, perché il contesto si avvia prima dei metodi `@BeforeAll`; senza Docker la classe fallisce invece di saltarsi:
   - API pubblica senza token: versione in vigore, versione ritirata, bozza e versione inesistente in `404`, tipo sconosciuto, intestazioni di cache;
   - API di amministrazione in `403` per tutti i ruoli tranne il super amministratore;
   - migrazioni applicate a schema pubblico e schema tenant, vincoli nuovi rispettati.
@@ -323,6 +323,8 @@ Nuovo scenario `legal-documents.spec.ts`:
 1. il super amministratore pubblica una nuova versione dei termini;
 2. al passaggio successivo un utente arriva alla pagina di accettazione, legge il testo e conferma;
 3. un visitatore senza sessione apre `/legal/terms` e la versione precedente.
+
+Una versione pubblicata non si elimina, quindi lo scenario si abilita con `E2E_LEGAL_PUBLISH=true`, gira solo sul profilo desktop e alla fine rimette in vigore la versione di prima. Le prove di sola lettura (pagina pubblica, versione inesistente, accessibilità a 320 pixel, link del piè di pagina) girano sempre.
 
 ### Sito informativo
 

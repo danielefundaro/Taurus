@@ -876,9 +876,12 @@ La guida non mostra all'utente gli errori delle proprie chiamate automatiche: i 
 | --- | --- | --- | --- | --- |
 | `legal.acceptance.incomplete` | 400 | L'utente non conferma tutti i documenti obbligatori ancora da accettare | — | «Confermare tutti i documenti obbligatori» |
 | `legal.document.stale` | 400 | L'utente accetta un documento non più in vigore: nel frattempo è stata pubblicata una nuova versione | — | «Uno o più documenti non sono più in vigore: ricaricare la pagina» |
-| `legal.document.notFound` | 404 | Documento inesistente | — | «Documento legale non trovato» |
+| `legal.document.notFound` | 404 | Documento inesistente; dall'API pubblica anche una bozza, un tipo sconosciuto o un documento senza versione in vigore | — | «Documento legale non trovato» |
 | `legal.document.version.exists` | 409 | Creazione o modifica con tipo e versione di un documento già esistente | — | «Esiste già questa versione del documento» |
-| `legal.document.accepted.immutable` | 409 | Modifica del contenuto di un documento già accettato da almeno un utente | — | «Un documento già accettato non si modifica: crearne una nuova versione» |
+| `legal.document.version.invalid` | 400 | Versione con caratteri diversi da lettere, cifre, punto, trattino e trattino basso, che non inizia con una lettera o una cifra o supera i 32 caratteri | — | «Usare per la versione solo lettere, numeri, punto, trattino e trattino basso» |
+| `legal.document.content.required` | 400 | Bozza o completamento con il testo vuoto | — | «Scrivere il testo del documento» |
+| `legal.document.content.tooLong` | 400 | Testo di una bozza, di un completamento o di un’anteprima oltre 100 000 caratteri | — | «Il testo supera i 100.000 caratteri» |
+| `legal.document.published.immutable` | 409 | Modifica o eliminazione di una versione già pubblicata, o secondo completamento di un documento pubblicato con il solo indirizzo | — | «Una versione pubblicata non si modifica: crearne una nuova» |
 
 ### Strumenti e strumenti da aggiungere
 
