@@ -107,46 +107,45 @@
         }
     </app-detail-section>
 
-    <div appTourAnchor="legalDocument.text">
-        <app-detail-section
-            heading="Testo"
-            [description]="contentEditable ? 'Si scrive in Markdown: titoli con #, elenchi, tabelle, grassetto, corsivo e link https o mailto. L’anteprima mostra il testo come lo vedranno gli utenti.' : 'Il testo come lo vedono gli utenti.'"
-            [dirty]="contentEditable && isDirty"
-        >
-            @if (contentEditable) {
-                <p-selectbutton class="editor__switch" [options]="views" optionLabel="label" optionValue="value" [(ngModel)]="view" [allowEmpty]="false" ariaLabel="Testo o anteprima" />
-                <div class="editor">
-                    <div class="editor__panel" [class.editor__panel--hidden]="view !== 'text'">
-                        <app-form-field label="Testo Markdown" forId="content" required [error]="validationAttempted ? contentError : undefined" [hint]="contentLength + ' di 100.000 caratteri'">
-                            <textarea pTextarea id="content" class="editor__text" rows="24" [ngModel]="document.content" (ngModelChange)="document.content = $event; contentChanged($event)" [maxlength]="contentMaxLength"></textarea>
-                        </app-form-field>
-                    </div>
-                    <div class="editor__panel" [class.editor__panel--hidden]="view !== 'preview'">
-                        <div class="editor__label">
-                            Anteprima
-                            @if (previewLoading) {
-                                <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-                            }
-                        </div>
-                        @if (previewFailed) {
-                            <app-inline-alert severity="warn" heading="Anteprima non aggiornata" detail="Non è stato possibile convertire il testo: l’anteprima si aggiorna alla prossima modifica." />
+    <app-detail-section
+        appTourAnchor="legalDocument.text"
+        heading="Testo"
+        [description]="contentEditable ? 'Si scrive in Markdown: titoli con #, elenchi, tabelle, grassetto, corsivo e link https o mailto. L’anteprima mostra il testo come lo vedranno gli utenti.' : 'Il testo come lo vedono gli utenti.'"
+        [dirty]="contentEditable && isDirty"
+    >
+        @if (contentEditable) {
+            <p-selectbutton class="editor__switch" [options]="views" optionLabel="label" optionValue="value" [(ngModel)]="view" [allowEmpty]="false" ariaLabel="Testo o anteprima" />
+            <div class="editor">
+                <div class="editor__panel" [class.editor__panel--hidden]="view !== 'text'">
+                    <app-form-field label="Testo Markdown" forId="content" required [error]="validationAttempted ? contentError : undefined" [hint]="contentLength + ' di 100.000 caratteri'">
+                        <textarea pTextarea id="content" class="editor__text" rows="24" [ngModel]="document.content" (ngModelChange)="document.content = $event; contentChanged($event)" [maxlength]="contentMaxLength"></textarea>
+                    </app-form-field>
+                </div>
+                <div class="editor__panel" [class.editor__panel--hidden]="view !== 'preview'">
+                    <div class="editor__label">
+                        Anteprima
+                        @if (previewLoading) {
+                            <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
                         }
-                        <div class="editor__preview">
-                            @if (previewHtml) {
-                                <app-legal-text [html]="previewHtml" />
-                            } @else {
-                                <p class="text-muted-color m-0">L’anteprima compare qui mentre scrivi.</p>
-                            }
-                        </div>
+                    </div>
+                    @if (previewFailed) {
+                        <app-inline-alert severity="warn" heading="Anteprima non aggiornata" detail="Non è stato possibile convertire il testo: l’anteprima si aggiorna alla prossima modifica." />
+                    }
+                    <div class="editor__preview">
+                        @if (previewHtml) {
+                            <app-legal-text [html]="previewHtml" />
+                        } @else {
+                            <p class="text-muted-color m-0">L’anteprima compare qui mentre scrivi.</p>
+                        }
                     </div>
                 </div>
-            } @else {
-                <div class="editor__preview editor__preview--read">
-                    <app-legal-text [html]="previewHtml" />
-                </div>
-            }
-        </app-detail-section>
-    </div>
+            </div>
+        } @else {
+            <div class="editor__preview editor__preview--read">
+                <app-legal-text [html]="previewHtml" />
+            </div>
+        }
+    </app-detail-section>
 
     @if (isDraft && !isNew) {
         <app-danger-zone [operations]="dangerOperations" (execute)="executeDanger($event)" />
