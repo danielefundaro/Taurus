@@ -54,7 +54,7 @@ server {
     }
 
     # I file con l'impronta nel nome non cambiano mai contenuto: si possono tenere per sempre.
-    location ~* "-[A-Z0-9]{8,}\.(?:js|css)$" {
+    location ~* "-[A-Z0-9]{8,}\.(?:js|css|woff2)$" {
         include /etc/nginx/taurus-security-headers.conf;
         try_files $uri =404;
         add_header Cache-Control "public, max-age=31536000, immutable";
