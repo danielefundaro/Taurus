@@ -1,0 +1,67 @@
+// Lato 2.0 by Łukasz Dziedzic, under the SIL Open Font License 1.1, served by the app itself from the
+// lato-font package: opening a page sends no request to a third-party domain. The faces are the weights
+// the interface uses, Medium and Semibold included, which Lato 1 of the common font services lacks.
+// Each URL is written out in full: the build rebases relative URLs only when they have no interpolation.
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../../../node_modules/lato-font/fonts/lato-normal/lato-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../../../node_modules/lato-font/fonts/lato-normal-italic/lato-normal-italic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../../../node_modules/lato-font/fonts/lato-medium/lato-medium.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: italic;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../../../node_modules/lato-font/fonts/lato-medium-italic/lato-medium-italic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../../../node_modules/lato-font/fonts/lato-semibold/lato-semibold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: italic;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../../../node_modules/lato-font/fonts/lato-semibold-italic/lato-semibold-italic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../../../node_modules/lato-font/fonts/lato-bold/lato-bold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: italic;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../../../node_modules/lato-font/fonts/lato-bold-italic/lato-bold-italic.woff2') format('woff2');
+}

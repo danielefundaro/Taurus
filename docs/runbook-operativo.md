@@ -1154,13 +1154,14 @@ I seguenti punti emergono direttamente dal repository e devono diventare attivit
 
 Chiusi il 2026-10-30 con il manifest di produzione e quello che gli sta intorno: manifest completo con reti, volumi, probe, limiti e segreti fuori dal repository; volume dei dati di PostgreSQL; configurazione del frontend a runtime, che toglie gli indirizzi interni dal bundle; client OIDC uniformato su `web_app`; Keycloak in modalità produzione con hostname, proxy e database; `app.yml` rimosso; pipeline che pubblica anche l'immagine del sito informativo e il JAR del provider, firmati e con la provenienza attestata; log in JSON con `requestId` e `tenant`; Actuator ristretto a `health`, `info` e `prometheus`; RabbitMQ di sviluppo sul loopback; smoke test non distruttivo (`scripts/ops/smoke-test.sh`); servizio OMR nel manifest con le sue restrizioni; SoundFont procurabile da una copia controllata.
 
+Chiuso il 2026-11-06: il carattere Lato è servito dall'applicazione (pacchetto `lato-font`) e la Content-Security-Policy non ammette più domini esterni per caratteri e stili.
+
 | Priorità | Gap | Azione richiesta |
 | --- | --- | --- |
 | Bloccante | Il manifest di produzione esiste ([`deploy/compose.yml`](../deploy/compose.yml)) ma non è mai stato eseguito su un host reale | Insediarlo su un server, registrare l'esito e promuoverlo da riferimento a configurazione collaudata |
 | Alta | Backup non programmati: la prova di ripristino del database è automatizzata con `scripts/ops/restore-test.sh`, ma nessuno la esegue, e RPO, RTO e retention non sono approvati | Programmare backup e prova sull'host, estenderla a Keycloak e allo storage media, far approvare i tempi misurati. L'informativa privacy e i termini di utilizzo oggi dichiarano che non si fanno copie di sicurezza: attivarle richiede prima una loro nuova versione ([`docs/legal`](legal/)) |
 | Alta | Degli scheduler, hanno una presa in carico condizionata solo quelli di upload, onboarding, outbox delle notifiche, consegna push e promemoria eventi | Qualificare i restanti (ritenzione, pulizie, recuperi) per idempotenza o worker dedicato; finché non lo sono, il manifest avvia una replica sola del backend |
 | Media | La copia controllata del SoundFont non è ancora pubblicata: la build usa il mirror pubblico se non le viene indicata | Pubblicare il file come allegato di una release e impostare `TAURUS_SOUNDFONT_URL` nella pipeline |
-| Media | Il carattere Lato arriva da `fonts.cdnfonts.com`: ogni visitatore fa una richiesta a un dominio esterno | Servire il carattere dall'applicazione e stringere la Content-Security-Policy |
 | Media | Raccolta dei log e allarmi non configurati sull'host | Acquisire `stdout/stderr` con una retention di 5 giorni, quella dichiarata dall'informativa privacy, e definire gli allarmi di §10.2 |
 
 ## 19. Scheda rapida di change
