@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, Injectable, signal } from '@angular/core';
 import { finalize, interval, Observable, of, shareReplay, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { publicPage } from '../constants/public-pages';
 import { TenantFeature, TenantFeatureCapabilities, TenantFeatures } from '../module';
 import { TenantStatusService } from './tenant-status.service';
 
@@ -36,6 +37,8 @@ export class TenantFeatureService {
         private readonly http: HttpClient,
         private readonly tenantStatus: TenantStatusService
     ) {
+        // A public page has no session nor tenant: there are no flags to keep up to date.
+        if (publicPage()) return;
         interval(TenantFeatureService.maxAgeMs).subscribe(() => {
             if (document.visibilityState === 'visible') this.refresh().subscribe({ error: () => undefined });
         });

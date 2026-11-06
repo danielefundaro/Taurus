@@ -1,4 +1,4 @@
-import { HTTP_INTERCEPTORS, HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClient, HttpErrorResponse, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
@@ -113,6 +113,49 @@ describe('HttpInterceptorService on the public legal documents', () => {
         const request = controller.expectOne(preview);
         expect(request.request.headers.get('Authorization')).toBe('Bearer token');
         request.flush({ html: '' });
+    });
+});
+
+describe('HttpInterceptorService on a public page without a session', () => {
+    const start = location.pathname + location.search;
+    let http: HttpClient;
+    let controller: HttpTestingController;
+    let keycloak: jasmine.SpyObj<KeycloakService>;
+    let toast: jasmine.SpyObj<ToastService>;
+
+    beforeEach(() => {
+        history.replaceState(null, '', '/legal/terms');
+        keycloak = jasmine.createSpyObj<KeycloakService>('KeycloakService', ['logout'], { isUserLoggedIn: false, token: undefined });
+        toast = jasmine.createSpyObj<ToastService>('ToastService', ['error']);
+        TestBed.configureTestingModule({
+            providers: [
+                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClientTesting(),
+                { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
+                { provide: KeycloakService, useValue: keycloak },
+                { provide: ToastService, useValue: toast },
+                { provide: LoadingService, useValue: { loading: false } },
+                { provide: Router, useValue: jasmine.createSpyObj<Router>('Router', ['navigate']) }
+            ]
+        });
+        http = TestBed.inject(HttpClient);
+        controller = TestBed.inject(HttpTestingController);
+    });
+
+    afterEach(() => {
+        controller.verify();
+        history.replaceState(null, '', start);
+    });
+
+    it('fails a request that needs a session at once, without logout and without a toast', () => {
+        const features = `${environment.baseUrl}/tenant-features/current`;
+        let status: number | undefined;
+        http.get(features).subscribe({ error: (error: HttpErrorResponse) => (status = error.status) });
+
+        controller.expectNone(features);
+        expect(status).toBe(401);
+        expect(keycloak.logout).not.toHaveBeenCalled();
+        expect(toast.error).not.toHaveBeenCalled();
     });
 });
 

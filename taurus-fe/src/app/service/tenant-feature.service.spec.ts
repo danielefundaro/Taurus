@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { TenantFeature } from '../module';
@@ -126,4 +126,23 @@ describe('TenantFeatureService', () => {
         expect(features.calendarEnabled).toBeFalse();
         expect(service.loaded()).toBeFalse();
     });
+});
+
+describe('TenantFeatureService on a public page', () => {
+    const start = location.pathname + location.search;
+
+    afterEach(() => history.replaceState(null, '', start));
+
+    it('reads no flags, because a public page has no session nor tenant', fakeAsync(() => {
+        history.replaceState(null, '', '/legal/terms');
+        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+        TestBed.inject(TenantFeatureService);
+        const http = TestBed.inject(HttpTestingController);
+
+        tick(60_000);
+        document.dispatchEvent(new Event('visibilitychange'));
+
+        http.expectNone(`${environment.baseUrl}/tenant-features/current`);
+        http.verify();
+    }));
 });
