@@ -1157,11 +1157,11 @@ Chiusi il 2026-10-30 con il manifest di produzione e quello che gli sta intorno:
 | Priorità | Gap | Azione richiesta |
 | --- | --- | --- |
 | Bloccante | Il manifest di produzione esiste ([`deploy/compose.yml`](../deploy/compose.yml)) ma non è mai stato eseguito su un host reale | Insediarlo su un server, registrare l'esito e promuoverlo da riferimento a configurazione collaudata |
-| Alta | Backup non programmati: la prova di ripristino del database è automatizzata con `scripts/ops/restore-test.sh`, ma nessuno la esegue, e RPO, RTO e retention non sono approvati | Programmare backup e prova sull'host, estenderla a Keycloak e allo storage media, far approvare i tempi misurati |
+| Alta | Backup non programmati: la prova di ripristino del database è automatizzata con `scripts/ops/restore-test.sh`, ma nessuno la esegue, e RPO, RTO e retention non sono approvati | Programmare backup e prova sull'host, estenderla a Keycloak e allo storage media, far approvare i tempi misurati. L'informativa privacy e i termini di utilizzo oggi dichiarano che non si fanno copie di sicurezza: attivarle richiede prima una loro nuova versione ([`docs/legal`](legal/)) |
 | Alta | Degli scheduler, hanno una presa in carico condizionata solo quelli di upload, onboarding, outbox delle notifiche, consegna push e promemoria eventi | Qualificare i restanti (ritenzione, pulizie, recuperi) per idempotenza o worker dedicato; finché non lo sono, il manifest avvia una replica sola del backend |
 | Media | La copia controllata del SoundFont non è ancora pubblicata: la build usa il mirror pubblico se non le viene indicata | Pubblicare il file come allegato di una release e impostare `TAURUS_SOUNDFONT_URL` nella pipeline |
 | Media | Il carattere Lato arriva da `fonts.cdnfonts.com`: ogni visitatore fa una richiesta a un dominio esterno | Servire il carattere dall'applicazione e stringere la Content-Security-Policy |
-| Media | Raccolta dei log e allarmi non configurati sull'host | Acquisire `stdout/stderr`, dichiarare la retention e definire gli allarmi di §10.2 |
+| Media | Raccolta dei log e allarmi non configurati sull'host | Acquisire `stdout/stderr` con una retention di 5 giorni, quella dichiarata dall'informativa privacy, e definire gli allarmi di §10.2 |
 
 ## 19. Scheda rapida di change
 
