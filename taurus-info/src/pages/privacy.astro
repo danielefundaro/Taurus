@@ -1,5 +1,5 @@
 ---
-import { siteConfig } from '../config/site';
+import { appLegalUrl, siteConfig } from '../config/site';
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
@@ -13,7 +13,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   </section>
   <section class="legal-content">
     <article class="container-shell prose-legal">
-      <p>Questa informativa riguarda esclusivamente la consultazione del sito-vetrina Taurus. Il trattamento effettuato dalla piattaforma autenticata è descritto nella <a href="/privacy-applicativo/">privacy dell’applicativo Taurus</a>.</p>
+      <p>Questa informativa riguarda esclusivamente la consultazione del sito-vetrina Taurus. Il trattamento effettuato dalla piattaforma autenticata è descritto nella <a href={appLegalUrl('privacy')}>privacy dell’applicativo Taurus</a>.</p>
 
       <h2>1. Titolare del trattamento</h2>
       <p>Il titolare è <strong>Daniele Fundarò</strong>, persona fisica stabilita in Italia. Per informazioni o per esercitare i propri diritti è possibile scrivere a <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>.</p>

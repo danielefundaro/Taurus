@@ -9,16 +9,19 @@ interface Props {
   description?: string;
   image?: string;
   noindex?: boolean;
+  /** Indirizzo a cui la pagina rimanda subito: diventa anche il canonical, e la pagina esce dai motori di ricerca. */
+  redirectTo?: string;
 }
 
 const {
   title,
   description = siteConfig.description,
   image = '/og.png',
-  noindex = false
+  noindex = false,
+  redirectTo
 } = Astro.props;
 const pageTitle = title ? `${title} | ${siteConfig.name}` : `${siteConfig.name} — ${siteConfig.tagline}`;
-const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : Astro.url;
+const canonical = redirectTo ? new URL(redirectTo) : Astro.site ? new URL(Astro.url.pathname, Astro.site) : Astro.url;
 const socialImage = Astro.site ? new URL(image, Astro.site) : new URL(image, Astro.url);
 const structuredData = {
   '@context': 'https://schema.org',
@@ -51,7 +54,8 @@ const structuredData = {
     <meta name="viewport" content="width=device-width" />
     <meta name="theme-color" content="#173d31" />
     <meta name="description" content={description} />
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {redirectTo && <meta http-equiv="refresh" content={`0; url=${redirectTo}`} />}
+    {redirectTo ? <meta name="robots" content="noindex" /> : noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="manifest" href="/site.webmanifest" />

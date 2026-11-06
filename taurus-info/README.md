@@ -71,14 +71,14 @@ Il TLS deve essere terminato dal reverse proxy o dall'ingress dell'ambiente di d
 
 ## Documenti legali dell'applicativo
 
-Il sito pubblica separatamente i documenti destinati agli utenti della web app:
+I termini di utilizzo e l'informativa privacy dell'applicativo si scrivono, si versionano e si pubblicano in Taurus: un super amministratore li gestisce in **Documenti legali**, e ogni versione pubblicata ha una pagina pubblica nell'applicativo, leggibile senza login.
 
-- `/privacy-applicativo/` per l'informativa privacy, da registrare in Taurus come tipo `PRIVACY` e azione `ACKNOWLEDGE`;
-- `/termini-applicativo/` per i termini di utilizzo, da registrare come tipo `TERMS` e azione `ACCEPT`.
+Il sito non contiene più quei testi:
 
-Le versioni pubblicate nel sito sono la **1.1 del 3 settembre 2026** per l'informativa privacy e la **1.2 del 7 settembre 2026** per i termini di utilizzo.
+- `/termini-applicativo/` e `/privacy-applicativo/` rimandano subito a `${PUBLIC_APP_URL}/legal/terms` e `${PUBLIC_APP_URL}/legal/privacy`, con il canonical verso l'applicativo, un collegamento visibile e `noindex`; restano fuori dalla sitemap, così i vecchi indirizzi nei segnalibri e nelle e-mail continuano a funzionare;
+- il piè di pagina, `termini.astro` e `privacy.astro` collegano direttamente le pagine dell'applicativo.
 
-Dopo la pubblicazione del sito, un super amministratore deve aprire **Documenti legali** nella web app e creare le due versioni indicando gli URL pubblici completi, la versione, la data di pubblicazione e lo stato attivo. I record non devono essere inseriti manualmente nel database.
+Il sito con i rimandi si pubblica solo dopo che i testi sono in vigore nell'applicativo. Le ultime versioni pubblicate nel sito, la **1.1 del 3 settembre 2026** per l'informativa privacy e la **1.2 del 7 settembre 2026** per i termini, restano nella cronologia Git di questo modulo: da lì il super amministratore copia il testo di una versione registrata in Taurus con il solo indirizzo, che riceve il testo una sola volta. Il procedimento è descritto in `docs/legal-documents-spec.md`.
 
 ## Verifiche prima della produzione
 

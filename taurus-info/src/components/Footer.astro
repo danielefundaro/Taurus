@@ -1,5 +1,5 @@
 ---
-import { siteConfig } from '../config/site';
+import { appLegalUrl, siteConfig } from '../config/site';
 import Brand from './Brand.astro';
 ---
 
@@ -20,8 +20,8 @@ import Brand from './Brand.astro';
       <h2>Informazioni</h2>
       <a href="/privacy/">Privacy del sito</a>
       <a href="/termini/">Termini del sito</a>
-      <a href="/privacy-applicativo/">Privacy dell’applicativo</a>
-      <a href="/termini-applicativo/">Termini dell’applicativo</a>
+      <a href={appLegalUrl('privacy')}>Privacy dell’applicativo</a>
+      <a href={appLegalUrl('terms')}>Termini dell’applicativo</a>
       <a href={`mailto:${siteConfig.contactEmail}`}>{siteConfig.contactEmail}</a>
     </div>
     <div class="footer-cta">
