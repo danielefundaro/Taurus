@@ -11,7 +11,7 @@ Le verifiche di ogni modulo restano quelle di `AGENTS.md` e del [Runbook di test
 ID catalogo: `platform-upgrade`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Bozza del 2026-11-02: le scelte sono proposte in [Decisioni](#decisioni) e vanno approvate prima dell'implementazione. Le versioni obiettivo sono le ultime stabili a quella data, lette dai registri ufficiali (Maven Central, npm, PyPI, GitHub, endoflife.date).
+Bozza del 2026-11-02, approvata il 2026-11-06 con tutte le scelte di [Decisioni](#decisioni). Le versioni obiettivo sono le ultime stabili a quella data, lette dai registri ufficiali (Maven Central, npm, PyPI, GitHub, endoflife.date).
 
 ## Problema
 
@@ -105,7 +105,7 @@ Inventario del 02/11/2026. «Salto» indica il tipo di aggiornamento: patch e mi
 
 | Componente | Attuale | Obiettivo | Salto | Note |
 | --- | --- | --- | --- | --- |
-| Pillow | 12.3.0 | 13.0.x | maggiore | 28 CVE, 5 `CRITICAL` |
+| Pillow | 12.3.0 | 13.0.x | maggiore | 28 CVE, 5 `CRITICAL`; homr 0.7.0 richiede `Pillow<13`: [Eccezioni](#eccezioni-alla-versione-più-recente) |
 | certifi | 2026.7.22 | 2026.10.x | — | radici emSign compromesse (`CRITICAL`) |
 | FastAPI, Starlette, Pydantic, python-multipart, ONNX Runtime | varie | ultime | minor | |
 | opencv-python-headless | 4.14 | 5.0 | maggiore | solo se homr lo accetta: decisione 9 |
@@ -155,7 +155,7 @@ Inventario del 02/11/2026. «Salto» indica il tipo di aggiornamento: patch e mi
 
 ## Decisioni
 
-Proposte del 02/11/2026, da approvare.
+Proposte del 02/11/2026, approvate il 06/11/2026.
 
 ### 1. Ultima versione stabile, non l'ultima pubblicata
 
@@ -228,6 +228,7 @@ Le voci di `.trivyignore.yaml` vengono tolte dalla fase che risolve la vulnerabi
 | --- | --- | --- | --- |
 | TypeScript | 6.0 | 7.0 | Angular 22 richiede `>=6.0 <6.1`; `@astrojs/check` supporta fino alla 6 |
 | Python e Ubuntu del servizio OMR | 3.12 / 24.04 | 3.15 / 26.04 | Audiveris non ha pacchetti per Ubuntu 26.04 |
+| Pillow del servizio OMR | 12.3.0 | 13.0.0 | homr 0.7.0, ultima versione, richiede `Pillow<13`; le 28 CVE corrette solo dalla 13 restano in `.trivyignore.yaml` finché homr non accetta la 13 |
 | Java del provider Keycloak | quella dell'immagine Keycloak | 25 | il provider gira nella JVM di Keycloak |
 | Prometheus | 3.13 LTS | 3.15 | la 3.15 esce dal supporto il 06/11/2026; la LTS è supportata fino a luglio 2027 |
 | Karma | 6.4 | — | deprecato senza successore diretto: decisione 6 |
@@ -247,6 +248,69 @@ Ogni fase è una pull request separata, di un solo modulo, come chiede `AGENTS.m
 | 6 | Sito informativo: Node 26, pnpm 12, Astro 6 → 7 | `taurus-info` | 14 |
 | 7 | Servizi: PostgreSQL 18, RabbitMQ 4.4, nginx senza root, monitoraggio | compose, `deploy/`, Dockerfile | 4 configurazioni |
 | 8 | Documentazione e chiusura: runbook, `AGENTS.md`, README, `.trivyignore.yaml` vuoto | repository | — |
+
+### Esito della fase 0
+
+Applicata e verificata il 2026-11-06 sul ramo `update-versions`; i commit per modulo sono descritti in [Stato dei lavori](#stato-dei-lavori). Trivy 0.70.0, la versione della CI, trovava 90 vulnerabilità e 4 configurazioni: ne restano 45 e 3, tutte in `.trivyignore.yaml` con scadenza 2027-01-05. Il job `security` legge il file con l'input `trivyignores` di `trivy-action`, e il comando del [Runbook di test](runbook-test.md) usa la stessa versione di Trivy e lo stesso file.
+
+- Backend: pgjdbc 42.7.14, amqp-client 5.37.1, commons-beanutils 1.11.0 e `--no-install-recommends` nel Dockerfile. Resta la CVE di Actuator, corretta da Spring Boot 3.5.12 (fase 4). Nei test, la cache dei contesti di Spring è limitata a 8: senza limite gli IT esaurivano l'heap, un difetto già presente prima della fase 0 (vedi [Memoria esaurita negli IT del backend](#memoria-esaurita-negli-it-del-backend)).
+- Frontend: Angular 19.2.25 e strumenti di build 19.2.27, ultime della 19, che correggono 9 delle 18 segnalazioni di Angular; PrimeNG 19.1.4; postcss 8.5 e le dipendenze transitive del lockfile. Restano le altre 9 di Angular, corrette solo dalla 20.3, e quella di `ngx-extended-pdf-viewer` (fase 5).
+- Sito informativo: devalue, js-yaml, source-map-js, svgo e vite alle versioni corrette. Restano Astro e sharp 0.34, l'ultima linea che Astro 5 accetta (fase 6).
+- Servizio OMR: certifi 2026.10.23. Pillow resta alla 12.3.0 per il vincolo di homr (vedi [Eccezioni](#eccezioni-alla-versione-più-recente)).
+- Dockerfile: restano le immagini nginx e il dev container che girano come root (fase 7).
+
+Trivy risolve le dipendenze del `pom.xml` scaricando i POM da Maven Central e non sempre ci riesce: due esecuzioni sullo stesso file possono dare risultati diversi. Il confronto vale sul report completo, quello che elenca anche Spring Boot e il driver PostgreSQL.
+
+### Stato dei lavori
+
+Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che parte da `84ae3b8`. I commit sono sei, uno per modulo e due per il backend:
+
+- `Limit the cached test contexts`: il limite alla cache dei contesti di test del backend;
+- `Update vulnerable backend dependencies`: `pom.xml` e `Dockerfile` del backend;
+- `Update Angular and PrimeNG to their last 19.x releases`: `package.json` e lockfile del frontend;
+- `Update vulnerable info site dependencies`: lockfile del sito informativo;
+- `Update certifi in the OMR service`: i requisiti del servizio OMR;
+- `Add expiring Trivy exceptions for the platform upgrade`: `.trivyignore.yaml`, il job `security` e la documentazione.
+
+Il ramo non è ancora pubblicato.
+
+#### Verifiche eseguite
+
+| Modulo | Comando | Esito |
+| --- | --- | --- |
+| Repository | Trivy 0.70.0 come nella CI, con `--ignorefile .trivyignore.yaml` | nessuna segnalazione, codice di uscita 0 |
+| Repository | `validate-feature-catalog.mjs`, `feature-catalog.test.mjs`, `check-feature-drift.mjs` | superati |
+| Frontend | `npm run build` | riuscita; due avvisi di budget CSS: `pdf-manipulator-dialog.component.scss` 7,72 kB e `preview.component.scss` 7,95 kB, sul limite di 7 kB |
+| Frontend | `npm run test:coverage` | 736 test su 736; copertura sopra la baseline (statements 64,46%, branches 54,29%, lines 66,53%) |
+| Sito informativo | `pnpm check`, `pnpm build`, `pnpm test`, `pnpm test:image` | superati |
+| Servizio OMR | `python -m pytest` in `python:3.12-slim` con `requirements-test.txt` | 71 superati, 6 saltati: i test di accuratezza, che chiedono un servizio con i motori reali |
+| Backend | `./mvnw verify -Dtaurus.test.requireDocker=true`, con RabbitMQ irraggiungibile come in CI | superata in 26 minuti: 1225 test unitari e 279 di integrazione; copertura unita 75,59% delle linee e 60,53% dei branch, sopra le soglie |
+| Servizio OMR | `docker build` e `tests/test_accuracy.py` sull'immagine costruita, come il job `omr` della CI | immagine costruita con certifi 2026.10.23; 6 test su 6 in 3 minuti: battute lette 87% con Audiveris e 82% con homr, nomi delle parti 6 su 6 |
+
+Non eseguiti: `npm run e2e` e la verifica visiva di Angular 19.2 e PrimeNG 19.1.4. Entrambi chiedono di entrare con gli utenti dei tenant di prova, che il realm di sviluppo non contiene e che la suite legge dalle variabili `E2E_*`.
+
+#### Memoria esaurita negli IT del backend
+
+Risolto il 2026-11-06.
+
+- **Sintomo.** Dopo `SignatureIT` il contesto di `AccountResourceIT` non partiva: l'heap di 1 GB del fork era pieno e, dopo 17-19 minuti di garbage collection continua, il fork moriva con codice 99. Gli IT successivi non giravano.
+- **Causa.** Spring tiene in cache un contesto per ogni configurazione di test, fino a 32, e nel fork degli IT ne nascono 18 prima di `AccountResourceIT`, intorno ai 50 MB l'uno. Nell'istogramma dell'heap dominano le cache di ogni contesto: le corrispondenze dei pointcut AspectJ (un milione di `ShadowMatchImpl`), gli oggetti `Method` della riflessione, i `Lazy` di Spring Data. Le centinaia di thread dei listener RabbitMQ che riprovano a collegarsi sono un effetto dei contesti vivi, non la causa.
+- **Non è una regressione della fase 0.** La stessa prova su `84ae3b8`, con RabbitMQ irraggiungibile come in CI, si è fermata nello stesso punto: heap pieno al 100%, 578 thread, contesto di `AccountResourceIT` non avviato dopo 10 minuti. La suite era già al limite: il 2026-11-06 alle 01:18, prima del commit `e6eff8d`, `AccountResourceIT` aveva impiegato 146 secondi.
+- **Correzione.** `spring.test.context.cache.maxSize=8` in `taurus-be/src/test/resources/spring.properties`. Oltre il limite Spring chiude il contesto usato meno di recente, con i suoi pool e listener; il container PostgreSQL condiviso, registrato senza callback di distruzione, resta acceso. Con il limite ogni contesto parte in 10-13 secondi e `AccountResourceIT` dura 14 secondi. Il [Runbook di test](runbook-test.md) spiega il limite e come riconoscere un heap di nuovo al limite.
+
+#### Passi per chiudere la fase 0
+
+1. Eseguire `npm run e2e` su un'istanza completa con i tenant di prova e la verifica visiva sulle pagine del [Taurus Layout Standard](taurus-layout-standard.md).
+2. Pubblicare il ramo e aprire la pull request: la CI verifica i moduli con Java 17, mentre in locale il backend è stato provato con Java 21.
+3. Aggiornare questa sezione e la nota della voce in `docs/features.json`, poi passare alla fase 1.
+
+#### Note sull'ambiente locale
+
+- Il backend è stato verificato con Java 21.0.2; la CI usa Java 17. Con i servizi di sviluppo avviati, `SPRING_RABBITMQ_PORT=5679` punta i test su una porta chiusa, come in CI dove nessun broker ascolta su `localhost:5672`.
+- Il frontend è stato verificato con Node 22.11.0, come la CI che usa Node 22. pnpm 11.16 non parte su Node 22.11.0 e il corepack di quella versione rifiuta le chiavi di firma di pnpm: per il sito è stato usato Node 24.21.0.
+- Il lockfile del frontend è stato rigenerato così: `npm audit fix`, minimi del `package.json` alzati a mano, poi rimozione dal lock delle sole voci con nome esatto (`@angular/*`, `@angular-devkit/*`, `@ngtools/*`, `@schematics/angular`, `primeng`, `postcss`) e `npm install`. Una rimozione per prefisso toglie anche `postcss-modules-*`, che npm non ripristina: la build passa, ma Karma non trova `postcss-modules-values`. `npm ls --all` deve uscire senza errori.
+- Il `node_modules` del sito era collegato allo store pnpm `D:\Daniele\Zodiac\Taurus\.pnpm-store`, che non esisteva più. Lo store è stato ricreato per l'aggiornamento e poi cancellato: se pnpm segnala uno store inatteso, `pnpm install` ricollega le dipendenze.
+- L'enforcer del backend segnala due divergenze di dipendenze, solo come avvisi: amqp-client, 5.21.0 da `spring-rabbit` contro quella dichiarata, già presente con la 5.25.0, e `checker-qual`, 3.55.1 da pgjdbc 42.7.14 contro 3.37.0 da Caffeine, nuova.
 
 ## Modifiche per modulo
 

@@ -248,6 +248,8 @@ jobs:
           scanners: vuln,misconfig,secret
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          # Eccezioni a scadenza, ciascuna con la fase che la risolve: docs/platform-upgrade-spec.md, decisione 13.
+          trivyignores: .trivyignore.yaml
           exit-code: '1'
       # Analisi statica di sicurezza: regole libere di semgrep, senza account.
       - name: Static analysis
