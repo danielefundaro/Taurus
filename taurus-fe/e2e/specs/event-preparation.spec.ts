@@ -102,7 +102,8 @@ test.describe('preparazione evento', () => {
 
         const eventPaths = paths.filter((path) => path.includes(`/${eventId}`));
         expect(eventPaths.length).toBeGreaterThan(0);
-        expect(eventPaths.every((path) => path.startsWith('/api/finance/'))).toBeTrue();
+        // Il messaggio dell'asserzione elenca le chiamate fuori da /api/finance/, se ce ne sono.
+        expect(eventPaths.filter((path) => !path.startsWith('/api/finance/'))).toEqual([]);
         await expect(page.locator('#event-data, #preparation-program, #preparation-materials, #availability, #presence')).toHaveCount(0);
     });
 
