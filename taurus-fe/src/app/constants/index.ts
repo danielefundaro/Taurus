@@ -7,3 +7,5 @@ export * from './accessible-theme';
 export * from './api-error-behaviors';
 export * from './api-error-messages';
 export * from './signature-labels';
+export * from './public-pages';
+export * from './legal-labels';

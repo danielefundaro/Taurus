@@ -1,71 +1,95 @@
-<app-page-header heading="Documenti legali" appTourAnchor="legalDocuments.header"
-    [subtitle]="documents.length + (documents.length === 1 ? ' documento' : ' documenti')">
+<app-page-header heading="Documenti legali" appTourAnchor="legalDocuments.header" [subtitle]="documents.length + (documents.length === 1 ? ' versione' : ' versioni')">
     <div pageActions appTourAnchor="legalDocuments.create"><p-button label="Nuovo documento" icon="pi pi-plus" (onClick)="addDocument()" /></div>
 </app-page-header>
 
-<div appTourAnchor="legalDocuments.notice"><app-inline-alert severity="info" heading="Versioni immutabili"
-    detail="I documenti già accettati non possono essere modificati. Per aggiornare il contenuto crea una nuova versione e impostala come attiva." /></div>
+<div appTourAnchor="legalDocuments.notice">
+    <app-inline-alert
+        severity="info"
+        heading="Versioni immutabili"
+        detail="Dalla pubblicazione una versione non si modifica più. Per cambiare un testo crea una nuova versione a partire da quella in vigore."
+    />
+</div>
 
-<app-list-toolbar [search]="searchTerm" searchPlaceholder="Cerca documento…" [showLayout]="false"
-    (searchChange)="onSearchChange($event)" />
+<app-list-toolbar [search]="searchTerm" searchPlaceholder="Cerca documento…" [showLayout]="false" (searchChange)="onSearchChange($event)" />
 
 <div class="card !p-0 overflow-hidden">
-    <p-table #documentTable [value]="documents" [globalFilterFields]="['title', 'version', 'documentType']"
-        [loading]="loading" [rowHover]="true" [paginator]="true" [rows]="12" [rowsPerPageOptions]="[12, 24, 48]"
-        paginatorDropdownAppendTo="body" [showCurrentPageReport]="true"
-        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi" responsiveLayout="scroll">
+    <p-table
+        #documentTable
+        [value]="documents"
+        [globalFilterFields]="['title', 'version', 'documentType']"
+        [loading]="loading"
+        [rowHover]="true"
+        [paginator]="true"
+        [rows]="12"
+        [rowsPerPageOptions]="[12, 24, 48]"
+        paginatorDropdownAppendTo="body"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
+        responsiveLayout="scroll"
+    >
         <ng-template #header>
             <tr>
                 <th scope="col">Documento</th>
                 <th scope="col">Versione</th>
-                <th scope="col">Pubblicazione</th>
+                <th scope="col">Stato</th>
+                <th scope="col">In vigore dal</th>
                 <th scope="col">Conferma</th>
                 <th scope="col">Obbligatorio</th>
-                <th scope="col">Stato</th>
-                <th scope="col" class="w-24"></th>
+                <th scope="col">Impronta</th>
+                <th scope="col" class="w-16"><span class="sr-only">Azioni</span></th>
             </tr>
         </ng-template>
         <ng-template #body let-document>
             <tr>
                 <td>
-                    <div class="font-semibold">{{ document.title }}</div>
+                    <a class="font-semibold document-title" [routerLink]="['/legal-documents', document.id]">{{ document.title }}</a>
                     <div class="text-sm text-muted-color mt-1">{{ typeLabel(document.documentType) }}</div>
-                    <a class="document-link" [href]="document.url" target="_blank" rel="noopener noreferrer"> {{
-                        document.url }} <i class="pi pi-external-link"></i> </a>
                 </td>
                 <td>{{ document.version }}</td>
-                <td>{{ document.publishedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td>
+                    <div class="flex flex-wrap gap-1">
+                        <p-tag [value]="stateLabel(document.state)" [severity]="stateSeverity(document.state)" />
+                        @if (toComplete(document)) {
+                            <p-tag value="Testo da inserire" severity="info" />
+                        }
+                    </div>
+                </td>
+                <td>{{ document.publishedAt ? (document.publishedAt | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
                 <td>{{ actionLabel(document.action) }}</td>
                 <td>
-                    <p-tag [value]="document.required ? 'Sì' : 'No'"
-                        [severity]="document.required ? 'info' : 'secondary'" />
+                    <p-tag [value]="document.required ? 'Sì' : 'No'" [severity]="document.required ? 'info' : 'secondary'" />
                 </td>
                 <td>
-                    <p-tag [value]="document.active ? 'Attivo' : 'Non attivo'"
-                        [severity]="document.active ? 'success' : 'secondary'" />
+                    @if (document.contentSha256) {
+                        <span class="font-mono text-sm" [pTooltip]="document.contentSha256">{{ shortHash(document.contentSha256) }}</span>
+                    } @else {
+                        <span class="text-muted-color">—</span>
+                    }
                 </td>
                 <td class="text-right">
-                    <p-button icon="pi pi-pencil" ariaLabel="Modifica documento" [rounded]="true" [text]="true"
-                        pTooltip="Modifica" (onClick)="editDocument(document)" />
+                    <p-button icon="pi pi-angle-right" [ariaLabel]="'Apri ' + document.title + ' ' + document.version" [rounded]="true" [text]="true" pTooltip="Apri" [routerLink]="['/legal-documents', document.id]" />
                 </td>
             </tr>
         </ng-template>
         <ng-template #loadingbody>
             @for (row of [0, 1, 2, 3, 4, 5]; track row) {
-            <tr>
-                @for (column of [0, 1, 2, 3, 4, 5, 6]; track column) {
-                <td><p-skeleton /></td>
-                }
-            </tr>
+                <tr>
+                    @for (column of [0, 1, 2, 3, 4, 5, 6, 7]; track column) {
+                        <td><p-skeleton /></td>
+                    }
+                </tr>
             }
         </ng-template>
         <ng-template #emptymessage>
             <tr>
-                <td colspan="7">
-                    <app-empty-state icon="pi pi-file" [heading]="searchTerm ? 'Nessun risultato' : 'Nessun documento'"
-                        [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Pubblica il primo documento legale per iniziare.'"
+                <td colspan="8">
+                    <app-empty-state
+                        icon="pi pi-file"
+                        [heading]="searchTerm ? 'Nessun risultato' : 'Nessun documento'"
+                        [message]="searchTerm ? 'Prova a modificare o azzerare la ricerca.' : 'Scrivi e pubblica il primo documento legale per iniziare.'"
                         [actionLabel]="searchTerm ? 'Azzera ricerca' : 'Nuovo documento'"
-                        (action)="searchTerm ? onSearchChange('') : addDocument()" />
+                        (action)="searchTerm ? onSearchChange('') : addDocument()"
+                    />
                 </td>
             </tr>
         </ng-template>

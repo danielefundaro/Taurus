@@ -55,6 +55,67 @@ describe('HttpInterceptorService on the public signature page', () => {
     });
 });
 
+describe('HttpInterceptorService on the public legal documents', () => {
+    let http: HttpClient;
+    let controller: HttpTestingController;
+    let keycloak: jasmine.SpyObj<KeycloakService>;
+    let toast: jasmine.SpyObj<ToastService>;
+    let loading: { loading: boolean };
+    const terms = `${environment.baseUrl}/legal-documents/v1/terms`;
+
+    const configure = (loggedIn: boolean): void => {
+        keycloak = jasmine.createSpyObj<KeycloakService>('KeycloakService', ['logout'], { isUserLoggedIn: loggedIn, token: loggedIn ? 'token' : undefined });
+        toast = jasmine.createSpyObj<ToastService>('ToastService', ['error']);
+        loading = { loading: false };
+        TestBed.configureTestingModule({
+            providers: [
+                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClientTesting(),
+                { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
+                { provide: KeycloakService, useValue: keycloak },
+                { provide: ToastService, useValue: toast },
+                { provide: LoadingService, useValue: loading },
+                { provide: Router, useValue: jasmine.createSpyObj<Router>('Router', ['navigate']) }
+            ]
+        });
+        http = TestBed.inject(HttpClient);
+        controller = TestBed.inject(HttpTestingController);
+    };
+    afterEach(() => controller.verify());
+
+    it('reads a document without a token and without logging in', () => {
+        configure(false);
+        http.get(terms).subscribe();
+
+        const request = controller.expectOne(terms);
+        expect(request.request.headers.has('Authorization')).toBeFalse();
+        request.flush({});
+        expect(keycloak.logout).not.toHaveBeenCalled();
+    });
+
+    it('sends no token also from an open session, and leaves a 404 to the page that handles it', () => {
+        configure(true);
+        http.get(`${terms}/9.9`, { context: withHandledErrors(['*']) }).subscribe({ error: () => undefined });
+
+        const request = controller.expectOne(`${terms}/9.9`);
+        expect(request.request.headers.has('Authorization')).toBeFalse();
+        request.flush({ message: 'error.legal.document.notFound' }, { status: 404, statusText: 'Not Found' });
+        expect(toast.error).not.toHaveBeenCalled();
+        expect(keycloak.logout).not.toHaveBeenCalled();
+    });
+
+    it('keeps the loading indicator off while the preview follows the typing', () => {
+        configure(true);
+        const preview = `${environment.baseUrl}/legal/documents/preview`;
+        http.post(preview, { content: '# Titolo' }).subscribe();
+
+        expect(loading.loading).toBeFalse();
+        const request = controller.expectOne(preview);
+        expect(request.request.headers.get('Authorization')).toBe('Bearer token');
+        request.flush({ html: '' });
+    });
+});
+
 describe('HttpInterceptorService when a tenant feature is disabled', () => {
     let http: HttpClient;
     let controller: HttpTestingController;

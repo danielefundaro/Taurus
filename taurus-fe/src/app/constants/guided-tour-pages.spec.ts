@@ -114,6 +114,10 @@ const STEP_COUNTS: Record<string, [number[], number[]]> = {
     '/legal-documents': [
         [2, 0, 0, 0, 0, 0, 0],
         [2, 0, 0, 0, 0, 0, 0]
+    ],
+    '/legal-documents/new': [
+        [3, 0, 0, 0, 0, 0, 0],
+        [3, 0, 0, 0, 0, 0, 0]
     ]
 };
 
@@ -126,6 +130,8 @@ describe('Page guides catalog', () => {
         expect(matchGuidedTourPage('/inventory/items/42')!.pages).toEqual(['/inventory/:id', '/inventory/items/:id']);
         expect(matchGuidedTourPage('/inventory/assignments/7')!.pages).toEqual(['/inventory/assignments/:id']);
         expect(matchGuidedTourPage('/onboarding/imports/3')!.pages).toEqual(['/onboarding', '/onboarding/imports/:id']);
+        expect(matchGuidedTourPage('/legal-documents/new')!.pages).toEqual(['/legal-documents/new', '/legal-documents/:id']);
+        expect(matchGuidedTourPage('/legal-documents/7')!.pages).toEqual(['/legal-documents/new', '/legal-documents/:id']);
         expect(matchGuidedTourPage('/calendar/12/edit')).toBeUndefined();
         expect(matchGuidedTourPage('/notfound')).toBeUndefined();
     });

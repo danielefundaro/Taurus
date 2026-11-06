@@ -507,7 +507,10 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'legal.document.stale': 'Uno o più documenti non sono più in vigore: ricaricare la pagina',
     'legal.document.notFound': 'Documento legale non trovato',
     'legal.document.version.exists': 'Esiste già questa versione del documento',
-    'legal.document.accepted.immutable': 'Un documento già accettato non si modifica: crearne una nuova versione',
+    'legal.document.published.immutable': 'Una versione pubblicata non si modifica: crearne una nuova',
+    'legal.document.content.required': 'Scrivere il testo del documento',
+    'legal.document.content.tooLong': 'Il testo supera i 100.000 caratteri',
+    'legal.document.version.invalid': 'Usare per la versione solo lettere, numeri, punto, trattino e trattino basso',
 
     // Instruments and the instruments to add of the tracks
     'instrument.name.exists': 'Esiste già uno strumento con questo nome',

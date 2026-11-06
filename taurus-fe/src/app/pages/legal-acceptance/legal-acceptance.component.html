@@ -2,45 +2,71 @@
     <section class="legal-card" aria-labelledby="legal-title">
         <div class="legal-icon" aria-hidden="true"><i class="pi pi-file-check"></i></div>
         <h1 id="legal-title">Documenti legali</h1>
-        <p class="intro">Prima di continuare, consulta i documenti aggiornati e conferma separatamente l'accettazione
-            dei Termini e la presa visione dell'Informativa Privacy.</p>
+        <p class="intro">Prima di continuare, leggi i documenti aggiornati e conferma separatamente l'accettazione dei Termini e la presa visione dell'Informativa Privacy.</p>
 
         @if (loading) {
-        <div class="state-message" role="status"><i class="pi pi-spin pi-spinner"></i><span>Caricamento dei
-                documenti…</span></div>
+            <div class="state-message" role="status"><i class="pi pi-spin pi-spinner"></i><span>Caricamento dei documenti…</span></div>
         } @else if (errorMessage) {
-        <app-inline-alert severity="error" heading="Caricamento non riuscito" [detail]="errorMessage"
-            actionLabel="Riprova" (action)="retry()" />
+            <app-inline-alert severity="error" heading="Caricamento non riuscito" [detail]="errorMessage" actionLabel="Riprova" (action)="retry()" />
         } @else {
-        <div class="documents">
-            @for (document of pendingDocuments; track document.id) {
-            <article class="document-row">
-                <div class="document-heading">
-                    <div>
-                        <h2>{{ document.title }}</h2>
-                        <span>Versione {{ document.version }}</span>
-                    </div>
-                    <a [href]="document.url" target="_blank" rel="noopener noreferrer"> Apri il documento <i
-                            class="pi pi-external-link" aria-hidden="true"></i> </a>
-                </div>
-                <div class="confirmation">
-                    <p-checkbox [(ngModel)]="confirmations[document.id]" [binary]="true"
-                        [inputId]="'legal-document-' + document.id" />
-                    <label [for]="'legal-document-' + document.id">{{ confirmationLabel(document) }}</label>
-                </div>
-            </article>
-            } @empty {
-            <div class="state-message" role="status"><i class="pi pi-check-circle"></i><span>Non ci sono nuove conferme
-                    da fornire.</span></div>
-            }
-        </div>
+            <div class="documents">
+                @for (document of pendingDocuments; track document.id) {
+                    <article class="document-row" [attr.aria-labelledby]="'legal-document-title-' + document.id">
+                        <div class="document-heading">
+                            <div>
+                                <h2 [id]="'legal-document-title-' + document.id">{{ document.title }}</h2>
+                                <span>Versione {{ document.version }}</span>
+                            </div>
+                            @if (document.url) {
+                                <a [href]="document.url" target="_blank" rel="noopener noreferrer">Apri il documento <i class="pi pi-external-link" aria-hidden="true"></i></a>
+                            } @else {
+                                <a [href]="documentPath(document)" target="_blank" rel="noopener">Apri in una nuova scheda <i class="pi pi-external-link" aria-hidden="true"></i></a>
+                            }
+                        </div>
 
-        <p class="audit-note">La conferma registra la versione del documento, la data e il contesto organizzativo
-            associato alla sessione autenticata.</p>
-        <div class="actions">
-            <p-button label="Conferma e continua" icon="pi pi-check" [loading]="submitting" [disabled]="!canSubmit"
-                (onClick)="submit()" />
-        </div>
+                        @if (showsChanges(document)) {
+                            <section class="changes" [attr.aria-labelledby]="'legal-changes-' + document.id">
+                                <h3 [id]="'legal-changes-' + document.id">Cosa cambia</h3>
+                                <p>{{ document.changeSummary }}</p>
+                            </section>
+                        }
+
+                        @if (!document.url) {
+                            @let text = texts[document.id];
+                            @if (text?.loading) {
+                                <div class="text-box" role="status" aria-live="polite">
+                                    <p-skeleton height="8rem" />
+                                    <span class="sr-only">Caricamento del testo…</span>
+                                </div>
+                            } @else if (text?.failed || !text?.html) {
+                                <app-inline-alert
+                                    severity="warn"
+                                    heading="Testo non caricato"
+                                    detail="Non è stato possibile mostrare il testo qui: aprilo in una nuova scheda o riprova."
+                                    actionLabel="Riprova"
+                                    (action)="loadText(document)"
+                                />
+                            } @else {
+                                <div class="text-box" tabindex="0" [attr.aria-label]="'Testo di ' + document.title">
+                                    <app-legal-text [html]="text.html" />
+                                </div>
+                            }
+                        }
+
+                        <div class="confirmation">
+                            <p-checkbox [(ngModel)]="confirmations[document.id]" [binary]="true" [inputId]="'legal-document-' + document.id" />
+                            <label [for]="'legal-document-' + document.id">{{ confirmationLabel(document) }}</label>
+                        </div>
+                    </article>
+                } @empty {
+                    <div class="state-message" role="status"><i class="pi pi-check-circle"></i><span>Non ci sono nuove conferme da fornire.</span></div>
+                }
+            </div>
+
+            <p class="audit-note">La conferma registra la versione del documento, l'impronta del suo testo, la data e il contesto organizzativo associato alla sessione autenticata.</p>
+            <div class="actions">
+                <p-button label="Conferma e continua" icon="pi pi-check" [loading]="submitting" [disabled]="!canSubmit" (onClick)="submit()" />
+            </div>
         }
     </section>
 </main>

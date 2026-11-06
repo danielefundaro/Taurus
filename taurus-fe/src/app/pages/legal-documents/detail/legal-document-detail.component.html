@@ -1,0 +1,154 @@
+<p-confirmdialog />
+@if (loading) {
+    <app-detail-loading-skeleton />
+}
+<div [class.hidden]="loading">
+    <app-page-header kicker="Documenti legali" [heading]="heading" backLink="/legal-documents" [dirty]="isDirty" [state]="saved ? stateLabel(saved.state) : undefined">
+        <div pageMetadata>
+            {{ typeLabel(document.documentType) }}
+            @if (saved?.version) {
+                · Versione {{ saved?.version }}
+            }
+        </div>
+        <div pageActions class="flex flex-wrap gap-2">
+            @if (isDraft) {
+                <p-button label="Salva bozza" icon="pi pi-save" severity="secondary" [outlined]="true" [loading]="saving" [disabled]="saving || (!isNew && !isDirty)" (onClick)="save()" />
+                <p-button appTourAnchor="legalDocument.publish" label="Pubblica" icon="pi pi-send" [disabled]="saving" (onClick)="publish()" />
+            } @else {
+                @if (completing) {
+                    <p-button label="Inserisci il testo" icon="pi pi-check" [loading]="saving" [disabled]="saving || !isDirty" (onClick)="completeText()" />
+                }
+                <a pButton label="Apri pagina pubblica" icon="pi pi-external-link" severity="secondary" [outlined]="true" [href]="publicPath" target="_blank" rel="noopener"></a>
+                <p-button appTourAnchor="legalDocument.newVersion" label="Nuova versione da questa" icon="pi pi-copy" severity="secondary" [outlined]="true" (onClick)="newVersion()" />
+                @if (saved?.active) {
+                    <p-button appTourAnchor="legalDocument.publish" label="Ritira" icon="pi pi-ban" severity="warn" [outlined]="true" [loading]="saving" (onClick)="withdraw()" />
+                } @else {
+                    <p-button appTourAnchor="legalDocument.publish" label="Riattiva" icon="pi pi-replay" [loading]="saving" (onClick)="reactivate()" />
+                }
+            }
+        </div>
+    </app-page-header>
+
+    @if (completing) {
+        <app-inline-alert
+            severity="warn"
+            heading="Testo da inserire"
+            [detail]="'Questa versione è pubblicata con il solo indirizzo ' + saved?.url + '. Copia qui lo stesso testo, dalla pagina del sito informativo di questa versione: si inserisce una sola volta e chi l’aveva confermata resta in regola.'"
+        />
+    } @else if (!isDraft) {
+        <app-inline-alert severity="info" heading="Versione pubblicata" detail="Dalla pubblicazione la versione non si modifica. Per cambiare il testo usa «Nuova versione da questa»." />
+    }
+
+    <app-detail-section heading="Dati della versione" [description]="isDraft ? 'Tipo, versione e titolo compaiono nella pagina pubblica e nella pagina di accettazione.' : undefined" [dirty]="isDraft && isDirty">
+        @if (isDraft) {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <app-form-field label="Tipo documento" forId="documentType" required>
+                    <p-select inputId="documentType" [options]="documentTypes" optionLabel="label" optionValue="value" [(ngModel)]="document.documentType" (ngModelChange)="documentTypeChanged($event)" appendTo="body" />
+                </app-form-field>
+                <app-form-field label="Versione" forId="version" required hint="Per esempio 1.3: compare nell’indirizzo della versione." [error]="validationAttempted ? versionError : undefined">
+                    <input pInputText id="version" [(ngModel)]="document.version" (ngModelChange)="isDirty = true" maxlength="32" autocomplete="off" />
+                </app-form-field>
+                <app-form-field class="md:col-span-2" label="Titolo" forId="title" required [error]="validationAttempted ? titleError : undefined">
+                    <input pInputText id="title" [(ngModel)]="document.title" (ngModelChange)="isDirty = true" maxlength="255" autocomplete="off" />
+                </app-form-field>
+                <app-form-field label="Modalità di conferma" forId="action">
+                    <p-select inputId="action" [options]="actions" optionLabel="label" optionValue="value" [(ngModel)]="document.action" (ngModelChange)="isDirty = true" appendTo="body" />
+                </app-form-field>
+                <app-form-field label="Conferma">
+                    <p-togglebutton [(ngModel)]="document.required" (ngModelChange)="isDirty = true" onLabel="Obbligatoria" offLabel="Facoltativa" onIcon="pi pi-lock" offIcon="pi pi-lock-open" ariaLabel="Conferma obbligatoria" />
+                </app-form-field>
+                <app-form-field class="md:col-span-2" label="Sintesi delle modifiche" forId="changeSummary" hint="Facoltativa. Dice cosa cambia rispetto alla versione precedente: la legge chi l’aveva confermata." [error]="summaryError">
+                    <textarea pTextarea id="changeSummary" class="w-full" rows="3" [(ngModel)]="document.changeSummary" (ngModelChange)="isDirty = true" [maxlength]="summaryMaxLength"></textarea>
+                </app-form-field>
+            </div>
+        } @else if (saved) {
+            <dl class="facts">
+                <div>
+                    <dt>Tipo</dt>
+                    <dd>{{ typeLabel(saved.documentType) }}</dd>
+                </div>
+                <div>
+                    <dt>Versione</dt>
+                    <dd>{{ saved.version }}</dd>
+                </div>
+                <div>
+                    <dt>Stato</dt>
+                    <dd><p-tag [value]="stateLabel(saved.state)" [severity]="stateSeverity(saved.state)" /></dd>
+                </div>
+                <div>
+                    <dt>In vigore dal</dt>
+                    <dd>{{ saved.publishedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+                </div>
+                <div>
+                    <dt>Conferma</dt>
+                    <dd>{{ actionLabel(saved.action) }}, {{ saved.required ? 'obbligatoria' : 'facoltativa' }}</dd>
+                </div>
+                @if (saved.url) {
+                    <div class="facts__wide">
+                        <dt>Indirizzo originale</dt>
+                        <dd>
+                            <a [href]="saved.url" target="_blank" rel="noopener noreferrer">{{ saved.url }}</a>
+                        </dd>
+                    </div>
+                }
+                @if (saved.contentSha256) {
+                    <div class="facts__wide">
+                        <dt>Impronta SHA-256 del testo</dt>
+                        <dd class="font-mono break-all">{{ saved.contentSha256 }}</dd>
+                    </div>
+                }
+                @if (saved.changeSummary) {
+                    <div class="facts__wide">
+                        <dt>Sintesi delle modifiche</dt>
+                        <dd class="whitespace-pre-line">{{ saved.changeSummary }}</dd>
+                    </div>
+                }
+            </dl>
+        }
+    </app-detail-section>
+
+    <div appTourAnchor="legalDocument.text">
+        <app-detail-section
+            heading="Testo"
+            [description]="contentEditable ? 'Si scrive in Markdown: titoli con #, elenchi, tabelle, grassetto, corsivo e link https o mailto. L’anteprima mostra il testo come lo vedranno gli utenti.' : 'Il testo come lo vedono gli utenti.'"
+            [dirty]="contentEditable && isDirty"
+        >
+            @if (contentEditable) {
+                <p-selectbutton class="editor__switch" [options]="views" optionLabel="label" optionValue="value" [(ngModel)]="view" [allowEmpty]="false" ariaLabel="Testo o anteprima" />
+                <div class="editor">
+                    <div class="editor__panel" [class.editor__panel--hidden]="view !== 'text'">
+                        <app-form-field label="Testo Markdown" forId="content" required [error]="validationAttempted ? contentError : undefined" [hint]="contentLength + ' di 100.000 caratteri'">
+                            <textarea pTextarea id="content" class="editor__text" rows="24" [ngModel]="document.content" (ngModelChange)="document.content = $event; contentChanged($event)" [maxlength]="contentMaxLength"></textarea>
+                        </app-form-field>
+                    </div>
+                    <div class="editor__panel" [class.editor__panel--hidden]="view !== 'preview'">
+                        <div class="editor__label">
+                            Anteprima
+                            @if (previewLoading) {
+                                <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                            }
+                        </div>
+                        @if (previewFailed) {
+                            <app-inline-alert severity="warn" heading="Anteprima non aggiornata" detail="Non è stato possibile convertire il testo: l’anteprima si aggiorna alla prossima modifica." />
+                        }
+                        <div class="editor__preview">
+                            @if (previewHtml) {
+                                <app-legal-text [html]="previewHtml" />
+                            } @else {
+                                <p class="text-muted-color m-0">L’anteprima compare qui mentre scrivi.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            } @else {
+                <div class="editor__preview editor__preview--read">
+                    <app-legal-text [html]="previewHtml" />
+                </div>
+            }
+        </app-detail-section>
+    </div>
+
+    @if (isDraft && !isNew) {
+        <app-danger-zone [operations]="dangerOperations" (execute)="executeDanger($event)" />
+    }
+</div>

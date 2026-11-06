@@ -2,7 +2,7 @@ import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest
 import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, finalize, Observable, of, switchMap, throwError } from 'rxjs';
 import { catchError, filter, take } from 'rxjs/operators';
-import { ApiErrorService, KeycloakService, LoadingService, PUBLIC_SIGNATURE_API, ResolvedApiError, TenantFeatureService, TenantStatusService, ToastService } from '../service';
+import { ApiErrorService, KeycloakService, LoadingService, PUBLIC_LEGAL_API, PUBLIC_SIGNATURE_API, ResolvedApiError, TenantFeatureService, TenantStatusService, ToastService } from '../service';
 import { ActivatedRouteSnapshot, Router } from '@angular/router';
 import { tenantFeatureOfError } from '../constants';
 
@@ -11,8 +11,8 @@ import { tenantFeatureOfError } from '../constants';
 })
 export class HttpInterceptorService implements HttpInterceptor {
     private readonly _nonProtectedRoutes: (RegExp | string)[] = [];
-    // The guided tour saves in the background: no loading indicator for its requests.
-    private readonly excludedRoutes = ['api/preferences', 'api/notices', '/count', 'api/guided-tour'];
+    // The guided tour saves in the background and the legal text preview follows the typing: no loading indicator.
+    private readonly excludedRoutes = ['api/preferences', 'api/notices', '/count', 'api/guided-tour', 'api/legal/documents/preview'];
 
     private readonly httpRequestStack = new Array<HttpRequest<any>>();
     private isRefreshing = false;
@@ -35,8 +35,9 @@ export class HttpInterceptorService implements HttpInterceptor {
             return next.handle(req);
         }
 
-        if (req.url.includes(PUBLIC_SIGNATURE_API)) {
-            // Public signature page of a parent: no token and no login, errors are shown as elsewhere.
+        if (req.url.includes(PUBLIC_SIGNATURE_API) || req.url.includes(PUBLIC_LEGAL_API)) {
+            // Public pages (signature of a parent, published legal documents): no token and no login, also when a
+            // session is open; errors are shown as elsewhere.
             return next.handle(req).pipe(
                 catchError((error: HttpErrorResponse) =>
                     this.apiErrorService.readBody(error).pipe(

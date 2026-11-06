@@ -75,8 +75,5 @@ export const signatureRevocationLabel = (check?: string): string => (check === '
 /** Percorso della pagina pubblica di firma del genitore o tutore, aperta dal link senza login. */
 export const PUBLIC_SIGNATURE_PATH = '/firma/';
 
-/** Se la pagina aperta è quella pubblica di firma: l'applicazione non avvia il login e non carica i dati del tenant. */
-export const publicSignaturePage = (path: string = globalThis.location?.pathname ?? ''): boolean => path.startsWith(PUBLIC_SIGNATURE_PATH);
-
 /** Prime cifre di un'impronta SHA-256, per riconoscere un documento a colpo d'occhio. */
 export const shortHash = (hash?: string): string => (hash ? `${hash.slice(0, 8)}…${hash.slice(-4)}` : '');
