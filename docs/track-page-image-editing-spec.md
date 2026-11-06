@@ -20,7 +20,7 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 | Ridimensionamento visuale | La zona attiva mostra otto maniglie: quattro angolari e quattro laterali. I bordi possono essere trascinati con cursori direzionali, aggiornamento in tempo reale, limiti dell'immagine e lato minimo del 2%. |
 | Layout editor | La spalla strumenti destra usa almeno `28rem`, può arrivare al 32% della viewport e contiene campi fluidi senza scroll orizzontale. |
 | Persistenza | Ogni risultato è un nuovo PNG `media_asset`; la pagina sorgente è sostituita dai risultati nello stesso punto e nel loro ordine. |
-| Concorrenza e retry | Versione ottimistica della traccia e `Idempotency-Key` UUID v4 con ricevuta persistente e replay della lista dei risultati. Il frontend genera una chiave nuova a ogni salvataggio. |
+| Concorrenza e retry | Versione ottimistica della traccia e `Idempotency-Key` UUID v4 con ricevuta persistente e replay della lista dei risultati. Il frontend tiene la stessa chiave finché la ricetta non cambia e ne genera una nuova dopo una ricetta modificata o una risposta negativa definitiva. |
 | Relazioni ordinate | La ricostruzione di `sheet_music_media` avviene in due fasi, con flush dopo la disattivazione dei vecchi collegamenti, evitando collisioni temporanee sugli indici unici durante un multi-crop. |
 | Pulizia storage | Il media sorgente viene eliminato soltanto se non è più referenziato; i file creati in operazioni fallite sono compensati dal meccanismo di cleanup. |
 
@@ -462,4 +462,4 @@ In caso di rollback applicativo, i nuovi `media_asset` restano normali immagini 
 
 ## Requisiti aperti
 
-- Collaudo prestazionale su un insieme rappresentativo di scansioni reali anonimizzate (Prestazioni): il budget di tempo è misurato su una pagina sintetica, ma le scansioni vere — rumore, grigi, inclinazione reale — vanno raccolte e anonimizzate prima di poter confermare le soglie sull'ambiente di riferimento.
+Nessuno: la specifica è coperta dal codice e dai test. Il collaudo prestazionale su un insieme rappresentativo di scansioni reali anonimizzate resta una verifica manuale ([Prestazioni](#prestazioni)): il budget di tempo è misurato su una pagina sintetica, mentre le scansioni vere — rumore, grigi, inclinazione reale — vanno raccolte e anonimizzate per confermare le soglie sull'ambiente di riferimento.
