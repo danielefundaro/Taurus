@@ -30,8 +30,6 @@ Fatti del codice che condizionano la progettazione:
 | Le preferenze personali sono per utente e per schema tenant | `preferences`, `notification_profile` | la guida segue lo stesso perimetro, in tabelle tipizzate come le specifiche recenti |
 | Su schermi fino a 991 px il menu laterale è a scomparsa e le azioni della topbar sono raccolte nel pulsante a tre punti | `LayoutService.isDesktop`, `topbar.component.html` | le evidenziazioni devono avere un'alternativa su mobile |
 | PrimeNG 19.0.10 offre `p-popover` ancorabile a un elemento, `p-stepper` e la direttiva `pFocusTrap`, ma non un componente tour | `node_modules/primeng` | la guida si costruisce con componenti esistenti, senza nuove dipendenze |
-| La specifica [Richieste di assistenza](support-requests-spec.md), in bozza, prevede un'azione `pi-question-circle` nella topbar | sezione interfaccia della specifica | il punto d'ingresso dell'aiuto va condiviso |
-
 ## Obiettivo
 
 Permettere a ogni utente di capire in circa due minuti cosa può fare con il proprio ruolo, dove si trova ogni funzione e come tornare alla guida, senza leggere manuali e senza essere interrotto più del necessario.
@@ -1068,9 +1066,7 @@ Descritta in [Guide di pagina](#guide-di-pagina):
 | Testi che invecchiano | una pagina cambia e la guida descrive un'interfaccia che non esiste più | catalogo accanto al codice, script delle ancore, voce nel template di pull request |
 | Tesoriere senza Economia | il ruolo non ha quasi nulla da usare e la guida sarebbe vuota | la guida mostra solo le sezioni attive: restano le tappe comuni |
 | Percorsi lunghi per gli amministratori | troppe tappe rendono la guida pesante e verrebbe saltata | limite di 10, tappa unica per gli strumenti, guide di pagina in fase 2 |
-| Interferenze con il flusso esistente | documenti legali, collegamenti diretti, dialoghi, modifiche non salvate, aggiornamento dell'applicazione | avvio solo sulla dashboard, condizioni di avvio, pausa su navigazione annullata, ripresa dall'ultima tappa |
-| Pulsante di aiuto conteso | la specifica delle richieste di assistenza usa la stessa icona nella topbar | un solo pulsante di aiuto con menu, da riportare nella specifica di assistenza |
-| Nuovo canale di interfaccia | lo standard di layout ne prevede cinque | sezione dedicata nello standard all'implementazione |
+| Interferenze con il flusso esistente | documenti legali, collegamenti diretti, dialoghi, modifiche non salvate, aggiornamento dell'applicazione | avvio solo sulla dashboard, condizioni di avvio, pausa su navigazione annullata, ripresa dall'ultima tappa || Nuovo canale di interfaccia | lo standard di layout ne prevede cinque | sezione dedicata nello standard all'implementazione |
 | Accessibilità dell'evidenziazione | l'oscuramento non dice nulla a chi usa un lettore di schermo | testi autosufficienti, dialogo accessibile, annunci |
 | Utente esterno | testi pensati per l'Utente prometterebbero eventi e brani non visibili | varianti di testo per ruolo e verifica manuale |
 | Telefoni modesti | molti musicisti usano Taurus da telefono | nessuna libreria, chunk differito, un ricalcolo per frame |
@@ -1092,7 +1088,7 @@ Decisioni prese il 2026-10-24 sui punti aperti della bozza:
 8. **Testi.** La rilettura dei testi di ogni ruolo è a cura del responsabile del progetto, prima del rilascio.
 9. **Modalità bootstrap.** Esclusa; restano l'avviso «Primo accesso» della pagina Tenant e il runbook.
 10. **Metriche.** Soli contatori aggregati per ruolo ed esito.
-11. **Pulsante di aiuto.** Uno solo nella topbar, con menu condiviso con le richieste di assistenza; la [specifica delle richieste di assistenza](support-requests-spec.md) va allineata quando sarà implementata.
+11. **Pulsante di aiuto.** Uno solo nella topbar, con un menu.
 12. **Tappe.** Solo descrittive nella prima versione.
 13. **Lingua.** Solo italiano.
 
