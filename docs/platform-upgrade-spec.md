@@ -254,7 +254,7 @@ Ogni fase è una pull request separata, di un solo modulo, come chiede `AGENTS.m
 Applicata e verificata il 2026-11-06 sul ramo `update-versions`; i commit per modulo sono descritti in [Stato dei lavori](#stato-dei-lavori). Trivy 0.70.0, la versione della CI, trovava 90 vulnerabilità e 4 configurazioni: ne restano 45 e 3, tutte in `.trivyignore.yaml` con scadenza 2027-01-05. Il job `security` legge il file con l'input `trivyignores` di `trivy-action`, e il comando del [Runbook di test](runbook-test.md) usa la stessa versione di Trivy e lo stesso file.
 
 - Backend: pgjdbc 42.7.14, amqp-client 5.37.1, commons-beanutils 1.11.0 e `--no-install-recommends` nel Dockerfile. Resta la CVE di Actuator, corretta da Spring Boot 3.5.12 (fase 4). Nei test, la cache dei contesti di Spring è limitata a 8: senza limite gli IT esaurivano l'heap, un difetto già presente prima della fase 0 (vedi [Memoria esaurita negli IT del backend](#memoria-esaurita-negli-it-del-backend)).
-- Frontend: Angular 19.2.25 e strumenti di build 19.2.27, ultime della 19, che correggono 9 delle 18 segnalazioni di Angular; PrimeNG 19.1.4; postcss 8.5 e le dipendenze transitive del lockfile. Restano le altre 9 di Angular, corrette solo dalla 20.3, e quella di `ngx-extended-pdf-viewer` (fase 5).
+- Frontend: Angular 19.2.25 e strumenti di build 19.2.27, ultime della 19, che correggono 9 delle 18 segnalazioni di Angular; PrimeNG e `@primeng/themes` 19.1.4; postcss 8.5 e le dipendenze transitive del lockfile. Restano le altre 9 di Angular, corrette solo dalla 20.3, e quella di `ngx-extended-pdf-viewer` (fase 5).
 - Sito informativo: devalue, js-yaml, source-map-js, svgo e vite alle versioni corrette. Restano Astro e sharp 0.34, l'ultima linea che Astro 5 accetta (fase 6).
 - Servizio OMR: certifi 2026.10.23. Pillow resta alla 12.3.0 per il vincolo di homr (vedi [Eccezioni](#eccezioni-alla-versione-più-recente)).
 - Dockerfile: restano le immagini nginx e il dev container che girano come root (fase 7).
@@ -272,7 +272,7 @@ Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che par
 - `Update certifi in the OMR service`: i requisiti del servizio OMR;
 - `Add expiring Trivy exceptions for the platform upgrade`: `.trivyignore.yaml`, il job `security` e la documentazione.
 
-Il ramo non è ancora pubblicato.
+La verifica visiva ha aggiunto un settimo commit il 2026-11-07, `Align PrimeNG themes with PrimeNG 19.1`: `@primeng/themes` 19.1.4 nel `package.json` e nel lockfile del frontend, allineato a PrimeNG 19.1 (vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend)). Il ramo non è ancora pubblicato.
 
 #### Verifiche eseguite
 
@@ -282,12 +282,22 @@ Il ramo non è ancora pubblicato.
 | Repository | `validate-feature-catalog.mjs`, `feature-catalog.test.mjs`, `check-feature-drift.mjs` | superati |
 | Frontend | `npm run build` | riuscita; due avvisi di budget CSS: `pdf-manipulator-dialog.component.scss` 7,72 kB e `preview.component.scss` 7,95 kB, sul limite di 7 kB |
 | Frontend | `npm run test:coverage` | 736 test su 736; copertura sopra la baseline (statements 64,46%, branches 54,29%, lines 66,53%) |
+| Frontend | `npm run build` e `npm run test:coverage` con `@primeng/themes` 19.1.4 | build riuscita con gli stessi due avvisi di budget; 736 test su 736, copertura sopra la baseline (statements 64,48%, branches 54,31%, lines 66,54%) |
+| Frontend | verifica visiva nel browser integrato | vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend) |
 | Sito informativo | `pnpm check`, `pnpm build`, `pnpm test`, `pnpm test:image` | superati |
 | Servizio OMR | `python -m pytest` in `python:3.12-slim` con `requirements-test.txt` | 71 superati, 6 saltati: i test di accuratezza, che chiedono un servizio con i motori reali |
 | Backend | `./mvnw verify -Dtaurus.test.requireDocker=true`, con RabbitMQ irraggiungibile come in CI | superata in 26 minuti: 1225 test unitari e 279 di integrazione; copertura unita 75,59% delle linee e 60,53% dei branch, sopra le soglie |
 | Servizio OMR | `docker build` e `tests/test_accuracy.py` sull'immagine costruita, come il job `omr` della CI | immagine costruita con certifi 2026.10.23; 6 test su 6 in 3 minuti: battute lette 87% con Audiveris e 82% con homr, nomi delle parti 6 su 6 |
 
-Non eseguiti: `npm run e2e` e la verifica visiva di Angular 19.2 e PrimeNG 19.1.4. Entrambi chiedono di entrare con gli utenti dei tenant di prova, che il realm di sviluppo non contiene e che la suite legge dalle variabili `E2E_*`.
+Non eseguito: `npm run e2e`, che entra con gli utenti dei tenant di prova letti dalle variabili `E2E_*`; il realm di sviluppo non li contiene.
+
+#### Verifica visiva del frontend
+
+Eseguita il 2026-11-06 nel browser integrato dell'app desktop di Claude, con `npm start`, il backend locale e il superadmin di sviluppo sul tenant della banda. Sono state viste le pagine del [Taurus Layout Standard](taurus-layout-standard.md) in tema scuro e chiaro, a 1280×800 e a 375×812: Utenti, Strumenti in lista e griglia, Tenant, Inventario, Economia, Calendario in lista e mese, Documenti legali con l'editor, Profilo, Configurazione iniziale, Consegne notifiche, Feed calendario, la pagina 404. Anche i dialoghi Nuovo utente e Nuovo evento con il selettore di data e ora, la conferma di eliminazione, il menu laterale su mobile, il dettaglio di una traccia con parti, ascolto e file PDF, l'anteprima degli spartiti nel lettore PDF e il lettore della partitura con Verovio.
+
+- **Difetto trovato e corretto.** PrimeNG 19.1 usa token di tema che `@primeng/themes` 19.0.5 non definisce, fra cui `togglebutton.content.padding`, `button.sm.icon.only.width` e `progressspinner.color.one`. Le variabili CSS mancanti azzeravano le proprietà: il contenuto di SelectButton e ToggleButton misurava 14×14 pixel, senza padding né arrotondamento. Con `@primeng/themes` 19.1.4 le variabili sono definite e il contenuto misura 35×21, con padding e angoli di 6 pixel.
+- **Service worker nel browser integrato.** Dopo il riavvio di `npm start` il worker, in stato degradato per l'hash cambiato di un chunk, rispondeva 504 a ogni richiesta verso Keycloak e il backend: la sua `fetch` falliva con `TypeError: Failed to fetch` e l'app tornava alla pagina di logout. Non dipende dall'aggiornamento: in `ngsw-worker.js` il codice che inoltra le richieste di altre origini è identico fra la 19.0.5 e la 19.2.25, che cambiano solo le richieste di cache-busting degli asset e lo scope degli script dei worker. Per la verifica il worker è stato disattivato a mano e la modifica è stata tolta subito dopo. Prima della pull request conviene un login in Chrome con il worker attivo.
+- **Già presenti, non regressioni.** In Inventario il cestino va sotto «Modifica» perché la pagina è dentro `<p-fluid>`, e in Button la regola che rende il pulsante fluido è identica fra PrimeNG 19.0.10 e 19.1.4. Nel dialogo Nuovo utente il campo Strumenti resta stretto. Su mobile gli step di Configurazione iniziale scorrono in orizzontale dentro la loro riga, senza allargare la pagina. In console restano i 401 delle pagine pubbliche senza sessione e due NG0100 della sola modalità di sviluppo: `p-inputtext-fluid` nel dettaglio della traccia, da InputText, identico fra le due versioni di PrimeNG, e `LoadingSpinnerComponent`.
 
 #### Memoria esaurita negli IT del backend
 
@@ -300,7 +310,7 @@ Risolto il 2026-11-06.
 
 #### Passi per chiudere la fase 0
 
-1. Eseguire `npm run e2e` su un'istanza completa con i tenant di prova e la verifica visiva sulle pagine del [Taurus Layout Standard](taurus-layout-standard.md).
+1. Eseguire `npm run e2e` su un'istanza completa con i tenant di prova, e un login in Chrome con il service worker attivo.
 2. Pubblicare il ramo e aprire la pull request: la CI verifica i moduli con Java 17, mentre in locale il backend è stato provato con Java 21.
 3. Aggiornare questa sezione e la nota della voce in `docs/features.json`, poi passare alla fase 1.
 
