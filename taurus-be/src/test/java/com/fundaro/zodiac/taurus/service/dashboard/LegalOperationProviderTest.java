@@ -64,12 +64,15 @@ class LegalOperationProviderTest {
             LegalDocumentType.TERMS,
             "1.0",
             "Termini",
-            "https://example.test/terms",
+            null,
+            "a".repeat(64),
+            null,
             LegalDocumentAction.ACCEPT,
             ZonedDateTime.now(),
             required,
             accepted,
-            accepted ? ZonedDateTime.now() : null
+            accepted ? ZonedDateTime.now() : null,
+            false
         );
     }
 

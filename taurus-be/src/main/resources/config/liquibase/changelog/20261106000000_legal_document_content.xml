@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261106000000-1" author="taurus">
+    <comment>The text of the legal documents lives in the database. A version without published_at is a draft; the
+      existing rows keep their URL and are already published.
+    </comment>
+    <addColumn schemaName="public" tableName="legal_document">
+      <column name="content" type="text"/>
+      <column name="content_sha256" type="char(64)"/>
+      <column name="change_summary" type="varchar(1000)"/>
+    </addColumn>
+    <dropNotNullConstraint schemaName="public" tableName="legal_document" columnName="url"
+                           columnDataType="varchar(2048)"/>
+    <dropNotNullConstraint schemaName="public" tableName="legal_document" columnName="published_at"
+                           columnDataType="timestamp with time zone"/>
+  </changeSet>
+
+  <changeSet id="20261106000000-2" author="taurus" dbms="postgresql">
+    <comment>A version in force is published, every document has a text or the URL of an existing one, and the
+      text never goes without its fingerprint.
+    </comment>
+    <sql splitStatements="false"><![CDATA[
+      ALTER TABLE public.legal_document
+        ADD CONSTRAINT ck_legal_document_active_published CHECK (active = FALSE OR published_at IS NOT NULL),
+        ADD CONSTRAINT ck_legal_document_text_or_url CHECK (content IS NOT NULL OR url IS NOT NULL),
+        ADD CONSTRAINT ck_legal_document_content_sha256 CHECK ((content IS NULL) = (content_sha256 IS NULL));
+      ]]></sql>
+  </changeSet>
+</databaseChangeLog>

@@ -9,13 +9,21 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface LegalDocumentRepository extends JpaRepository<LegalDocument, Long> {
 
+    /** Drafts first: PostgreSQL puts the empty publication dates first in descending order. */
     List<LegalDocument> findAllByOrderByDocumentTypeAscPublishedAtDesc();
 
     List<LegalDocument> findAllByActiveTrueOrderByDocumentTypeAsc();
+
+    Optional<LegalDocument> findFirstByDocumentTypeAndActiveTrue(LegalDocumentType documentType);
+
+    Optional<LegalDocument> findByDocumentTypeAndVersion(LegalDocumentType documentType, String version);
+
+    List<LegalDocument> findAllByDocumentTypeAndPublishedAtIsNotNullOrderByPublishedAtDesc(LegalDocumentType documentType);
 
     boolean existsByDocumentTypeAndVersion(LegalDocumentType documentType, String version);
 

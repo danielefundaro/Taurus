@@ -130,6 +130,9 @@ public class SecurityConfiguration {
                     )
                     .permitAll()
                     .requestMatchers("/api/signature-links/**").denyAll()
+                    // Published versions of the legal documents, read by anyone without login.
+                    .requestMatchers(HttpMethod.GET, "/api/legal-documents/v1/*", "/api/legal-documents/v1/*/*").permitAll()
+                    .requestMatchers("/api/legal-documents/**").denyAll()
 
                     // Endpoints available to every authenticated user.
                     .requestMatchers(HttpMethod.GET, "/api/account").authenticated()
