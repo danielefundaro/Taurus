@@ -31,10 +31,8 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `platform-upgrade` | [Aggiornamento di librerie, framework e servizi](platform-upgrade-spec.md) | platform | draft | not-planned | Keycloak, Repository, BE, FE, Info, OMR | 0 | 0 | non rilasciata | 2026-11-02 |
 | `postgres-tenant-schemas` | [PostgreSQL schema per tenant](postgres-tenant-schemas.md) | platform | approved | implemented | BE, FE | [1](#postgres-tenant-schemas-evidenze) | [8](#postgres-tenant-schemas-evidenze) | non rilasciata | 2026-10-23 |
 | `recurring-calendar-events` | [Eventi ricorrenti del calendario](recurring-calendar-events-spec.md) | feature | approved | implemented | BE, FE | [3](#recurring-calendar-events-evidenze) | [5](#recurring-calendar-events-evidenze) | non rilasciata | 2026-10-26 |
-| `report-exclusion` | [Esclusione delle voci dal rendiconto](report-exclusion-spec.md) | feature | approved | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-10-23 |
 | `score-preview-printing` | [Anteprima e stampa degli spartiti](score-preview-printing-spec.md) | feature | approved | implemented | FE | 0 | [2](#score-preview-printing-evidenze) | non rilasciata | 2026-10-24 |
 | `shared-user-account` | [Account di accesso condiviso fra tenant](shared-user-account-spec.md) | feature | approved | implemented | BE, FE | 0 | [2](#shared-user-account-evidenze) | non rilasciata | 2026-11-02 |
-| `support-requests` | [Segnalazioni e richieste di supporto](support-requests-spec.md) | feature | draft | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-10-23 |
 | `taurus-layout-standard` | [Taurus Layout Standard](taurus-layout-standard.md) | standard | approved | implemented | FE | 0 | [6](#taurus-layout-standard-evidenze) | non rilasciata | 2026-10-31 |
 | `tenant-feature-flags` | [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md) | feature | approved | implemented | BE, FE, Keycloak | [5](#tenant-feature-flags-evidenze) | [21](#tenant-feature-flags-evidenze) | non rilasciata | 2026-11-04 |
 | `tenant-onboarding-import` | [Onboarding guidato e importazione iniziale del tenant](tenant-onboarding-import-spec.md) | feature | approved | implemented | BE, FE | [4](#tenant-onboarding-import-evidenze) | [13](#tenant-onboarding-import-evidenze) | non rilasciata | 2026-10-31 |
@@ -255,14 +253,6 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/CalendarEventSeriesServiceImplTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceServiceTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceServiceTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/CalendarEventSeriesIT.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/CalendarEventSeriesIT.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/CalendarSeriesSecurityConfigurationTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/config/CalendarSeriesSecurityConfigurationTest.java), [`taurus-fe/src/app/dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component.spec.ts`](../taurus-fe/src/app/dialogs/add-calendar-events-dialog/add-calendar-events-dialog.component.spec.ts)
 - Note: La migration è verificata dal plugin Liquibase; il test del servizio copre generazione, aggiornamento e rimozione delle occorrenze. La creazione accetta una chiave di idempotenza con indice univoco per tenant, il form mostra regola, date e mesi saltati, le eccezioni hanno un indicatore distinto in calendario e lista, e i test coprono isolamento fra tenant, autorizzazioni dei percorsi e concorrenza su creazione e modifica.
 
-<a id="report-exclusion-evidenze"></a>
-### Esclusione delle voci dal rendiconto
-
-- Implementazione: nessuna
-- Migrazioni: nessuna
-- Test: nessuna
-- Note: Decisioni approvate il 2026-10-19: flag reversibile e motivato sulle sole scritture ordinarie, che toglie la voce dalla classificazione dei rendiconti lasciandola nei saldi, nei registri contrassegnati e nel consuntivo evento; riga di raccordo a garanzia della quadratura; card in dashboard quando il periodo contiene voci escluse; nessuna vista di verifica separata; motivo a testo libero; autorizzazione come il resto del modulo economico.
-
 <a id="score-preview-printing-evidenze"></a>
 ### Anteprima e stampa degli spartiti
 
@@ -278,14 +268,6 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Migrazioni: nessuna
 - Test: [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/UsersServiceImplTest.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/UsersServiceImplTest.java), [`taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/SharedUserAccountKeycloakIT.java`](../taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/SharedUserAccountKeycloakIT.java)
 - Note: La creazione su un account Keycloak esistente non scrive profilo ed enabled e, se fallisce, annulla solo il collegamento al tenant. Lo stato attivo è del tenant: l'attributo &lt;TENANT&gt;_roles viene tolto, enabled diventa false solo quando nessun tenant offre più l'accesso, altrimenti le sessioni dell'account vengono chiuse. La modifica di nome, cognome ed e-mail di un account condiviso è rifiutata con user.profile.locked; regola approvata il 2026-11-02.
-
-<a id="support-requests-evidenze"></a>
-### Segnalazioni e richieste di supporto
-
-- Implementazione: nessuna
-- Migrazioni: nessuna
-- Test: nessuna
-- Note: Specifica iniziale concordata per un canale privato tra utenti autenticati e amministratori del tenant; l'implementazione non è ancora pianificata.
 
 <a id="taurus-layout-standard-evidenze"></a>
 ### Taurus Layout Standard
