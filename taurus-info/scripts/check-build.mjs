@@ -25,6 +25,15 @@ const requiredHeaders = [
     'Content-Security-Policy'
 ];
 
+/** Pagine che rimandano alla pagina pubblica di un documento legale dell'applicativo, dove i testi si gestiscono. */
+const appLegalRedirects = {
+    '/termini-applicativo/': '/legal/terms',
+    '/privacy-applicativo/': '/legal/privacy'
+};
+
+/** L'indirizzo del rimando immediato di una pagina, se ne ha uno. */
+const refreshOf = (html) => /<meta\s+http-equiv="refresh"\s+content="0; url=([^"]+)"/i.exec(html)?.[1];
+
 /** L'include che porta le intestazioni di sicurezza dentro un blocco della configurazione. */
 const SECURITY_HEADERS_INCLUDE = 'include /etc/nginx/taurus-security-headers.conf;';
 
@@ -163,11 +172,46 @@ const checkSitemap = async (pages) => {
         }
     }
 
-    for (const [file] of pages) {
+    for (const [file, html] of pages) {
         const route = routeOf(file);
         if (route === '/404.html') continue;
         const alternative = route.endsWith('/') ? route.slice(0, -1) : `${route}/`;
-        if (!listed.has(route) && !listed.has(alternative)) problem(`${route}: non compare nella sitemap`);
+        const inSitemap = listed.has(route) || listed.has(alternative);
+        if (refreshOf(html)) {
+            if (inSitemap) problem(`${route}: una pagina di rimando non va nella sitemap`);
+        } else if (!inSitemap) problem(`${route}: non compare nella sitemap`);
+    }
+};
+
+/**
+ * I vecchi indirizzi dei documenti dell'applicativo rimandano subito alla loro pagina pubblica, con il canonical, un
+ * collegamento visibile e fuori dai motori di ricerca; le altre pagine collegano direttamente l'applicativo.
+ */
+const checkAppLegalRedirects = (pages) => {
+    for (const [route, path] of Object.entries(appLegalRedirects)) {
+        const html = pages.find(([file]) => routeOf(file) === route)?.[1];
+        if (!html) {
+            problem(`manca la pagina di rimando ${route}`);
+            continue;
+        }
+        const target = refreshOf(html);
+        if (!target || new URL(target).pathname !== path) {
+            problem(`${route}: non rimanda subito a ${path} dell'applicativo`);
+            continue;
+        }
+        if (!html.includes(`<link rel="canonical" href="${target}"`)) problem(`${route}: il canonical non è la pagina dell'applicativo`);
+        if (!/<meta\s+name="robots"\s+content="noindex"/.test(html)) problem(`${route}: manca noindex`);
+        const links = html.match(/<a\b[^>]*>/g) ?? [];
+        if (!links.some((link) => link.includes(`href="${target}"`))) problem(`${route}: manca il collegamento visibile alla pagina dell'applicativo`);
+    }
+
+    for (const [file, html] of pages) {
+        for (const route of Object.keys(appLegalRedirects)) {
+            if (html.includes(`href="${route}"`)) problem(`${routeOf(file)}: collega ancora ${route} invece della pagina dell'applicativo`);
+        }
+        for (const path of Object.values(appLegalRedirects)) {
+            if (!refreshOf(html) && /<footer\b/.test(html) && !html.includes(`${path}"`)) problem(`${routeOf(file)}: il piè di pagina non collega ${path} dell'applicativo`);
+        }
     }
 };
 
@@ -203,6 +247,7 @@ pages.forEach(([file, html]) => checkPage(file, html));
 pages.forEach(([file, html]) => checkAccessibility(file, html));
 await checkInternalLinks(pages);
 await checkSitemap(pages);
+checkAppLegalRedirects(pages);
 await checkServerHeaders();
 
 if (problems.length > 0) {
@@ -212,5 +257,5 @@ if (problems.length > 0) {
 }
 
 console.log(
-    `Sito verificato: ${pages.length} pagine, accessibilità strutturale, collegamenti interni, sitemap e intestazioni del server.`
+    `Sito verificato: ${pages.length} pagine, accessibilità strutturale, collegamenti interni, sitemap, rimandi ai documenti dell'applicativo e intestazioni del server.`
 );

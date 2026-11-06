@@ -12,3 +12,6 @@ export const siteConfig = {
     { label: 'Contatti', href: '/contatti/' }
   ]
 } as const;
+
+/** Pagina pubblica di un documento legale dell'applicativo: la versione in vigore, senza login. */
+export const appLegalUrl = (document: 'terms' | 'privacy'): string => `${siteConfig.appUrl.replace(/\/+$/, '')}/legal/${document}`;
