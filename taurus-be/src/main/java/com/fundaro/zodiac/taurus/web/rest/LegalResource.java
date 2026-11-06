@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.web.rest;
 import com.fundaro.zodiac.taurus.service.LegalService;
 import com.fundaro.zodiac.taurus.service.dto.LegalAcceptanceRequestDTO;
 import com.fundaro.zodiac.taurus.service.dto.LegalDocumentDTO;
+import com.fundaro.zodiac.taurus.service.dto.LegalPreviewDTO;
 import com.fundaro.zodiac.taurus.service.dto.LegalStatusDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,9 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.List;
 
+/**
+ * The confirmations of every user and, under {@code /documents}, the versions managed by the super administrator.
+ */
 @RestController
 @RequestMapping("/api/legal")
 public class LegalResource {
@@ -40,6 +44,11 @@ public class LegalResource {
         return ResponseEntity.ok(legalService.findAllDocuments());
     }
 
+    @GetMapping("/documents/{id}")
+    public ResponseEntity<LegalDocumentDTO> getDocument(@PathVariable Long id) {
+        return ResponseEntity.ok(legalService.findDocument(id));
+    }
+
     @PostMapping("/documents")
     public ResponseEntity<LegalDocumentDTO> createDocument(@Valid @RequestBody LegalDocumentDTO document) {
         LegalDocumentDTO result = legalService.createDocument(document);
@@ -49,5 +58,26 @@ public class LegalResource {
     @PutMapping("/documents/{id}")
     public ResponseEntity<LegalDocumentDTO> updateDocument(@PathVariable Long id, @Valid @RequestBody LegalDocumentDTO document) {
         return ResponseEntity.ok(legalService.updateDocument(id, document));
+    }
+
+    @DeleteMapping("/documents/{id}")
+    public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
+        legalService.deleteDocument(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/documents/{id}/activation")
+    public ResponseEntity<LegalDocumentDTO> activateDocument(@PathVariable Long id) {
+        return ResponseEntity.ok(legalService.activateDocument(id));
+    }
+
+    @DeleteMapping("/documents/{id}/activation")
+    public ResponseEntity<LegalDocumentDTO> withdrawDocument(@PathVariable Long id) {
+        return ResponseEntity.ok(legalService.withdrawDocument(id));
+    }
+
+    @PostMapping("/documents/preview")
+    public ResponseEntity<LegalPreviewDTO.Response> preview(@RequestBody LegalPreviewDTO.Request request) {
+        return ResponseEntity.ok(new LegalPreviewDTO.Response(legalService.preview(request.content())));
     }
 }

@@ -28,14 +28,26 @@ public class LegalDocument extends AuditFields {
     @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name = "url", nullable = false, length = 2048)
+    /** Address of a document published before the text lived in Taurus; empty for the new ones. */
+    @Column(name = "url", length = 2048)
     private String url;
+
+    /** Markdown text, normalized; empty only for a document published before the text lived in Taurus. */
+    @Column(name = "content", columnDefinition = "text")
+    private String content;
+
+    @Column(name = "content_sha256", length = 64)
+    private String contentSha256;
+
+    @Column(name = "change_summary", length = 1000)
+    private String changeSummary;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "action", nullable = false, length = 32)
     private LegalDocumentAction action;
 
-    @Column(name = "published_at", nullable = false)
+    /** First activation; empty while the version is a draft. */
+    @Column(name = "published_at")
     private ZonedDateTime publishedAt;
 
     @Column(name = "active", nullable = false)
@@ -57,7 +69,6 @@ public class LegalDocument extends AuditFields {
         updatedAt = now;
         active = active == null ? Boolean.FALSE : active;
         required = required == null ? Boolean.TRUE : required;
-        publishedAt = publishedAt == null ? now : publishedAt;
     }
 
     @PreUpdate
@@ -105,6 +116,30 @@ public class LegalDocument extends AuditFields {
         this.url = url;
     }
 
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public String getContentSha256() {
+        return contentSha256;
+    }
+
+    public void setContentSha256(String contentSha256) {
+        this.contentSha256 = contentSha256;
+    }
+
+    public String getChangeSummary() {
+        return changeSummary;
+    }
+
+    public void setChangeSummary(String changeSummary) {
+        this.changeSummary = changeSummary;
+    }
+
     public LegalDocumentAction getAction() {
         return action;
     }
@@ -135,6 +170,16 @@ public class LegalDocument extends AuditFields {
 
     public void setRequired(Boolean required) {
         this.required = required;
+    }
+
+    /** A draft has never been published: it is the only state where the version can change. */
+    public boolean isDraft() {
+        return publishedAt == null;
+    }
+
+    /** A document published with its URL only, before the text lived in Taurus. */
+    public boolean isWithoutContent() {
+        return content == null;
     }
 
     public ZonedDateTime getCreatedAt() {

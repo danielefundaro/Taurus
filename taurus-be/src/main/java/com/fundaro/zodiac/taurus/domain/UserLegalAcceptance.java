@@ -18,6 +18,10 @@ public class UserLegalAcceptance extends CommonFields {
     @jakarta.persistence.Column(name = "accepted_at", nullable = false)
     private ZonedDateTime acceptedAt;
 
+    /** Fingerprint of the confirmed text; empty for a document without a text. */
+    @jakarta.persistence.Column(name = "content_sha256", length = 64)
+    private String contentSha256;
+
     public LegalDocument getLegalDocument() {
         return legalDocument;
     }
@@ -32,5 +36,13 @@ public class UserLegalAcceptance extends CommonFields {
 
     public void setAcceptedAt(ZonedDateTime acceptedAt) {
         this.acceptedAt = acceptedAt;
+    }
+
+    public String getContentSha256() {
+        return contentSha256;
+    }
+
+    public void setContentSha256(String contentSha256) {
+        this.contentSha256 = contentSha256;
     }
 }

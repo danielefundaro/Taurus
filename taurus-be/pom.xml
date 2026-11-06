@@ -38,12 +38,13 @@
     <archunit-junit5.version>1.3.0</archunit-junit5.version>
     <bouncycastle.version>1.86</bouncycastle.version>
 <checkstyle.version>10.19.0</checkstyle.version>
+    <commonmark.version>0.31.0</commonmark.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
     <git-commit-id-maven-plugin.version>9.0.1</git-commit-id-maven-plugin.version>
     <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     <!-- Soglia di copertura: baseline misurata, da alzare quando la copertura sale (runbook di test, 4). -->
-    <jacoco.line.minimum>0.74</jacoco.line.minimum>
-    <jacoco.branch.minimum>0.59</jacoco.branch.minimum>
+    <jacoco.line.minimum>0.75</jacoco.line.minimum>
+    <jacoco.branch.minimum>0.60</jacoco.branch.minimum>
     <jhipster-framework.version>8.7.2</jhipster-framework.version>
     <jib-maven-plugin.architecture>amd64</jib-maven-plugin.architecture>
     <jib-maven-plugin.image>eclipse-temurin:17-jre-focal</jib-maven-plugin.image>
@@ -316,6 +317,22 @@
       <groupId>org.jsoup</groupId>
       <artifactId>jsoup</artifactId>
       <version>1.23.2</version>
+    </dependency>
+    <!-- Markdown text of the legal documents, rendered to HTML for the public pages. -->
+    <dependency>
+      <groupId>org.commonmark</groupId>
+      <artifactId>commonmark</artifactId>
+      <version>${commonmark.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.commonmark</groupId>
+      <artifactId>commonmark-ext-gfm-tables</artifactId>
+      <version>${commonmark.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.commonmark</groupId>
+      <artifactId>commonmark-ext-heading-anchor</artifactId>
+      <version>${commonmark.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.zxing</groupId>
