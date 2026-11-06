@@ -4,7 +4,7 @@ import { BehaviorSubject, finalize, Observable, of, switchMap, throwError } from
 import { catchError, filter, take } from 'rxjs/operators';
 import { ApiErrorService, KeycloakService, LoadingService, PUBLIC_LEGAL_API, PUBLIC_SIGNATURE_API, ResolvedApiError, TenantFeatureService, TenantStatusService, ToastService } from '../service';
 import { ActivatedRouteSnapshot, Router } from '@angular/router';
-import { tenantFeatureOfError } from '../constants';
+import { publicPage, tenantFeatureOfError } from '../constants';
 
 @Injectable({
     providedIn: 'root'
@@ -48,6 +48,12 @@ export class HttpInterceptorService implements HttpInterceptor {
                     )
                 )
             );
+        }
+
+        if (!this.keycloakService.isUserLoggedIn && publicPage()) {
+            // A public page starts without Keycloak, so there is no session to end: a request that needs one fails at
+            // once, without logout and without a toast for the visitor.
+            return throwError(() => new HttpErrorResponse({ status: 401, statusText: 'No session on a public page', url: req.url }));
         }
 
         if (!this.keycloakService.isUserLoggedIn) {
