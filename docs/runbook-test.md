@@ -77,7 +77,7 @@ I valori seguenti costituiscono la baseline raccomandata; devono essere approvat
 | Tenant isolation | Tutta la matrice negativa P0 superata con almeno due tenant |
 | Migrazioni | Fresh install, upgrade e riavvio idempotente superati |
 | Sicurezza | 0 vulnerabilità Critical/High sfruttabili non accettate; il job `security` della CI cerca segreti, vulnerabilità di dipendenze e configurazioni, e difetti con analisi statica. Il DAST su staging resta da aggiungere |
-| Copertura | Baseline attiva e verificata in CI: backend 74% linee e 59% branch sulla suite intera, frontend 61% istruzioni, 51% branch e 63% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
+| Copertura | Baseline attiva e verificata in CI: backend 75% linee e 60% branch sulla suite intera, frontend 64% istruzioni, 54% branch e 66% linee. La proposta resta 80% linee e 70% branch nei moduli modificati, 90% per logica P0 nuova: la baseline si alza man mano, non si abbassa |
 | Accessibilità | Nessuna violazione critica automatica; flussi principali utilizzabili da tastiera |
 | Performance | SLO p95/p99, throughput ed error rate approvati e rispettati |
 | Resilienza | Recupero dimostrato per riavvio backend e indisponibilità temporanea delle dipendenze |
@@ -292,7 +292,7 @@ Broker RabbitMQ reale:
 
 I test che hanno bisogno di Docker passano da `DockerRequirement.required()`: senza Docker si saltano sulla macchina di uno sviluppatore, mentre con `-Dtaurus.test.requireDocker=true` — come fa la CI — la sua assenza è un fallimento. Un test P0 saltato rende il run incompleto.
 
-La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,74 e 0,59, la seconda alzata il 2026-11-02, appena sotto la copertura misurata il 2026-11-03 (74,9% linee e 59,6% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
+La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,75 e 0,60, alzate il 2026-11-06 con le prove dei documenti legali, appena sotto la copertura misurata quel giorno (75,6% linee e 60,5% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
 
 Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Spring tiene in cache un contesto per ogni combinazione di configurazione dei test e non ne chiude nessuno fino a fine suite: con una decina di contesti vivi, i rispettivi pool di connessioni superano il valore predefinito di 100 e gli ultimi contesti falliscono l'avvio con `FATAL: sorry, too many clients already`. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
 
@@ -311,7 +311,7 @@ npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
 npm run build -- --configuration production
 ```
 
-La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (63% istruzioni, 53% branch, 65% linee, misurati sul ramo principale; alzata il 2026-10-27 con le prove del workspace delle parti, dell’editor delle immagini, della dashboard e dei QR dell’inventario, il 2026-10-28 con quelle della preparazione evento, il 2026-10-29 con quelle del feed calendario e il 2026-11-04 con quelle della guida introduttiva). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
+La copertura ha un gate: `npm run test:coverage` esegue i test con `--code-coverage` e fallisce se scende sotto la baseline di `scripts/check-coverage.mjs` (64% istruzioni, 54% branch, 66% linee, misurati sul ramo principale; alzata il 2026-10-27 con le prove del workspace delle parti, dell’editor delle immagini, della dashboard e dei QR dell’inventario, il 2026-10-28 con quelle della preparazione evento, il 2026-10-29 con quelle del feed calendario, il 2026-11-04 con quelle della guida introduttiva e il 2026-11-06 con quelle dei documenti legali). Anche questa baseline si alza, non si abbassa. La build scarica il SoundFont del lettore da `ftp.osuosl.org` e ne verifica l'impronta; senza rete la build fallisce, salvo `TAURUS_SKIP_SOUNDFONT=1` quando il lettore non serve.
 
 Suite end to end full-stack, con Playwright:
 
@@ -540,7 +540,9 @@ Per ogni changeset verificare fresh install e upgrade. Dopo il rilascio non alte
 - `USR-002 P0`: utente globale con profili distinti in due tenant.
 - `USR-003 P0`: cancellazione `/me`, GDPR e amministrativa; la cancellazione dei dati di un utente elimina anche le sue segnalazioni d'errore sulle parti.
 - `USR-004 P1`: preferenze e ultime ricerche isolate e persistenti.
-- `USR-005 P1`: accettazioni legali versionate e non riutilizzate impropriamente.
+- `USR-005 P1`: accettazioni legali versionate e non riutilizzate impropriamente. Ogni nuova accettazione registra l'impronta SHA-256 del testo confermato; la pagina di accettazione mostra il testo di ogni documento in un riquadro scorrevole, con «Apri in una nuova scheda» verso l'indirizzo permanente della versione, e «Cosa cambia» solo a chi aveva confermato un'altra versione dello stesso documento. Un documento pubblicato con il solo indirizzo mostra il collegamento, come prima.
+- `USR-006 P1`: in **Documenti legali** il super amministratore scrive una bozza con l'anteprima accanto (sotto i 1024 px testo e anteprima in due schede), la salva, la pubblica dopo la conferma che nomina la versione sostituita e da quel momento la vede in sola lettura: modifica ed eliminazione rispondono `legal.document.published.immutable`. «Nuova versione da questa» apre una bozza con tipo, titolo e testo compilati; ritiro e riattivazione cambiano la versione in vigore; un documento pubblicato con il solo indirizzo riceve il testo una sola volta e chi l'aveva confermato resta in regola. Gli altri ruoli ricevono `403`.
+- `USR-007 P1`: senza login `/legal/terms` e `/legal/privacy` mostrano la versione in vigore, `/legal/terms/<versione>` e `/legal/privacy/<versione>` ogni versione pubblicata, con le altre versioni, l'impronta e «Stampa»; una versione ritirata ha l'avviso e `noindex`; una bozza o una versione inesistente risulta «Versione non trovata», un documento senza versione in vigore «Documento non disponibile». Testo con HTML scritto a mano, link `javascript:` e immagini: nulla di questo arriva alla pagina. Aperta dal piè di pagina con la sessione attiva, la pagina parte in una nuova scheda senza toccare la sessione della scheda di partenza; la stampa nasconde intestazione, pulsanti ed elenco delle versioni. Lettura senza sessione, versione precedente, versione inesistente, accessibilità a 320 pixel e piè di pagina sono anche in `e2e/specs/legal-documents.spec.ts`; con `E2E_LEGAL_PUBLISH=true` la stessa suite pubblica una versione dei termini, la fa confermare a un utente e rimette in vigore quella di prima.
 
 ### 14.2 Catalogo musicale
 
@@ -903,8 +905,9 @@ Integrare uno scanner automatico di accessibilità e conservare un controllo man
 - `INFO-007 P0`: CSP e security header presenti e senza risorse bloccate.
 - `INFO-008 P1`: responsive, accessibilità e performance Lighthouse.
 - `INFO-009 P1`: nessun segreto o URL interno nel bundle statico.
+- `INFO-010 P1`: `/termini-applicativo/` e `/privacy-applicativo/` rimandano subito a `/legal/terms` e `/legal/privacy` dell'applicativo, con canonical, collegamento visibile e `noindex`, e restano fuori dalla sitemap; piè di pagina, `termini` e `privacy` collegano direttamente l'applicativo.
 
-Automatizzati nella verifica del modulo: `INFO-001` dalla build, `INFO-003`, `INFO-004` e l'accessibilità strutturale di `INFO-008` da `pnpm test`, `INFO-005` e la presenza delle intestazioni di `INFO-007` da `pnpm test:image`, che interroga l'immagine nginx. Restano a mano `INFO-002`, `INFO-006`, `INFO-009`, le prestazioni Lighthouse e la prova che nessuna risorsa sia bloccata dalla CSP a browser aperto.
+Automatizzati nella verifica del modulo: `INFO-001` dalla build, `INFO-003`, `INFO-004`, `INFO-010` e l'accessibilità strutturale di `INFO-008` da `pnpm test`, `INFO-005` e la presenza delle intestazioni di `INFO-007` da `pnpm test:image`, che interroga l'immagine nginx. Restano a mano `INFO-002`, `INFO-006`, `INFO-009`, le prestazioni Lighthouse e la prova che nessuna risorsa sia bloccata dalla CSP a browser aperto.
 
 ## 17. Test non funzionali
 
