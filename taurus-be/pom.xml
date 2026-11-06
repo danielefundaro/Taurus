@@ -39,7 +39,7 @@
     <bouncycastle.version>1.86</bouncycastle.version>
 <checkstyle.version>10.19.0</checkstyle.version>
     <commonmark.version>0.31.0</commonmark.version>
-    <commons-beanutils.version>1.9.4</commons-beanutils.version>
+    <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <git-commit-id-maven-plugin.version>9.0.1</git-commit-id-maven-plugin.version>
     <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     <!-- Soglia di copertura: baseline misurata, da alzare quando la copertura sale (runbook di test, 4). -->
@@ -67,6 +67,8 @@
     <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
 <modernizer-maven-plugin.version>2.9.0</modernizer-maven-plugin.version>
     <nohttp-checkstyle.version>0.0.11</nohttp-checkstyle.version>
+    <!-- Sopra la versione gestita da Spring Boot 3.3: corregge le CVE del driver (platform-upgrade, fase 0). -->
+    <postgresql.version>42.7.14</postgresql.version>
     <profile.api-docs/>
     <profile.e2e/>
     <profile.no-liquibase/>
@@ -367,7 +369,7 @@
     <dependency>
       <groupId>com.rabbitmq</groupId>
       <artifactId>amqp-client</artifactId>
-      <version>5.25.0</version>
+      <version>5.37.1</version>
     </dependency>
 
     <!-- ImageIO reader of JBIG2, the compression of many scanned PDFs: without it PDFBox renders those pages blank. -->
