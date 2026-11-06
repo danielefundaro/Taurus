@@ -17,10 +17,29 @@ interface OperationalDashboard {
 /** Le voci personali: ogni ruolo può riceverle, se il dominio le produce per lui. */
 const PERSONAL = ['LEGAL_ACCEPTANCE_REQUIRED', 'INVENTORY_DECISION_REQUIRED', 'INVENTORY_SIGNATURE_REQUIRED', 'INVENTORY_ASSIGNMENTS_EXPIRING'];
 
+/**
+ * Le voci del direttivo: quelle dell'amministratore senza le consegne delle notifiche, che restano a super
+ * amministratore e amministratore. Più le voci personali e le disponibilità, che riceve come partecipante.
+ */
+const BOARD = [
+    ...PERSONAL,
+    'CALENDAR_AVAILABILITY_REQUIRED',
+    'CALENDAR_RESPONSES_MISSING',
+    'EVENT_PREPARATION_BLOCKED',
+    'EVENT_PREPARATION_ATTENTION',
+    'EVENT_FOLLOW_UP_REQUIRED',
+    'INVENTORY_DECISIONS_PENDING',
+    'INVENTORY_RETURNS_PENDING',
+    'INVENTORY_UNSAFE_ISSUES',
+    'INVENTORY_LIMITING_ISSUES',
+    'FINANCE_MOVEMENTS_UNRECONCILED'
+];
+
 /** Le voci che ogni ruolo può ricevere, dalla matrice dei profili della specifica; un elenco vuoto ammette tutte le voci. */
 const ALLOWED: Record<Role, string[]> = {
     superAdmin: [],
     admin: [],
+    board: BOARD,
     archivist: [...PERSONAL, 'CALENDAR_AVAILABILITY_REQUIRED'],
     user: [...PERSONAL, 'CALENDAR_AVAILABILITY_REQUIRED'],
     external: [...PERSONAL, 'CALENDAR_AVAILABILITY_REQUIRED'],
