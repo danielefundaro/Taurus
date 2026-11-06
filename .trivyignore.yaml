@@ -1,0 +1,207 @@
+# Vulnerabilità e configurazioni che il job `security` ignora finché la fase che le risolve non arriva.
+# Regole (docs/platform-upgrade-spec.md, decisione 13):
+# - una voce per identificativo, con il file a cui si applica, il motivo e la fase che la risolve;
+# - ogni voce scade dopo 60 giorni: alla scadenza torna a far fallire la CI, e o la fase è arrivata
+#   o la scadenza si rinnova con una nuova motivazione nella pull request;
+# - la fase che risolve una vulnerabilità toglie la sua voce; alla fine della fase 8 il file è vuoto.
+# Creato il 2026-11-06 nella fase 0.
+
+vulnerabilities:
+  # Backend: Spring Boot 3.3. La correzione arriva con Spring Boot 3.5.12 e 4.0.4 (fase 4).
+  - id: CVE-2026-22733
+    paths: ["taurus-be/pom.xml"]
+    statement: "spring-boot-starter-actuator 3.3.5: corretto da Spring Boot 3.5.12, fase 4"
+    expired_at: 2027-01-05
+
+  # Frontend: Angular 19.2.25, ultima 19. Corrette solo dalla 20.3 (fase 5).
+  - id: CVE-2026-54264
+    paths: ["taurus-fe/package-lock.json"]
+    statement: "@angular/service-worker 19.2.25: corretto dalla 20.3.25, fase 5"
+    expired_at: 2027-01-05
+  - id: CVE-2026-54266
+    paths: ["taurus-fe/package-lock.json"]
+    statement: "@angular/common 19.2.25: corretto dalla 20.3.25, fase 5"
+    expired_at: 2027-01-05
+  - id: CVE-2026-54267
+    paths: ["taurus-fe/package-lock.json"]
+    statement: "@angular/core 19.2.25: corretto dalla 20.3.25, fase 5"
+    expired_at: 2027-01-05
+  - id: CVE-2026-54268
+    paths: ["taurus-fe/package-lock.json"]
+    statement: "@angular/common 19.2.25: corretto dalla 20.3.25, fase 5"
+    expired_at: 2027-01-05
+  - id: CVE-2026-68945
+    paths: ["taurus-fe/package-lock.json"]
+    statement: "@angular/common 19.2.25: corretto dalla 20.3.27, fase 5"
+    expired_at: 2027-01-05
+  - id: CVE-2026-69151
+    paths: ["taurus-fe/package-lock.json"]
+    statement: "@angular/core e @angular/compiler 19.2.25: corretto dalla 20.3.27, fase 5"
+    expired_at: 2027-01-05
+  - id: CVE-2026-101896
+    paths: ["taurus-fe/package-lock.json"]
+    statement: "@angular/router 19.2.25: corretto dalla 20.3.32, fase 5"
+    expired_at: 2027-01-05
+  - id: CVE-2026-111752
+    paths: ["taurus-fe/package-lock.json"]
+    statement: "@angular/router 19.2.25: corretto dalla 20.3.33, fase 5"
+    expired_at: 2027-01-05
+
+  # Frontend: il pdf.js incluso in ngx-extended-pdf-viewer 28 (fase 5).
+  - id: GHSA-w9hm-4m3m-fxmm
+    paths: ["taurus-fe/package-lock.json"]
+    statement: "ngx-extended-pdf-viewer 28.1.2: corretto dalla 29, maggiore, fase 5"
+    expired_at: 2027-01-05
+
+  # Sito informativo: Astro 5 e lo sharp che accetta, 0.34 (fase 6).
+  - id: GHSA-26w7-cxv4-gfx2
+    paths: ["taurus-info/pnpm-lock.yaml"]
+    statement: "astro 5.18.2, esecuzione di codice remoto: corretto dalla 7.2.8, fase 6"
+    expired_at: 2027-01-05
+  - id: CVE-2026-50146
+    paths: ["taurus-info/pnpm-lock.yaml"]
+    statement: "astro 5.18.2: corretto dalla 6.3.3, fase 6"
+    expired_at: 2027-01-05
+  - id: CVE-2026-54299
+    paths: ["taurus-info/pnpm-lock.yaml"]
+    statement: "astro 5.18.2: corretto dalla 6.4.6, fase 6"
+    expired_at: 2027-01-05
+  - id: GHSA-f88m-g3jw-g9cj
+    paths: ["taurus-info/pnpm-lock.yaml"]
+    statement: "sharp 0.34.5, richiesto da Astro 5: corretto dalla 0.35.0, fase 6"
+    expired_at: 2027-01-05
+  - id: GHSA-rgj7-g3m4-5g8c
+    paths: ["taurus-info/pnpm-lock.yaml"]
+    statement: "sharp 0.34.5, richiesto da Astro 5: corretto dalla 0.35.4, fase 6"
+    expired_at: 2027-01-05
+  - id: GHSA-wq5f-xc86-pv6w
+    paths: ["taurus-info/pnpm-lock.yaml"]
+    statement: "sharp 0.34.5, richiesto da Astro 5: corretto dalla 0.35.5, fase 6"
+    expired_at: 2027-01-05
+
+  # Servizio OMR: Pillow 12.3.0. La correzione è solo nella 13.0.0, ma homr 0.7.0, ultima versione,
+  # richiede Pillow<13: la fase 2 le risolve quando homr accetta Pillow 13.
+  - id: CVE-2026-96637
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-96639
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-96640
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-96642
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-96643
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-96644
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-96778
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112390
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112392
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112393
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112397
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112398
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112399
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112400
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112402
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112403
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112404
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112405
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112406
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112892
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112893
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112894
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112895
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112896
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112897
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112900
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: CVE-2026-112902
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+  - id: GHSA-78g4-xqwv-q3g8
+    paths: ["taurus-omr/requirements.txt"]
+    statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
+    expired_at: 2027-01-05
+
+misconfigurations:
+  # Immagini che girano come root: nginx senza privilegi sulla porta 8080 (decisione 8) e dev container
+  # con utente non root, entrambi nella fase 7.
+  - id: DS-0002
+    paths: ["taurus-fe/Dockerfile", "taurus-info/Dockerfile"]
+    statement: "nginx come root: nginxinc/nginx-unprivileged sulla porta 8080, fase 7"
+    expired_at: 2027-01-05
+  - id: DS-0002
+    paths: ["taurus-be/.devcontainer/Dockerfile"]
+    statement: "dev container come root: immagine devcontainers/java per Java 25 con utente non root, fase 7"
+    expired_at: 2027-01-05

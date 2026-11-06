@@ -971,8 +971,8 @@
       "id": "platform-upgrade",
       "title": "Aggiornamento di librerie, framework e servizi",
       "kind": "platform",
-      "designStatus": "draft",
-      "deliveryStatus": "not-planned",
+      "designStatus": "approved",
+      "deliveryStatus": "in-progress",
       "spec": "docs/platform-upgrade-spec.md",
       "relatedDocs": [
         "docs/runbook-operativo.md",
@@ -989,13 +989,21 @@
         "taurus-omr"
       ],
       "evidence": {
-        "implementation": [],
+        "implementation": [
+          ".trivyignore.yaml",
+          ".github/workflows/verify.yml",
+          "taurus-be/pom.xml",
+          "taurus-be/Dockerfile",
+          "taurus-fe/package.json",
+          "taurus-info/pnpm-lock.yaml",
+          "taurus-omr/requirements.txt"
+        ],
         "migrations": [],
         "tests": []
       },
       "release": null,
-      "lastVerifiedOn": "2026-11-02",
-      "notes": "Bozza del 2026-11-02, nata dalle 90 vulnerabilità segnalate da Trivy: tutti i moduli all'ultima versione stabile (Java 25, Node.js 26, Spring Boot 4.1 con JHipster 9.4, Angular e PrimeNG 22, Astro 7, Keycloak 26.8, PostgreSQL 18, RabbitMQ 4.4), con eccezioni motivate (TypeScript 6.0, Ubuntu 24.04 e Python 3.12 per Audiveris). Fase 0 di sblocco della CI con .trivyignore.yaml a scadenza, poi una pull request per modulo; Dependabot e azioni fissate per SHA per restare aggiornati. Nessuna migrazione Liquibase prevista."
+      "lastVerifiedOn": "2026-11-06",
+      "notes": "Bozza del 2026-11-02, nata dalle 90 vulnerabilità segnalate da Trivy: tutti i moduli all'ultima versione stabile (Java 25, Node.js 26, Spring Boot 4.1 con JHipster 9.4, Angular e PrimeNG 22, Astro 7, Keycloak 26.8, PostgreSQL 18, RabbitMQ 4.4), con eccezioni motivate (TypeScript 6.0, Ubuntu 24.04 e Python 3.12 per Audiveris). Fase 0 di sblocco della CI con .trivyignore.yaml a scadenza, poi una pull request per modulo; Dependabot e azioni fissate per SHA per restare aggiornati. Nessuna migrazione Liquibase prevista. Approvata il 2026-11-06 con tutte le decisioni. Fase 0 eseguita lo stesso giorno: pgjdbc 42.7.14, amqp-client 5.37.1, commons-beanutils 1.11.0, Angular 19.2.25, PrimeNG 19.1.4, certifi 2026.10.23 e le dipendenze transitive dei lockfile di frontend e sito; delle 90 vulnerabilità e 4 configurazioni segnalate da Trivy 0.70.0 ne restano 45 e 3, tutte in .trivyignore.yaml con scadenza 2027-01-05, che il job security legge con l'input trivyignores. Pillow resta alla 12.3.0 perché homr 0.7.0, ultima versione, richiede Pillow<13: le sue 28 vulnerabilità, 5 CRITICAL, restano aperte finché homr non accetta la 13, e la voce è fra le eccezioni della specifica. Fase 0 verificata e committata il 2026-11-06 sul ramo update-versions, non ancora pubblicato: Trivy, frontend, sito, servizio OMR e backend passano. Il backend falliva perché il fork degli IT esauriva l'heap in AccountResourceIT: non una regressione delle dipendenze ma un difetto già presente su 84ae3b8, con una ventina di contesti di test tenuti in cache; la cache è ora limitata a 8 contesti e ./mvnw verify passa in 26 minuti con le soglie di copertura. Restano npm run e2e e la verifica visiva del frontend, che chiedono gli utenti dei tenant di prova, poi la pull request: sezione Stato dei lavori della specifica."
     },
     {
       "id": "postgres-tenant-schemas",

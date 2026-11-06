@@ -294,7 +294,11 @@ I test che hanno bisogno di Docker passano da `DockerRequirement.required()`: se
 
 La copertura della suite intera è un gate: `verify` unisce i dati di unit e integrazione in `target/jacoco-merged.exec`, ne produce il report in `target/site/jacoco-merged` e verifica le soglie `jacoco.line.minimum` e `jacoco.branch.minimum` del `pom.xml`. Oggi valgono 0,75 e 0,60, alzate il 2026-11-06 con le prove dei documenti legali, appena sotto la copertura misurata quel giorno (75,6% linee e 60,5% branch): si alzano quando la copertura sale e non si abbassano senza annotarlo qui.
 
-Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Spring tiene in cache un contesto per ogni combinazione di configurazione dei test e non ne chiude nessuno fino a fine suite: con una decina di contesti vivi, i rispettivi pool di connessioni superano il valore predefinito di 100 e gli ultimi contesti falliscono l'avvio con `FATAL: sorry, too many clients already`. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
+Spring tiene in cache un contesto per ogni combinazione di configurazione dei test, e ognuno conserva pool di connessioni, listener RabbitMQ e cache interne. La cache è limitata a 8 contesti da `spring.test.context.cache.maxSize` in `taurus-be/src/test/resources/spring.properties`: oltre il limite Spring chiude quello usato meno di recente, mentre il container PostgreSQL condiviso resta acceso. Con il limite predefinito di 32 gli integration test arrivano a una ventina di contesti vivi, circa 50 MB l'uno: il 2026-11-06 l'heap di 1 GB del fork si è riempito all'avvio del contesto di `AccountResourceIT`, che non è mai partito, e il fork è morto per `OutOfMemoryError` dopo 17-19 minuti di garbage collection continua. Con il limite la suite completa dura circa 26 minuti e ogni contesto parte in 10-13 secondi. Un avvio di contesto che sale verso il minuto, o un IT banale che impiega minuti, è il segnale che l'heap è di nuovo al limite: abbassare `maxSize` prima di alzare `-Xmx`.
+
+Il container PostgreSQL dei test parte con `max_connections=400`, impostato in `PostgreSqlTestContainer`. Prima del limite della cache, con una decina di contesti vivi i rispettivi pool di connessioni superavano il valore predefinito di 100 e gli ultimi contesti fallivano l'avvio con `FATAL: sorry, too many clients already`; anche con 8 contesti i pool arrivano a 80 connessioni, quindi il margine resta. L'errore non è un'asserzione e si manifesta solo sulla suite completa, mai sulle classi eseguite da sole: se ricompare, alzare il limite prima di cercare la causa nei test.
+
+In CI nessun RabbitMQ ascolta su `localhost:5672`: i listener dei contesti che non avviano un broker con Testcontainers riprovano a collegarsi ogni cinque secondi e riempiono il log di `Connection refused`, che non è un errore della suite. Per riprodurre in locale le condizioni della CI con i servizi di sviluppo avviati, puntare i test su una porta chiusa: `$env:SPRING_RABBITMQ_PORT = '5679'` prima di `.\mvnw.cmd verify`.
 
 Il `@BeforeAll` degli integration test a tenant prepara uno schema, cioè esegue tutte le migration Liquibase sul container: su una macchina lenta costa circa un minuto. Il limite del `@BeforeAll` in `taurus-be/src/test/resources/junit-platform.properties` è perciò di 180 s, mentre i singoli test restano a 15 s: il 2026-10-30 il limite precedente di 60 s ha fatto fallire `PreferencesResourceIT` con `TimeoutException: provisionTenant() timed out` a provisioning quasi finito, mentre la classe successiva, con lo stesso schema, ci ha messo 56 s ed è passata. Un fallimento così non è un difetto del prodotto; se invece il provisioning supera i 180 s, la causa va cercata nelle migration o nell'host, non alzando di nuovo il limite.
 
@@ -385,11 +389,13 @@ Gli stessi controlli del job `security` della CI, eseguibili in locale con Docke
 
 ```powershell
 docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:v8.21.2 detect --source /repo --config /repo/.gitleaks.toml --redact --no-banner --exit-code 1
-docker run --rm -v "${PWD}:/repo" aquasec/trivy:0.56.2 fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 /repo
+docker run --rm -v "${PWD}:/repo" aquasec/trivy:0.70.0 fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL --ignore-unfixed --ignorefile /repo/.trivyignore.yaml --exit-code 1 /repo
 docker run --rm -v "${PWD}:/src" returntocorp/semgrep:1.97.0 semgrep scan --config p/ci --error --quiet --metrics=off
 ```
 
 La ricerca dei segreti attraversa tutta la storia del repository. Le eccezioni vivono in `.gitleaks.toml` e sono soltanto valori di prova, di sviluppo e di documentazione: una credenziale vera non va aggiunta lì, va ruotata.
+
+Le vulnerabilità che Trivy ignora sono in `.trivyignore.yaml`, una per voce, con il file, il motivo, la fase dell'[aggiornamento della piattaforma](platform-upgrade-spec.md) che la risolve e una scadenza di 60 giorni. Una voce scaduta torna a far fallire il controllo: si rinnova solo con una nuova motivazione nella pull request.
 
 ### 8.8 Manifest di produzione
 
