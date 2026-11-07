@@ -27,4 +27,9 @@ paths = [
   '''scripts/ops/validate-deploy-manifest\.sh''',
   # Dati di prova delle spec Angular, come le impronte finte dei token del calendario.
   '''taurus-fe/src/.*\.spec\.ts''',
+  # Falsi positivi della regola generic-api-key di gitleaks 8.30, che prende per valore la parola
+  # dopo un identificatore con «key»: il record `Issued(PrivateKey key, X509Certificate certificate)`
+  # e i filtri di prova generati da JHipster, `"key.contains=" + DEFAULT_KEY`.
+  '''taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/signature/CieSignTestSupport\.java''',
+  '''taurus-be/src/test/java/com/fundaro/zodiac/taurus/web/rest/PreferencesResourceIT\.java''',
 ]
