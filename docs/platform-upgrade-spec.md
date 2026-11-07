@@ -254,7 +254,7 @@ Ogni fase è una pull request separata, di un solo modulo, come chiede `AGENTS.m
 Applicata e verificata il 2026-11-06 sul ramo `update-versions`; i commit per modulo sono descritti in [Stato dei lavori](#stato-dei-lavori). Trivy 0.70.0, la versione della CI, trovava 90 vulnerabilità e 4 configurazioni: ne restano 45 e 3, tutte in `.trivyignore.yaml` con scadenza 2027-01-05. Il job `security` legge il file con l'input `trivyignores` di `trivy-action`, e il comando del [Runbook di test](runbook-test.md) usa la stessa versione di Trivy e lo stesso file.
 
 - Backend: pgjdbc 42.7.14, amqp-client 5.37.1, commons-beanutils 1.11.0 e `--no-install-recommends` nel Dockerfile. Resta la CVE di Actuator, corretta da Spring Boot 3.5.12 (fase 4). Nei test, la cache dei contesti di Spring è limitata a 8: senza limite gli IT esaurivano l'heap, un difetto già presente prima della fase 0 (vedi [Memoria esaurita negli IT del backend](#memoria-esaurita-negli-it-del-backend)).
-- Frontend: Angular 19.2.25 e strumenti di build 19.2.27, ultime della 19, che correggono 9 delle 18 segnalazioni di Angular; PrimeNG e `@primeng/themes` 19.1.4; postcss 8.5 e le dipendenze transitive del lockfile. Restano le altre 9 di Angular, corrette solo dalla 20.3, e quella di `ngx-extended-pdf-viewer` (fase 5).
+- Frontend: Angular 19.2.25 e strumenti di build 19.2.27, ultime della 19, che correggono 9 delle 18 segnalazioni di Angular; PrimeNG e `@primeng/themes` 19.1.4; postcss 8.5 e le dipendenze transitive del lockfile. Restano le altre 9 di Angular, corrette solo dalla 20.3, e quella di `ngx-extended-pdf-viewer` (fase 5). Il lockfile porta anche Playwright 1.65 ed ESLint 9.39, dentro gli intervalli del `package.json`: i browser di Playwright vanno reinstallati. In PrimeNG 19.1 ToggleButton ha perso il ruolo di pulsante, che `ToggleButtonRoleDirective` gli restituisce (vedi [Suite end to end](#suite-end-to-end)).
 - Sito informativo: devalue, js-yaml, source-map-js, svgo e vite alle versioni corrette. Restano Astro e sharp 0.34, l'ultima linea che Astro 5 accetta (fase 6).
 - Servizio OMR: certifi 2026.10.23. Pillow resta alla 12.3.0 per il vincolo di homr (vedi [Eccezioni](#eccezioni-alla-versione-più-recente)).
 - Dockerfile: restano le immagini nginx e il dev container che girano come root (fase 7).
@@ -272,7 +272,7 @@ Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che par
 - `Update certifi in the OMR service`: i requisiti del servizio OMR;
 - `Add expiring Trivy exceptions for the platform upgrade`: `.trivyignore.yaml`, il job `security` e la documentazione.
 
-La verifica visiva ha aggiunto un settimo commit il 2026-11-07, `Align PrimeNG themes with PrimeNG 19.1`: `@primeng/themes` 19.1.4 nel `package.json` e nel lockfile del frontend, allineato a PrimeNG 19.1 (vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend)). Il ramo non è ancora pubblicato.
+La verifica visiva ha aggiunto un settimo commit il 2026-11-07, `Align PrimeNG themes with PrimeNG 19.1`: `@primeng/themes` 19.1.4 nel `package.json` e nel lockfile del frontend, allineato a PrimeNG 19.1 (vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend)). La suite end to end ha aggiunto un ottavo commit lo stesso giorno, `Restore the button role of PrimeNG toggle buttons`: `ToggleButtonRoleDirective` nel frontend, con il suo test e una nota nel README della suite (vedi [Suite end to end](#suite-end-to-end)). Il ramo non è ancora pubblicato.
 
 #### Verifiche eseguite
 
@@ -284,20 +284,35 @@ La verifica visiva ha aggiunto un settimo commit il 2026-11-07, `Align PrimeNG t
 | Frontend | `npm run test:coverage` | 736 test su 736; copertura sopra la baseline (statements 64,46%, branches 54,29%, lines 66,53%) |
 | Frontend | `npm run build` e `npm run test:coverage` con `@primeng/themes` 19.1.4 | build riuscita con gli stessi due avvisi di budget; 736 test su 736, copertura sopra la baseline (statements 64,48%, branches 54,31%, lines 66,54%) |
 | Frontend | verifica visiva nel browser integrato | vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend) |
+| Frontend | `npm run e2e`, profili desktop e mobile, con i tenant di prova `E2E1` ed `E2E2` | 40 superate, 38 saltate, 16 fallite in 19 minuti: vedi [Suite end to end](#suite-end-to-end) |
+| Frontend | `inventory-qr.spec.ts` e `onboarding-import.spec.ts` con le funzionalità accese su `E2E1` | 14 superate, 6 saltate: le prove sull'oggetto, senza `E2E_INVENTORY_QR_CODE` |
+| Frontend | `npm run build` e `npm run test:coverage` con `ToggleButtonRoleDirective` | build riuscita con gli stessi due avvisi di budget; 741 test su 741, copertura sopra la baseline (statements 64,54%, branches 54,36%, lines 66,59%) |
+| Frontend | `accessibility.spec.ts` dopo la correzione, e axe su tracce, album e calendario | pagina di accesso senza violazioni; la dashboard dell'amministratore resta con `label` sul campo data delle notifiche, difetto già presente; tracce, album e calendario senza violazioni |
+| Frontend | login in Google Chrome 156 con il service worker attivo | riuscito: vedi [Suite end to end](#suite-end-to-end) |
 | Sito informativo | `pnpm check`, `pnpm build`, `pnpm test`, `pnpm test:image` | superati |
 | Servizio OMR | `python -m pytest` in `python:3.12-slim` con `requirements-test.txt` | 71 superati, 6 saltati: i test di accuratezza, che chiedono un servizio con i motori reali |
 | Backend | `./mvnw verify -Dtaurus.test.requireDocker=true`, con RabbitMQ irraggiungibile come in CI | superata in 26 minuti: 1225 test unitari e 279 di integrazione; copertura unita 75,59% delle linee e 60,53% dei branch, sopra le soglie |
 | Servizio OMR | `docker build` e `tests/test_accuracy.py` sull'immagine costruita, come il job `omr` della CI | immagine costruita con certifi 2026.10.23; 6 test su 6 in 3 minuti: battute lette 87% con Audiveris e 82% con homr, nomi delle parti 6 su 6 |
 
-Non eseguito: `npm run e2e`, che entra con gli utenti dei tenant di prova letti dalle variabili `E2E_*`; il realm di sviluppo non li contiene.
+Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta.
 
 #### Verifica visiva del frontend
 
 Eseguita il 2026-11-06 nel browser integrato dell'app desktop di Claude, con `npm start`, il backend locale e il superadmin di sviluppo sul tenant della banda. Sono state viste le pagine del [Taurus Layout Standard](taurus-layout-standard.md) in tema scuro e chiaro, a 1280×800 e a 375×812: Utenti, Strumenti in lista e griglia, Tenant, Inventario, Economia, Calendario in lista e mese, Documenti legali con l'editor, Profilo, Configurazione iniziale, Consegne notifiche, Feed calendario, la pagina 404. Anche i dialoghi Nuovo utente e Nuovo evento con il selettore di data e ora, la conferma di eliminazione, il menu laterale su mobile, il dettaglio di una traccia con parti, ascolto e file PDF, l'anteprima degli spartiti nel lettore PDF e il lettore della partitura con Verovio.
 
 - **Difetto trovato e corretto.** PrimeNG 19.1 usa token di tema che `@primeng/themes` 19.0.5 non definisce, fra cui `togglebutton.content.padding`, `button.sm.icon.only.width` e `progressspinner.color.one`. Le variabili CSS mancanti azzeravano le proprietà: il contenuto di SelectButton e ToggleButton misurava 14×14 pixel, senza padding né arrotondamento. Con `@primeng/themes` 19.1.4 le variabili sono definite e il contenuto misura 35×21, con padding e angoli di 6 pixel.
-- **Service worker nel browser integrato.** Dopo il riavvio di `npm start` il worker, in stato degradato per l'hash cambiato di un chunk, rispondeva 504 a ogni richiesta verso Keycloak e il backend: la sua `fetch` falliva con `TypeError: Failed to fetch` e l'app tornava alla pagina di logout. Non dipende dall'aggiornamento: in `ngsw-worker.js` il codice che inoltra le richieste di altre origini è identico fra la 19.0.5 e la 19.2.25, che cambiano solo le richieste di cache-busting degli asset e lo scope degli script dei worker. Per la verifica il worker è stato disattivato a mano e la modifica è stata tolta subito dopo. Prima della pull request conviene un login in Chrome con il worker attivo.
+- **Service worker nel browser integrato.** Dopo il riavvio di `npm start` il worker, in stato degradato per l'hash cambiato di un chunk, rispondeva 504 a ogni richiesta verso Keycloak e il backend: la sua `fetch` falliva con `TypeError: Failed to fetch` e l'app tornava alla pagina di logout. Non dipende dall'aggiornamento: in `ngsw-worker.js` il codice che inoltra le richieste di altre origini è identico fra la 19.0.5 e la 19.2.25, che cambiano solo le richieste di cache-busting degli asset e lo scope degli script dei worker. Per la verifica il worker è stato disattivato a mano e la modifica è stata tolta subito dopo. Il login in Chrome con il worker attivo, il 2026-11-07, è riuscito (vedi [Suite end to end](#suite-end-to-end)).
 - **Già presenti, non regressioni.** In Inventario il cestino va sotto «Modifica» perché la pagina è dentro `<p-fluid>`, e in Button la regola che rende il pulsante fluido è identica fra PrimeNG 19.0.10 e 19.1.4. Nel dialogo Nuovo utente il campo Strumenti resta stretto. Su mobile gli step di Configurazione iniziale scorrono in orizzontale dentro la loro riga, senza allargare la pagina. In console restano i 401 delle pagine pubbliche senza sessione e due NG0100 della sola modalità di sviluppo: `p-inputtext-fluid` nel dettaglio della traccia, da InputText, identico fra le due versioni di PrimeNG, e `LoadingSpinnerComponent`.
+
+#### Suite end to end
+
+Eseguita il 2026-11-07 con `npm start`, il backend locale e i profili desktop e mobile.
+
+- **Ambiente.** Le password dei sei utenti `e2e-*` del realm di sviluppo sono state reimpostate nel Keycloak locale, e le variabili `E2E_*` le passano alla suite. `E2E2` era stato cancellato del tutto: riga in `public.tenant`, registro degli schemi, schema e gruppo di Keycloak. È stato ricreato come chiede il [README della suite](../taurus-fe/e2e/README.md): il backend crea lo schema subito dopo l'avvio, poi si aggiungono `app_user` e ruoli dei due utenti. Il lockfile della fase 0 porta Playwright dalla 1.49.1 alla 1.65.0: al primo giro ogni prova falliva in pochi millisecondi perché mancava `chromium_headless_shell-1254`, poi installato con `npx playwright install --only-shell chromium`.
+- **Regressione trovata e corretta.** In PrimeNG 19.1 ToggleButton non disegna più un `<button>`: `aria-pressed`, `tabindex` e la tastiera stanno sull'elemento `p-togglebutton`, che non ha ruolo. axe segnala `aria-allowed-attr` (critical) sui selettori lista e griglia di tracce, album e calendario, e un lettore di schermo non annuncia un pulsante. Il difetto tocca ogni SelectButton e ToggleButton. La 19.1.4 è l'ultima 19 gratuita e nessuna vulnerabilità la richiede: si tiene e si corregge nell'applicazione. `ToggleButtonRoleDirective`, in `taurus-fe/src/app/directive`, sta nel modulo condiviso `ImportsModule` e nei tre componenti che importano PrimeNG da sé. Aggiunge `role="button"` e `aria-disabled`, e porta sull'elemento l'`ariaLabel` di ToggleButton, che nessuna delle due versioni usa. I ToggleButton creati da SelectButton li cerca sotto l'host e li segue con un `MutationObserver`. Dopo la correzione tracce, album e calendario sono senza violazioni, e il selettore lista e griglia risponde al clic e a Invio.
+- **Effetti dell'ambiente.** Le prove del QR inventario e della configurazione iniziale, 7 per profilo, andavano in timeout: su `E2E1` inventario, QR e importazione iniziale sono spenti dal 2026-11-04. Con la funzionalità spenta il frontend non apre la pagina e la risposta che la prova aspetta non arriva, mentre la prova si salta solo davanti a un 403 del backend. Accese per la prova e poi rimesse com'erano, le funzionalità fanno passare tutte le prove che non chiedono un codice QR.
+- **Già presenti, non regressioni.** Sulla dashboard il campo data per posticipare una notifica riceve l'etichetta con `[attr.aria-label]`, che resta sull'host di `p-datepicker`: axe segnala `label` (critical) per ogni notifica. Il 2026-10-31 non si vedeva perché l'amministratore non aveva notifiche. Su `/legal/privacy`, senza un documento in vigore, l'avviso `warn` ha il testo a 2,84:1 sul fondo, con token e CSS di Message identici fra le due versioni. Nel profilo il titolo della zona pericolosa e i pulsanti `danger` restano sotto 4,5:1, il gap già annotato in `accessible-theme.ts`.
+- **Login con il service worker.** L'estensione Claude in Chrome non era collegata: Playwright ha guidato il Google Chrome 156 installato, con un profilo pulito e i worker ammessi. Primo accesso, ricarica con la pagina controllata dal worker e nuova scheda sono riusciti. Le richieste del token passano dal worker con risposta 200, e nessuna chiamata verso Keycloak o le API risponde 5xx o fallisce.
 
 #### Memoria esaurita negli IT del backend
 
@@ -310,9 +325,8 @@ Risolto il 2026-11-06.
 
 #### Passi per chiudere la fase 0
 
-1. Eseguire `npm run e2e` su un'istanza completa con i tenant di prova, e un login in Chrome con il service worker attivo.
-2. Pubblicare il ramo e aprire la pull request: la CI verifica i moduli con Java 17, mentre in locale il backend è stato provato con Java 21.
-3. Aggiornare questa sezione e la nota della voce in `docs/features.json`, poi passare alla fase 1.
+1. Pubblicare il ramo e aprire la pull request: la CI verifica i moduli con Java 17, mentre in locale il backend è stato provato con Java 21.
+2. Aggiornare questa sezione e la nota della voce in `docs/features.json`, poi passare alla fase 1.
 
 #### Note sull'ambiente locale
 
@@ -320,6 +334,7 @@ Risolto il 2026-11-06.
 - Il frontend è stato verificato con Node 22.11.0, come la CI che usa Node 22. pnpm 11.16 non parte su Node 22.11.0 e il corepack di quella versione rifiuta le chiavi di firma di pnpm: per il sito è stato usato Node 24.21.0.
 - Il lockfile del frontend è stato rigenerato così: `npm audit fix`, minimi del `package.json` alzati a mano, poi rimozione dal lock delle sole voci con nome esatto (`@angular/*`, `@angular-devkit/*`, `@ngtools/*`, `@schematics/angular`, `primeng`, `postcss`) e `npm install`. Una rimozione per prefisso toglie anche `postcss-modules-*`, che npm non ripristina: la build passa, ma Karma non trova `postcss-modules-values`. `npm ls --all` deve uscire senza errori.
 - Il `node_modules` del sito era collegato allo store pnpm `D:\Daniele\Zodiac\Taurus\.pnpm-store`, che non esisteva più. Lo store è stato ricreato per l'aggiornamento e poi cancellato: se pnpm segnala uno store inatteso, `pnpm install` ricollega le dipendenze.
+- La coda `upload.files` del RabbitMQ locale è precedente alla dead-letter exchange introdotta il 2026-10-31 con `ad15f670`: all'avvio il backend registra `PRECONDITION_FAILED - inequivalent arg 'x-dead-letter-exchange'`. Non dipende dalla fase 0: cancellata la coda dalla console di RabbitMQ, il backend la dichiara di nuovo.
 - L'enforcer del backend segnala due divergenze di dipendenze, solo come avvisi: amqp-client, 5.21.0 da `spring-rabbit` contro quella dichiarata, già presente con la 5.25.0, e `checker-qual`, 3.55.1 da pgjdbc 42.7.14 contro 3.37.0 da Caffeine, nuova.
 
 ## Modifiche per modulo
@@ -342,6 +357,7 @@ Risolto il 2026-11-06.
 
 - `package.json` e lockfile dopo ogni `ng update`; builder `@angular/build`; `@primeuix/themes`; Tailwind 4 con lo strumento di migrazione ufficiale.
 - Componenti: le modifiche richieste da PrimeNG 20–22, verificate pagina per pagina sulle schermate del [Taurus Layout Standard](taurus-layout-standard.md).
+- `ToggleButtonRoleDirective`, aggiunta nella fase 0: da togliere se PrimeNG 22 dà a ToggleButton il ruolo di pulsante, verificandolo con la suite di accessibilità.
 - `Dockerfile`: `node:26-alpine` e nginx senza root sulla porta 8080.
 - `docs/llms-full.md` rigenerato per PrimeNG 22.
 
