@@ -22,7 +22,7 @@ jsonpickle==4.1.4
 kiwisolver==1.5.1
 matplotlib==3.11.2
 more-itertools==11.2.1
-music21==9.7.1
+music21==10.5.2
 musicxml==1.4
 numpy==2.5.4
 omegaconf==2.4.0
