@@ -70,7 +70,9 @@ Le prove sono in `specs`:
 1. Dipendenze avviate: `docker compose -f ../taurus-be/src/main/docker/services.yml up --wait`.
 2. Backend in esecuzione: `cd ../taurus-be && ./mvnw`.
 3. Frontend in esecuzione: `npm start` (serve su `http://localhost:4200`).
-4. Browser di Playwright installati una volta sola: `npm run e2e:install` (Chromium, Firefox e WebKit).
+4. Browser di Playwright installati con `npm run e2e:install` (Chromium, Firefox e WebKit). L'installazione
+   va ripetuta quando il lockfile cambia versione di Playwright: senza i browser di quella versione ogni
+   prova fallisce subito con «Executable doesn't exist».
 5. Due tenant di prova, con utenti per i ruoli usati dalle prove (vedi [Ambiente di prova](#ambiente-di-prova)).
 
 ## Ambiente di prova

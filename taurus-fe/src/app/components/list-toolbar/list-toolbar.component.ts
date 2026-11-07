@@ -8,6 +8,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
+import { ToggleButtonRoleDirective } from '../../directive/toggle-button-role.directive';
 
 export interface ListToolbarOption {
     label?: string;
@@ -17,7 +18,7 @@ export interface ListToolbarOption {
 @Component({
     selector: 'app-list-toolbar',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, IconFieldModule, InputIconModule, InputTextModule, SelectModule, SelectButtonModule],
+    imports: [CommonModule, FormsModule, ButtonModule, IconFieldModule, InputIconModule, InputTextModule, SelectModule, SelectButtonModule, ToggleButtonRoleDirective],
     templateUrl: './list-toolbar.component.html',
     styleUrl: './list-toolbar.component.scss'
 })

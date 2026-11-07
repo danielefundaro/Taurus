@@ -42,8 +42,14 @@ describe('GuidedTourService', () => {
     let provisioned: boolean;
     let featuresLoaded: boolean;
 
+    /** The service stays closed while a mask is in the document, whichever spec left it there. */
+    function removeMasks(): void {
+        document.querySelectorAll('.p-dialog-mask, .p-overlay-mask').forEach((mask) => mask.remove());
+    }
+
     beforeEach(() => {
         sessionStorage.clear();
+        removeMasks();
         provisioned = true;
         featuresLoaded = true;
         router = { url: '/', events: new Subject() };
@@ -66,7 +72,7 @@ describe('GuidedTourService', () => {
     afterEach(() => {
         http.verify();
         sessionStorage.clear();
-        document.querySelectorAll('.p-overlay-mask').forEach((mask) => mask.remove());
+        removeMasks();
     });
 
     /** Lets the dashboard propose the tour and answers the first read with the given state. */
