@@ -9,6 +9,7 @@ import Nora from '@primeng/themes/nora';
 import { PrimeNG } from 'primeng/config';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { ACCESSIBLE_BUTTON, ACCESSIBLE_LIGHT_SCHEME } from '../../constants';
+import { ToggleButtonRoleDirective } from '../../directive/toggle-button-role.directive';
 import { LayoutService } from '../../service';
 
 const presets = {
@@ -44,6 +45,7 @@ declare type SurfacesType = {
         CommonModule,
         FormsModule,
         SelectButtonModule,
+        ToggleButtonRoleDirective,
     ],
     templateUrl: './configurator.component.html',
     styleUrl: './configurator.component.scss',
