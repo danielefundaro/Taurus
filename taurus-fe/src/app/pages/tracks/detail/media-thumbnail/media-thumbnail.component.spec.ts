@@ -21,10 +21,16 @@ describe('MediaThumbnailComponent', () => {
         fixture.detectChanges();
     });
 
-    afterEach(() => {
-        component['previewImage']?.closePreview();
+    // PrimeNG sposta la maschera dell'anteprima nel body e la toglie solo a fine animazione: distruggere il
+    // componente prima la lascerebbe nel documento, dove blocca le spec che cercano una maschera aperta. La
+    // chiusura passa dal pulsante, perché il componente è OnPush e `closePreview()` da solo non aggiorna la vista.
+    afterEach(async () => {
+        (component['previewImage']?.closeButton?.nativeElement as HTMLButtonElement | undefined)?.click();
+        fixture.detectChanges();
+        await fixture.whenStable();
         fixture.detectChanges();
         fixture.destroy();
+        expect(document.body.querySelector('.p-image-mask')).toBeNull();
     });
 
     it('opens the PrimeNG preview through its native trigger', () => {

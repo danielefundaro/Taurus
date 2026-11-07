@@ -11,7 +11,7 @@ Le verifiche di ogni modulo restano quelle di `AGENTS.md` e del [Runbook di test
 ID catalogo: `platform-upgrade`.
 Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
-Bozza del 2026-11-02: le scelte sono proposte in [Decisioni](#decisioni) e vanno approvate prima dell'implementazione. Le versioni obiettivo sono le ultime stabili a quella data, lette dai registri ufficiali (Maven Central, npm, PyPI, GitHub, endoflife.date).
+Bozza del 2026-11-02, approvata il 2026-11-06 con tutte le scelte di [Decisioni](#decisioni). Le versioni obiettivo sono le ultime stabili a quella data, lette dai registri ufficiali (Maven Central, npm, PyPI, GitHub, endoflife.date).
 
 ## Problema
 
@@ -105,7 +105,7 @@ Inventario del 02/11/2026. «Salto» indica il tipo di aggiornamento: patch e mi
 
 | Componente | Attuale | Obiettivo | Salto | Note |
 | --- | --- | --- | --- | --- |
-| Pillow | 12.3.0 | 13.0.x | maggiore | 28 CVE, 5 `CRITICAL` |
+| Pillow | 12.3.0 | 13.0.x | maggiore | 28 CVE, 5 `CRITICAL`; homr 0.7.0 richiede `Pillow<13`: [Eccezioni](#eccezioni-alla-versione-più-recente) |
 | certifi | 2026.7.22 | 2026.10.x | — | radici emSign compromesse (`CRITICAL`) |
 | FastAPI, Starlette, Pydantic, python-multipart, ONNX Runtime | varie | ultime | minor | |
 | opencv-python-headless | 4.14 | 5.0 | maggiore | solo se homr lo accetta: decisione 9 |
@@ -155,7 +155,7 @@ Inventario del 02/11/2026. «Salto» indica il tipo di aggiornamento: patch e mi
 
 ## Decisioni
 
-Proposte del 02/11/2026, da approvare.
+Proposte del 02/11/2026, approvate il 06/11/2026.
 
 ### 1. Ultima versione stabile, non l'ultima pubblicata
 
@@ -228,6 +228,7 @@ Le voci di `.trivyignore.yaml` vengono tolte dalla fase che risolve la vulnerabi
 | --- | --- | --- | --- |
 | TypeScript | 6.0 | 7.0 | Angular 22 richiede `>=6.0 <6.1`; `@astrojs/check` supporta fino alla 6 |
 | Python e Ubuntu del servizio OMR | 3.12 / 24.04 | 3.15 / 26.04 | Audiveris non ha pacchetti per Ubuntu 26.04 |
+| Pillow del servizio OMR | 12.3.0 | 13.0.0 | homr 0.7.0, ultima versione, richiede `Pillow<13`; le 28 CVE corrette solo dalla 13 restano in `.trivyignore.yaml` finché homr non accetta la 13 |
 | Java del provider Keycloak | quella dell'immagine Keycloak | 25 | il provider gira nella JVM di Keycloak |
 | Prometheus | 3.13 LTS | 3.15 | la 3.15 esce dal supporto il 06/11/2026; la LTS è supportata fino a luglio 2027 |
 | Karma | 6.4 | — | deprecato senza successore diretto: decisione 6 |
@@ -239,7 +240,7 @@ Ogni fase è una pull request separata, di un solo modulo, come chiede `AGENTS.m
 | Fase | Contenuto | Moduli | Vulnerabilità risolte |
 | --- | --- | --- | --- |
 | 0 | Sblocco della CI (decisione 13) | tutti | patch e minor, Dockerfile |
-| 1 | Azioni GitHub fissate per SHA, Trivy, gitleaks e semgrep aggiornati, Dependabot | repository | — |
+| 1 | Azioni GitHub alle nuove versioni maggiori, già fissate per SHA dalla fase 0; Trivy, gitleaks e semgrep aggiornati, Dependabot | repository | — |
 | 2 | Servizio OMR: librerie Python | `taurus-omr` | 29 |
 | 3 | Provider e immagine Keycloak 26.8 | `keycloak-authenticator`, compose | — |
 | 4 | Backend: Java 25, Spring Boot 3.5 → 4.0 → 4.1, JHipster 9, librerie e plugin | `taurus-be` | 9 |
@@ -248,11 +249,107 @@ Ogni fase è una pull request separata, di un solo modulo, come chiede `AGENTS.m
 | 7 | Servizi: PostgreSQL 18, RabbitMQ 4.4, nginx senza root, monitoraggio | compose, `deploy/`, Dockerfile | 4 configurazioni |
 | 8 | Documentazione e chiusura: runbook, `AGENTS.md`, README, `.trivyignore.yaml` vuoto | repository | — |
 
+### Esito della fase 0
+
+Applicata e verificata il 2026-11-06 sul ramo `update-versions`; i commit per modulo sono descritti in [Stato dei lavori](#stato-dei-lavori). Trivy 0.70.0, la versione della CI, trovava 90 vulnerabilità e 4 configurazioni: ne restano 45 e 3, tutte in `.trivyignore.yaml` con scadenza 2027-01-05. Il job `security` legge il file con l'input `trivyignores` di `trivy-action`, e il comando del [Runbook di test](runbook-test.md) usa la stessa versione di Trivy e lo stesso file.
+
+- Backend: pgjdbc 42.7.14, amqp-client 5.37.1, commons-beanutils 1.11.0 e `--no-install-recommends` nel Dockerfile. Resta la CVE di Actuator, corretta da Spring Boot 3.5.12 (fase 4). Nei test, la cache dei contesti di Spring è limitata a 8: senza limite gli IT esaurivano l'heap, un difetto già presente prima della fase 0 (vedi [Memoria esaurita negli IT del backend](#memoria-esaurita-negli-it-del-backend)).
+- Frontend: Angular 19.2.25 e strumenti di build 19.2.27, ultime della 19, che correggono 9 delle 18 segnalazioni di Angular; PrimeNG e `@primeng/themes` 19.1.4; postcss 8.5 e le dipendenze transitive del lockfile. Restano le altre 9 di Angular, corrette solo dalla 20.3, e quella di `ngx-extended-pdf-viewer` (fase 5). Il lockfile porta anche Playwright 1.65 ed ESLint 9.39, dentro gli intervalli del `package.json`: i browser di Playwright vanno reinstallati. In PrimeNG 19.1 ToggleButton ha perso il ruolo di pulsante, che `ToggleButtonRoleDirective` gli restituisce (vedi [Suite end to end](#suite-end-to-end)).
+- Sito informativo: devalue, js-yaml, source-map-js, svgo e vite alle versioni corrette. Restano Astro e sharp 0.34, l'ultima linea che Astro 5 accetta (fase 6).
+- Servizio OMR: certifi 2026.10.23. Pillow resta alla 12.3.0 per il vincolo di homr (vedi [Eccezioni](#eccezioni-alla-versione-più-recente)).
+- Dockerfile: restano le immagini nginx e il dev container che girano come root (fase 7).
+- CI: le sette azioni GitHub che usavano un tag (`actions/checkout`, `setup-node`, `setup-java`, `setup-python`, `upload-artifact`, `attest-build-provenance` e `pnpm/action-setup`, 29 riferimenti) sono fissate per SHA del commit a cui portava il loro tag maggiore, con la versione in commento: nessuna versione cambia. Le segnalava semgrep (vedi [Stato dei lavori](#stato-dei-lavori)).
+
+Trivy risolve le dipendenze del `pom.xml` scaricando i POM da Maven Central e non sempre ci riesce: due esecuzioni sullo stesso file possono dare risultati diversi. Il confronto vale sul report completo, quello che elenca anche Spring Boot e il driver PostgreSQL.
+
+### Stato dei lavori
+
+Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che parte da `84ae3b8`. I commit sono sei, uno per modulo e due per il backend:
+
+- `Limit the cached test contexts`: il limite alla cache dei contesti di test del backend;
+- `Update vulnerable backend dependencies`: `pom.xml` e `Dockerfile` del backend;
+- `Update Angular and PrimeNG to their last 19.x releases`: `package.json` e lockfile del frontend;
+- `Update vulnerable info site dependencies`: lockfile del sito informativo;
+- `Update certifi in the OMR service`: i requisiti del servizio OMR;
+- `Add expiring Trivy exceptions for the platform upgrade`: `.trivyignore.yaml`, il job `security` e la documentazione.
+
+La verifica visiva ha aggiunto un settimo commit il 2026-11-07, `Align PrimeNG themes with PrimeNG 19.1`: `@primeng/themes` 19.1.4 nel `package.json` e nel lockfile del frontend, allineato a PrimeNG 19.1 (vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend)). La suite end to end ha aggiunto un ottavo commit lo stesso giorno, `Restore the button role of PrimeNG toggle buttons`: `ToggleButtonRoleDirective` nel frontend, con il suo test e una nota nel README della suite (vedi [Suite end to end](#suite-end-to-end)). Sempre il 2026-11-07 il merge `16e5044` ha unito il ramo `fix-a11y-defects`, che parte da `main` e ne porta anche `6c36409`, `Mark track page image editing as implemented`. I suoi tre commit correggono due difetti di accessibilità già presenti, trovati dalla suite end to end: il nome del campo data del rinvio nel widget delle notifiche e il contrasto di `p-message` e `p-toast`, insieme al preset accessibile di `app.config.ts`, che non arrivava a `providePrimeNG`.
+
+Il ramo è pubblicato e la pull request è la [#118](https://github.com/danielefundaro/Taurus/pull/118). Nella prima esecuzione della CI, il 2026-11-07, sono passati tutti i job tranne `security`, compreso il backend con Java 17. Trivy passava; si fermava semgrep, con 29 segnalazioni della regola `github-actions-mutable-action-tag`, che il set `p/ci` ha aggiunto da poco. semgrep scarica le regole a ogni esecuzione, e su `main` non era mai arrivato a girare perché il job si fermava prima, su Trivy. Il commit `Pin GitHub Actions to commit SHAs` fissa le sette azioni allo SHA del commit a cui portava il loro tag maggiore, con la versione in commento, e anticipa così la parte della fase 1 che le fissa per SHA. Per `pnpm/action-setup` il tag `v4` porta alla 4.3.0: la 4.4.0 è lo stesso commit della 5.0.0. Con quel commit la CI della pull request è passata in tutti gli otto job, lo stesso giorno: il backend in 11 minuti con Java 17, il servizio OMR in 5, gli altri in meno di 2.
+
+#### Verifiche eseguite
+
+| Modulo | Comando | Esito |
+| --- | --- | --- |
+| Repository | Trivy 0.70.0 come nella CI, con `--ignorefile .trivyignore.yaml` | nessuna segnalazione, codice di uscita 0 |
+| Repository | `validate-feature-catalog.mjs`, `feature-catalog.test.mjs`, `check-feature-drift.mjs` | superati |
+| Frontend | `npm run build` | riuscita; due avvisi di budget CSS: `pdf-manipulator-dialog.component.scss` 7,72 kB e `preview.component.scss` 7,95 kB, sul limite di 7 kB |
+| Frontend | `npm run test:coverage` | 736 test su 736; copertura sopra la baseline (statements 64,46%, branches 54,29%, lines 66,53%) |
+| Frontend | `npm run build` e `npm run test:coverage` con `@primeng/themes` 19.1.4 | build riuscita con gli stessi due avvisi di budget; 736 test su 736, copertura sopra la baseline (statements 64,48%, branches 54,31%, lines 66,54%) |
+| Frontend | verifica visiva nel browser integrato | vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend) |
+| Frontend | `npm run e2e`, profili desktop e mobile, con i tenant di prova `E2E1` ed `E2E2` | 40 superate, 38 saltate, 16 fallite in 19 minuti: vedi [Suite end to end](#suite-end-to-end) |
+| Frontend | `inventory-qr.spec.ts` e `onboarding-import.spec.ts` con le funzionalità accese su `E2E1` | 14 superate, 6 saltate: le prove sull'oggetto, senza `E2E_INVENTORY_QR_CODE` |
+| Frontend | `npm run build` e `npm run test:coverage` con `ToggleButtonRoleDirective` | build riuscita con gli stessi due avvisi di budget; 741 test su 741, copertura sopra la baseline (statements 64,54%, branches 54,36%, lines 66,59%) |
+| Frontend | `accessibility.spec.ts` dopo la correzione, e axe su tracce, album e calendario | pagina di accesso senza violazioni; la dashboard dell'amministratore resta con `label` sul campo data delle notifiche, difetto già presente; tracce, album e calendario senza violazioni |
+| Frontend | login in Google Chrome 156 con il service worker attivo | riuscito: vedi [Suite end to end](#suite-end-to-end) |
+| Frontend | `npm run build` e `npm run test:coverage` dopo il merge di `fix-a11y-defects` | build riuscita con gli stessi due avvisi di budget; 752 test su 752, copertura sopra la baseline (statements 64,59%, branches 54,37%, lines 66,64%); le misure di contrasto di `accessible-theme.spec.ts` passano sui token di `@primeng/themes` 19.1.4 |
+| Repository | `validate-feature-catalog.mjs` e `check-feature-drift.mjs` dopo il merge | superati |
+| Tutti | CI della pull request [#118](https://github.com/danielefundaro/Taurus/pull/118), prima esecuzione | superati tutti i job tranne `security`: 29 segnalazioni di semgrep sulle azioni non fissate per SHA |
+| Repository | semgrep 1.97.0 con `p/ci`, come nel job `security`, sui file versionati con le azioni fissate per SHA | 0 segnalazioni su 1798 file, codice di uscita 0; sui workflow di prima, 29 segnalazioni come in CI |
+| Tutti | CI della pull request [#118](https://github.com/danielefundaro/Taurus/pull/118) sul commit `Pin GitHub Actions to commit SHAs` | otto job su otto superati, fra cui `security` e `backend` con Java 17 |
+| Sito informativo | `pnpm check`, `pnpm build`, `pnpm test`, `pnpm test:image` | superati |
+| Servizio OMR | `python -m pytest` in `python:3.12-slim` con `requirements-test.txt` | 71 superati, 6 saltati: i test di accuratezza, che chiedono un servizio con i motori reali |
+| Backend | `./mvnw verify -Dtaurus.test.requireDocker=true`, con RabbitMQ irraggiungibile come in CI | superata in 26 minuti: 1225 test unitari e 279 di integrazione; copertura unita 75,59% delle linee e 60,53% dei branch, sopra le soglie |
+| Servizio OMR | `docker build` e `tests/test_accuracy.py` sull'immagine costruita, come il job `omr` della CI | immagine costruita con certifi 2026.10.23; 6 test su 6 in 3 minuti: battute lette 87% con Audiveris e 82% con homr, nomi delle parti 6 su 6 |
+
+Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta. Dopo il merge di `fix-a11y-defects` non sono stati ripetuti né axe né la suite end to end: le due correzioni sono state verificate con axe sul loro ramo, con PrimeNG 19.0.10, e sul ramo unito le coprono i test unitari.
+
+#### Verifica visiva del frontend
+
+Eseguita il 2026-11-06 nel browser integrato dell'app desktop di Claude, con `npm start`, il backend locale e il superadmin di sviluppo sul tenant della banda. Sono state viste le pagine del [Taurus Layout Standard](taurus-layout-standard.md) in tema scuro e chiaro, a 1280×800 e a 375×812: Utenti, Strumenti in lista e griglia, Tenant, Inventario, Economia, Calendario in lista e mese, Documenti legali con l'editor, Profilo, Configurazione iniziale, Consegne notifiche, Feed calendario, la pagina 404. Anche i dialoghi Nuovo utente e Nuovo evento con il selettore di data e ora, la conferma di eliminazione, il menu laterale su mobile, il dettaglio di una traccia con parti, ascolto e file PDF, l'anteprima degli spartiti nel lettore PDF e il lettore della partitura con Verovio.
+
+- **Difetto trovato e corretto.** PrimeNG 19.1 usa token di tema che `@primeng/themes` 19.0.5 non definisce, fra cui `togglebutton.content.padding`, `button.sm.icon.only.width` e `progressspinner.color.one`. Le variabili CSS mancanti azzeravano le proprietà: il contenuto di SelectButton e ToggleButton misurava 14×14 pixel, senza padding né arrotondamento. Con `@primeng/themes` 19.1.4 le variabili sono definite e il contenuto misura 35×21, con padding e angoli di 6 pixel.
+- **Service worker nel browser integrato.** Dopo il riavvio di `npm start` il worker, in stato degradato per l'hash cambiato di un chunk, rispondeva 504 a ogni richiesta verso Keycloak e il backend: la sua `fetch` falliva con `TypeError: Failed to fetch` e l'app tornava alla pagina di logout. Non dipende dall'aggiornamento: in `ngsw-worker.js` il codice che inoltra le richieste di altre origini è identico fra la 19.0.5 e la 19.2.25, che cambiano solo le richieste di cache-busting degli asset e lo scope degli script dei worker. Per la verifica il worker è stato disattivato a mano e la modifica è stata tolta subito dopo. Il login in Chrome con il worker attivo, il 2026-11-07, è riuscito (vedi [Suite end to end](#suite-end-to-end)).
+- **Già presenti, non regressioni.** In Inventario il cestino va sotto «Modifica» perché la pagina è dentro `<p-fluid>`, e in Button la regola che rende il pulsante fluido è identica fra PrimeNG 19.0.10 e 19.1.4. Nel dialogo Nuovo utente il campo Strumenti resta stretto. Su mobile gli step di Configurazione iniziale scorrono in orizzontale dentro la loro riga, senza allargare la pagina. In console restano i 401 delle pagine pubbliche senza sessione e due NG0100 della sola modalità di sviluppo: `p-inputtext-fluid` nel dettaglio della traccia, da InputText, identico fra le due versioni di PrimeNG, e `LoadingSpinnerComponent`.
+
+#### Suite end to end
+
+Eseguita il 2026-11-07 con `npm start`, il backend locale e i profili desktop e mobile.
+
+- **Ambiente.** Le password dei sei utenti `e2e-*` del realm di sviluppo sono state reimpostate nel Keycloak locale, e le variabili `E2E_*` le passano alla suite. `E2E2` era stato cancellato del tutto: riga in `public.tenant`, registro degli schemi, schema e gruppo di Keycloak. È stato ricreato come chiede il [README della suite](../taurus-fe/e2e/README.md): il backend crea lo schema subito dopo l'avvio, poi si aggiungono `app_user` e ruoli dei due utenti. Il lockfile della fase 0 porta Playwright dalla 1.49.1 alla 1.65.0: al primo giro ogni prova falliva in pochi millisecondi perché mancava `chromium_headless_shell-1254`, poi installato con `npx playwright install --only-shell chromium`.
+- **Regressione trovata e corretta.** In PrimeNG 19.1 ToggleButton non disegna più un `<button>`: `aria-pressed`, `tabindex` e la tastiera stanno sull'elemento `p-togglebutton`, che non ha ruolo. axe segnala `aria-allowed-attr` (critical) sui selettori lista e griglia di tracce, album e calendario, e un lettore di schermo non annuncia un pulsante. Il difetto tocca ogni SelectButton e ToggleButton. La 19.1.4 è l'ultima 19 gratuita e nessuna vulnerabilità la richiede: si tiene e si corregge nell'applicazione. `ToggleButtonRoleDirective`, in `taurus-fe/src/app/directive`, sta nel modulo condiviso `ImportsModule` e nei tre componenti che importano PrimeNG da sé. Aggiunge `role="button"` e `aria-disabled`, e porta sull'elemento l'`ariaLabel` di ToggleButton, che nessuna delle due versioni usa. I ToggleButton creati da SelectButton li cerca sotto l'host e li segue con un `MutationObserver`. Dopo la correzione tracce, album e calendario sono senza violazioni, e il selettore lista e griglia risponde al clic e a Invio.
+- **Effetti dell'ambiente.** Le prove del QR inventario e della configurazione iniziale, 7 per profilo, andavano in timeout: su `E2E1` inventario, QR e importazione iniziale sono spenti dal 2026-11-04. Con la funzionalità spenta il frontend non apre la pagina e la risposta che la prova aspetta non arriva, mentre la prova si salta solo davanti a un 403 del backend. Accese per la prova e poi rimesse com'erano, le funzionalità fanno passare tutte le prove che non chiedono un codice QR.
+- **Già presenti, non regressioni.** Sulla dashboard il campo data per posticipare una notifica riceve l'etichetta con `[attr.aria-label]`, che resta sull'host di `p-datepicker`: axe segnala `label` (critical) per ogni notifica. Il 2026-10-31 non si vedeva perché l'amministratore non aveva notifiche. Su `/legal/privacy`, senza un documento in vigore, l'avviso `warn` ha il testo a 2,84:1 sul fondo, con token e CSS di Message identici fra le due versioni. Nel profilo il titolo della zona pericolosa e i pulsanti `danger` restano sotto 4,5:1, il gap già annotato in `accessible-theme.ts`. I primi due sono stati corretti il 2026-11-07 nel ramo `fix-a11y-defects`, unito a questo: il campo usa l'ingresso `ariaLabel`, che arriva all'input, e il testo di Message e Toast passa alla tinta 700 in modalità chiara, alla 800 per `warn`, e alla 400 in modalità scura. L'avviso di `/legal/privacy` arriva così a 6,63:1 in chiaro e a 8,43:1 in scuro. Il terzo resta aperto.
+- **Login con il service worker.** L'estensione Claude in Chrome non era collegata: Playwright ha guidato il Google Chrome 156 installato, con un profilo pulito e i worker ammessi. Primo accesso, ricarica con la pagina controllata dal worker e nuova scheda sono riusciti. Le richieste del token passano dal worker con risposta 200, e nessuna chiamata verso Keycloak o le API risponde 5xx o fallisce.
+
+#### Memoria esaurita negli IT del backend
+
+Risolto il 2026-11-06.
+
+- **Sintomo.** Dopo `SignatureIT` il contesto di `AccountResourceIT` non partiva: l'heap di 1 GB del fork era pieno e, dopo 17-19 minuti di garbage collection continua, il fork moriva con codice 99. Gli IT successivi non giravano.
+- **Causa.** Spring tiene in cache un contesto per ogni configurazione di test, fino a 32, e nel fork degli IT ne nascono 18 prima di `AccountResourceIT`, intorno ai 50 MB l'uno. Nell'istogramma dell'heap dominano le cache di ogni contesto: le corrispondenze dei pointcut AspectJ (un milione di `ShadowMatchImpl`), gli oggetti `Method` della riflessione, i `Lazy` di Spring Data. Le centinaia di thread dei listener RabbitMQ che riprovano a collegarsi sono un effetto dei contesti vivi, non la causa.
+- **Non è una regressione della fase 0.** La stessa prova su `84ae3b8`, con RabbitMQ irraggiungibile come in CI, si è fermata nello stesso punto: heap pieno al 100%, 578 thread, contesto di `AccountResourceIT` non avviato dopo 10 minuti. La suite era già al limite: il 2026-11-06 alle 01:18, prima del commit `e6eff8d`, `AccountResourceIT` aveva impiegato 146 secondi.
+- **Correzione.** `spring.test.context.cache.maxSize=8` in `taurus-be/src/test/resources/spring.properties`. Oltre il limite Spring chiude il contesto usato meno di recente, con i suoi pool e listener; il container PostgreSQL condiviso, registrato senza callback di distruzione, resta acceso. Con il limite ogni contesto parte in 10-13 secondi e `AccountResourceIT` dura 14 secondi. Il [Runbook di test](runbook-test.md) spiega il limite e come riconoscere un heap di nuovo al limite.
+
+#### Passi per chiudere la fase 0
+
+1. Unire la pull request [#118](https://github.com/danielefundaro/Taurus/pull/118), con la CI verde in tutti i job.
+2. Passare alla fase 1: azioni alle nuove versioni maggiori, Trivy, gitleaks e semgrep aggiornati, Dependabot.
+
+#### Note sull'ambiente locale
+
+- Il backend è stato verificato con Java 21.0.2; la CI usa Java 17. Con i servizi di sviluppo avviati, `SPRING_RABBITMQ_PORT=5679` punta i test su una porta chiusa, come in CI dove nessun broker ascolta su `localhost:5672`.
+- Il frontend è stato verificato con Node 22.11.0, come la CI che usa Node 22. pnpm 11.16 non parte su Node 22.11.0 e il corepack di quella versione rifiuta le chiavi di firma di pnpm: per il sito è stato usato Node 24.21.0.
+- Il lockfile del frontend è stato rigenerato così: `npm audit fix`, minimi del `package.json` alzati a mano, poi rimozione dal lock delle sole voci con nome esatto (`@angular/*`, `@angular-devkit/*`, `@ngtools/*`, `@schematics/angular`, `primeng`, `postcss`) e `npm install`. Una rimozione per prefisso toglie anche `postcss-modules-*`, che npm non ripristina: la build passa, ma Karma non trova `postcss-modules-values`. `npm ls --all` deve uscire senza errori.
+- Il `node_modules` del sito era collegato allo store pnpm `D:\Daniele\Zodiac\Taurus\.pnpm-store`, che non esisteva più. Lo store è stato ricreato per l'aggiornamento e poi cancellato: se pnpm segnala uno store inatteso, `pnpm install` ricollega le dipendenze.
+- La coda `upload.files` del RabbitMQ locale è precedente alla dead-letter exchange introdotta il 2026-10-31 con `ad15f670`: all'avvio il backend registra `PRECONDITION_FAILED - inequivalent arg 'x-dead-letter-exchange'`. Non dipende dalla fase 0: cancellata la coda dalla console di RabbitMQ, il backend la dichiara di nuovo.
+- L'enforcer del backend segnala due divergenze di dipendenze, solo come avvisi: amqp-client, 5.21.0 da `spring-rabbit` contro quella dichiarata, già presente con la 5.25.0, e `checker-qual`, 3.55.1 da pgjdbc 42.7.14 contro 3.37.0 da Caffeine, nuova.
+
 ## Modifiche per modulo
 
 ### Repository
 
-- `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA; Node 26 e Java 25 nei job; Trivy con `version` esplicita; gitleaks e semgrep aggiornati.
+- `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA come già dalla fase 0; Node 26 e Java 25 nei job; Trivy con `version` esplicita; gitleaks e semgrep aggiornati.
 - `.github/dependabot.yml`: nuovo (decisione 7).
 - `.trivyignore.yaml`: nuovo nella fase 0, vuoto alla fine della fase 8.
 - `AGENTS.md` e `README.md`: Java 25, Node.js 26, pnpm 12, Angular 22.
@@ -268,6 +365,7 @@ Ogni fase è una pull request separata, di un solo modulo, come chiede `AGENTS.m
 
 - `package.json` e lockfile dopo ogni `ng update`; builder `@angular/build`; `@primeuix/themes`; Tailwind 4 con lo strumento di migrazione ufficiale.
 - Componenti: le modifiche richieste da PrimeNG 20–22, verificate pagina per pagina sulle schermate del [Taurus Layout Standard](taurus-layout-standard.md).
+- `ToggleButtonRoleDirective`, aggiunta nella fase 0: da togliere se PrimeNG 22 dà a ToggleButton il ruolo di pulsante, verificandolo con la suite di accessibilità.
 - `Dockerfile`: `node:26-alpine` e nginx senza root sulla porta 8080.
 - `docs/llms-full.md` rigenerato per PrimeNG 22.
 

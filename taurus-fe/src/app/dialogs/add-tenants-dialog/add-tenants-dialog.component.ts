@@ -11,10 +11,11 @@ import { ToggleButtonModule } from 'primeng/togglebutton';
 import { Tenants } from '../../module';
 import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell.component';
 import { FormFieldComponent } from '../../components/form-field/form-field.component';
+import { ToggleButtonRoleDirective } from '../../directive/toggle-button-role.directive';
 
 @Component({
     selector: 'app-add-tenants-dialog',
-    imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, ToggleButtonModule, DialogShellComponent, FormFieldComponent],
+    imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, ToggleButtonModule, ToggleButtonRoleDirective, DialogShellComponent, FormFieldComponent],
     templateUrl: './add-tenants-dialog.component.html',
     styleUrl: './add-tenants-dialog.component.scss'
 })
