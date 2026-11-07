@@ -38,7 +38,7 @@
             <p-datepicker [(ngModel)]="customSnooze[notice.id]" [showIcon]="true" [showTime]="true" hourFormat="24"
                 dateFormat="dd/mm/yy" appendTo="body" [showOnFocus]="false"
                 [inputStyle]="{ width: '1px', padding: 0, border: 0 }"
-                [attr.aria-label]="'Scegli data e ora per ' + notice.name" (onSelect)="applyCustomSnooze(notice)" />
+                [ariaLabel]="'Scegli data e ora per ' + notice.name" (onSelect)="applyCustomSnooze(notice)" />
             }
             @if (view === 'SNOOZED') {
             <button pButton type="button" icon="pi pi-bell" class="p-button-rounded p-button-text p-button-plain"
