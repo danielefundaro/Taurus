@@ -145,8 +145,8 @@ Inventario del 02/11/2026. «Salto» indica il tipo di aggiornamento: patch e mi
 | actions/checkout | v4 | v7 | |
 | actions/setup-node, setup-java, setup-python | v4, v4, v5 | v7, v6, v7 | |
 | actions/upload-artifact, attest-build-provenance | v4, v1 | v7, v4 | |
-| docker/build-push-action, login, metadata, setup-buildx | v5, v3, v5, v3 | v7, v4, v6, v4 | |
-| sigstore/cosign-installer | v3.5.0 | v4.x | |
+| docker/build-push-action, login, metadata, setup-buildx | v5, v3, v5, v3 | v7, v4, v6, v4 | un riferimento a login era alla v1.9.0, trovato nella fase 1 |
+| sigstore/cosign-installer | v3.5.0 | v4.x | con la v4 si installa cosign 3 |
 | pnpm/action-setup | v4 | v6 | |
 | aquasecurity/trivy-action | v0.36.0, Trivy 0.70.0 | ultima azione, Trivy 0.76.x | la versione di Trivy diventa esplicita |
 | gitleaks | 8.21.2 | 8.30.x | |
@@ -242,8 +242,8 @@ Ogni fase è una pull request separata, di un solo modulo, come chiede `AGENTS.m
 | 0 | Sblocco della CI (decisione 13) | tutti | patch e minor, Dockerfile |
 | 1 | Azioni GitHub alle nuove versioni maggiori, già fissate per SHA dalla fase 0; Trivy, gitleaks e semgrep aggiornati, Dependabot | repository | — |
 | 2 | Servizio OMR: librerie Python | `taurus-omr` | 29 |
-| 3 | Provider e immagine Keycloak 26.8 | `keycloak-authenticator`, compose | — |
-| 4 | Backend: Java 25, Spring Boot 3.5 → 4.0 → 4.1, JHipster 9, librerie e plugin | `taurus-be` | 9 |
+| 3 | Provider e immagine Keycloak 26.8 | `keycloak-authenticator`, compose | 3, emerse nella fase 1 |
+| 4 | Backend: Java 25, Spring Boot 3.5 → 4.0 → 4.1, JHipster 9, librerie e plugin | `taurus-be` | 9, più 75 emerse nella fase 1 |
 | 5 | Frontend: Node 26, Angular e PrimeNG 20 → 21 → 22, Tailwind 4, librerie | `taurus-fe` | 38 |
 | 6 | Sito informativo: Node 26, pnpm 12, Astro 6 → 7 | `taurus-info` | 14 |
 | 7 | Servizi: PostgreSQL 18, RabbitMQ 4.4, nginx senza root, monitoraggio | compose, `deploy/`, Dockerfile | 4 configurazioni |
@@ -260,7 +260,20 @@ Applicata e verificata il 2026-11-06 sul ramo `update-versions`; i commit per mo
 - Dockerfile: restano le immagini nginx e il dev container che girano come root (fase 7).
 - CI: le sette azioni GitHub che usavano un tag (`actions/checkout`, `setup-node`, `setup-java`, `setup-python`, `upload-artifact`, `attest-build-provenance` e `pnpm/action-setup`, 29 riferimenti) sono fissate per SHA del commit a cui portava il loro tag maggiore, con la versione in commento: nessuna versione cambia. Le segnalava semgrep (vedi [Stato dei lavori](#stato-dei-lavori)).
 
-Trivy risolve le dipendenze del `pom.xml` scaricando i POM da Maven Central e non sempre ci riesce: due esecuzioni sullo stesso file possono dare risultati diversi. Il confronto vale sul report completo, quello che elenca anche Spring Boot e il driver PostgreSQL.
+Trivy risolve le dipendenze del `pom.xml` scaricando i POM da Maven Central e non sempre ci riesce: due esecuzioni sullo stesso file possono dare risultati diversi. Il confronto vale sul report completo, quello che elenca anche Spring Boot e il driver PostgreSQL. Nemmeno quel report era completo: vedi [Esito della fase 1](#esito-della-fase-1).
+
+### Esito della fase 1
+
+Applicata e verificata il 2026-11-07 sul ramo `upgrade-phase-1`, che parte da `6cb19fd`.
+
+- **Azioni GitHub.** Ogni azione è all'ultima release della sua versione maggiore più recente, fissata per SHA del commit con la versione in commento: `actions/checkout` 7.0.1, `setup-node` 7.1.0, `setup-java` 6.2.0, `setup-python` 7.1.0, `upload-artifact` 7.0.2, `attest-build-provenance` 4.2.2, `pnpm/action-setup` 6.1.1, `docker/setup-buildx-action` 4.4.1, `login-action` 4.8.0, `metadata-action` 6.2.0, `build-push-action` 7.4.0 e `sigstore/cosign-installer` 4.1.3. `trivy-action` era già all'ultima, la 0.36.0. Gli SHA vengono da `git ls-remote` sui tag, con i tag annotati risolti al loro commit. In `docker-publish.yml` un riferimento a `login-action` era ancora alla 1.9.0, senza commento.
+- **Cambi di comportamento.** Le note di rilascio non chiedono modifiche ai workflow. Le azioni girano su Node 24, che chiede un runner 2.327.1 o successivo, come quelli di GitHub. `setup-node` dalla v5 attiva da sé la cache quando `package.json` dichiara `packageManager`, e dalla v6 solo per npm: i job del frontend e del sito la configurano già, gli altri due non hanno un `package.json`. `checkout` 7 rifiuta il checkout delle pull request da fork negli eventi `pull_request_target`, che nessun workflow usa. `attest-build-provenance` 4 si appoggia ad `actions/attest` e accetta lo stesso `subject-path`.
+- **Firme delle immagini.** `cosign-installer` 4 installa cosign 3, oggi la 3.1.4. `docker-publish.yml` non fissa più `cosign-release: v2.2.4`, così cosign segue l'installer, che Dependabot aggiorna. Il comando di firma, `cosign sign --yes` sull'immagine per digest, non cambia; cosign 3 però salva la firma come referrer OCI 1.1, nel formato bundle nuovo, e chi verifica le immagini deve usare cosign 3. Nessuna procedura del progetto le verifica. `docker-publish.yml` gira solo ai tag `v*.*.*`, e `cie-trust-anchors.yml` una volta al mese o a mano: le loro prime esecuzioni con le azioni nuove saranno il prossimo rilascio e il prossimo aggiornamento delle ancore. Finora li ha controllati solo actionlint.
+- **Strumenti di sicurezza.** Trivy 0.76.2, ora esplicita nell'input `version` di `trivy-action`; gitleaks 8.30.1 e semgrep 1.183.0, fissati per tag e digest. Per semgrep è la versione del tag `latest` su Docker Hub: la 1.184.0 è ancora solo nel canale canary. Il [Runbook di test](runbook-test.md), sezione 8.7, usa le stesse versioni. Dependabot non vede le immagini dentro `run` né l'input `version`: le tre versioni si aggiornano a mano, insieme al runbook.
+- **Maven nel job `security`.** Dalla 0.71 Trivy si ferma con un errore quando Maven Central risponde 429, come è successo nelle prove locali; prima saltava in silenzio le dipendenze che non riusciva a risolvere. Trivy cerca i POM prima nel repository Maven locale, quindi il job installa Java 17 con la cache Maven del job `backend` ed esegue `dependency:resolve` nei due moduli Java prima della scansione.
+- **Vulnerabilità emerse.** Con tutte le dipendenze risolte Trivy trova 75 vulnerabilità nel `pom.xml` del backend, con 72 identificativi, e 3 in quello del provider. Trivy 0.70.0 sullo stesso repository locale trova le stesse: nella fase 0 le dipendenze transitive degli starter di Spring Boot restavano fuori dalla scansione senza errori. Nel backend sono Tomcat 10.1.31 (24), Jackson 2.17.2, Netty 4.1.114, Spring Framework 6.1.14, Spring Security 6.3.4, Spring Boot e Spring Data 3.3.5, Micrometer 1.13.6 e Thymeleaf 3.1.2, corrette da Spring Boot 3.5 e 4 (fase 4); json-smart 2.5.1, che arriva solo nei test con `spring-boot-starter-test`; async-http-client 2.10.4 e jose4j 0.7.0, che arrivano con `nl.martijndwars:web-push` 5.1.1, ultima versione della libreria: la fase 4 deve forzarle a una versione corretta o sostituire la libreria. Nel provider sono Spring Boot 4.0.2 e Spring Framework 7.0.3, da `spring-boot-starter` 4.0.2 del suo `pom.xml` (fase 3). Sono tutte in `.trivyignore.yaml`, una voce per identificativo con la fase che la risolve e scadenza 2027-01-06, come chiede la decisione 13.
+- **gitleaks 8.30.** La regola `generic-api-key` dà 5 falsi positivi in due test del backend: prende per valore la parola dopo un identificatore che contiene «key», come nel record `Issued(PrivateKey key, …)` di `CieSignTestSupport` e nei filtri `"key.contains=" + DEFAULT_KEY` di `PreferencesResourceIT`. I due file sono nell'allowlist di `.gitleaks.toml`.
+- **Dependabot.** `.github/dependabot.yml` ha 13 blocchi: le azioni GitHub; Maven, npm e i Dockerfile dell'immagine e del dev container del backend; Maven del provider; npm e Dockerfile del frontend; npm, che legge anche `pnpm-lock.yaml`, Dockerfile e compose del sito; pip e Dockerfile del servizio OMR; il compose di `deploy/`. Ogni blocco gira il lunedì alle 6 (Europe/Rome) e raggruppa patch e minor in una pull request; ogni maggiore arriva in una pull request a sé. `cooldown` aspetta 7 giorni dalla pubblicazione di una versione: è il minimo della regola `dependabot-missing-cooldown` del set `p/ci` di semgrep, che con 3 giorni dava 13 segnalazioni, una per blocco. Gli aggiornamenti di sicurezza non aspettano. I compose di sviluppo del backend, in `src/main/docker`, hanno nomi che Dependabot non riconosce come compose: le loro immagini restano alla fase 7 e agli aggiornamenti a mano.
 
 ### Stato dei lavori
 
@@ -276,6 +289,17 @@ Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che par
 La verifica visiva ha aggiunto un settimo commit il 2026-11-07, `Align PrimeNG themes with PrimeNG 19.1`: `@primeng/themes` 19.1.4 nel `package.json` e nel lockfile del frontend, allineato a PrimeNG 19.1 (vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend)). La suite end to end ha aggiunto un ottavo commit lo stesso giorno, `Restore the button role of PrimeNG toggle buttons`: `ToggleButtonRoleDirective` nel frontend, con il suo test e una nota nel README della suite (vedi [Suite end to end](#suite-end-to-end)). Sempre il 2026-11-07 il merge `16e5044` ha unito il ramo `fix-a11y-defects`, che parte da `main` e ne porta anche `6c36409`, `Mark track page image editing as implemented`. I suoi tre commit correggono due difetti di accessibilità già presenti, trovati dalla suite end to end: il nome del campo data del rinvio nel widget delle notifiche e il contrasto di `p-message` e `p-toast`, insieme al preset accessibile di `app.config.ts`, che non arrivava a `providePrimeNG`.
 
 Il ramo è pubblicato e la pull request è la [#118](https://github.com/danielefundaro/Taurus/pull/118). Nella prima esecuzione della CI, il 2026-11-07, sono passati tutti i job tranne `security`, compreso il backend con Java 17. Trivy passava; si fermava semgrep, con 29 segnalazioni della regola `github-actions-mutable-action-tag`, che il set `p/ci` ha aggiunto da poco. semgrep scarica le regole a ogni esecuzione, e su `main` non era mai arrivato a girare perché il job si fermava prima, su Trivy. Il commit `Pin GitHub Actions to commit SHAs` fissa le sette azioni allo SHA del commit a cui portava il loro tag maggiore, con la versione in commento, e anticipa così la parte della fase 1 che le fissa per SHA. Per `pnpm/action-setup` il tag `v4` porta alla 4.3.0: la 4.4.0 è lo stesso commit della 5.0.0. Con quel commit la CI della pull request è passata in tutti gli otto job, lo stesso giorno: il backend in 11 minuti con Java 17, il servizio OMR in 5, gli altri in meno di 2.
+
+Dopo il commit `d2f0285`, che registrava la CI verde, il job `frontend` è fallito una volta, su `GuidedTourService invites the members present at the release instead of opening the tour`. Il test dipendeva dall'ordine casuale di Jasmine. La spec di `MediaThumbnailComponent` chiudeva l'anteprima di PrimeNG con `closePreview()` e distruggeva subito il componente: `Image` è `OnPush`, la vista non si aggiornava e la maschera, spostata nel `body`, restava nel documento. Il servizio della guida non si apre con una maschera aperta, quindi falliva il primo test della guida eseguito dopo, se si aspettava la guida aperta. Il commit `bc8a2fe`, `Fix order-dependent guided tour test`, chiude l'anteprima dal pulsante e attende la fine dell'animazione; la spec della guida toglie le maschere anche prima di ogni test. Con quel commit la CI è passata di nuovo in tutti gli otto job. La pull request è stata unita su `main` il 2026-11-07 con il merge `6cb19fd`: la fase 0 è chiusa.
+
+Fase 1 verificata il 2026-11-07 sul ramo `upgrade-phase-1`, che parte da `6cb19fd` (vedi [Esito della fase 1](#esito-della-fase-1)). I commit sono quattro:
+
+- `Update GitHub Actions to their latest releases`: le azioni dei tre workflow;
+- `Update the CI security scanners`: il job `security`, `.gitleaks.toml`, `.trivyignore.yaml` e il Runbook di test;
+- `Add Dependabot configuration`: `.github/dependabot.yml`;
+- `Record phase 1 of the platform upgrade`: questa specifica e il catalogo.
+
+Resta la CI della pull request. Gli aggiornamenti di sicurezza di Dependabot erano già attivi nelle impostazioni del repository: dopo il merge della fase 0 hanno aperto la [#119](https://github.com/danielefundaro/Taurus/pull/119), che porta `http-proxy-middleware` alla 3.0.7 e con lui `@angular-devkit/build-angular` dalla 19.2.27 alla 21.2.29. È un salto di due maggiori, che appartiene alla fase 5, e nel job `frontend` `npm ci` fallisce. Altri tre aggiornamenti di sicurezza, di npm nel backend e nel frontend, non sono arrivati a una pull request.
 
 #### Verifiche eseguite
 
@@ -297,6 +321,19 @@ Il ramo è pubblicato e la pull request è la [#118](https://github.com/danielef
 | Tutti | CI della pull request [#118](https://github.com/danielefundaro/Taurus/pull/118), prima esecuzione | superati tutti i job tranne `security`: 29 segnalazioni di semgrep sulle azioni non fissate per SHA |
 | Repository | semgrep 1.97.0 con `p/ci`, come nel job `security`, sui file versionati con le azioni fissate per SHA | 0 segnalazioni su 1798 file, codice di uscita 0; sui workflow di prima, 29 segnalazioni come in CI |
 | Tutti | CI della pull request [#118](https://github.com/danielefundaro/Taurus/pull/118) sul commit `Pin GitHub Actions to commit SHAs` | otto job su otto superati, fra cui `security` e `backend` con Java 17 |
+| Frontend | `npm run test:coverage` dopo `Fix order-dependent guided tour test`, e la spec della guida con una maschera inserita prima di ogni test | 752 test su 752, copertura sopra la baseline (statements 64,66%, branches 54,48%, lines 66,68%); con la maschera la spec precedente falliva 3 test, quella corretta nessuno |
+| Tutti | CI della pull request [#118](https://github.com/danielefundaro/Taurus/pull/118) sul commit `Fix order-dependent guided tour test` | otto job su otto superati |
+| Tutti | CI di `main` sul merge `6cb19fd` | superata |
+| Repository | actionlint 1.7.12 sui tre workflow della fase 1 | gli stessi 6 avvisi di shellcheck di `main`, nessuno nuovo |
+| Repository | `./mvnw -B -q dependency:resolve` nel backend e nel provider, come nel job `security` | riuscito in entrambi: meno di mezzo minuto ciascuno con il repository Maven locale già pieno, circa 2 minuti ciascuno, 307 MB in tutto, partendo da un repository vuoto |
+| Repository | Trivy 0.76.2 come nella CI, con il solo repository Maven creato da `dependency:resolve` | nessun errore di Maven Central, codice di uscita 0; soppresse 76 voci nel backend e 3 nel provider, cioè tutte: il passo basta anche senza la cache del job `backend` |
+| Repository | Trivy 0.76.2 come nella CI, senza repository Maven locale | errore 429 di Maven Central sul `pom.xml`, codice di uscita 1 |
+| Repository | Trivy 0.76.2 e 0.70.0 con il repository Maven locale e il `.trivyignore.yaml` della fase 0 | 75 vulnerabilità nel `pom.xml` del backend e 3 in quello del provider, le stesse con le due versioni |
+| Repository | Trivy 0.76.2 come nella CI, con il repository Maven locale e le voci della fase 1 | nessuna segnalazione, codice di uscita 0 |
+| Repository | gitleaks 8.30.1 come nella CI, su tutta la storia | nessuna fuga su 612 commit; senza le due voci nuove dell'allowlist, 5 falsi positivi |
+| Repository | semgrep 1.183.0 con `p/ci`, come nel job `security` | 0 segnalazioni con 88 regole su 1785 file, codice di uscita 0; con `cooldown` di 3 giorni, 13 segnalazioni |
+| Repository | `.github/dependabot.yml` contro lo schema di SchemaStore, con `ajv-cli` 5.0.0 | valido |
+| Repository | `validate-feature-catalog.mjs`, `feature-catalog.test.mjs` e `check-feature-drift.mjs` dopo la fase 1 | superati |
 | Sito informativo | `pnpm check`, `pnpm build`, `pnpm test`, `pnpm test:image` | superati |
 | Servizio OMR | `python -m pytest` in `python:3.12-slim` con `requirements-test.txt` | 71 superati, 6 saltati: i test di accuratezza, che chiedono un servizio con i motori reali |
 | Backend | `./mvnw verify -Dtaurus.test.requireDocker=true`, con RabbitMQ irraggiungibile come in CI | superata in 26 minuti: 1225 test unitari e 279 di integrazione; copertura unita 75,59% delle linee e 60,53% dei branch, sopra le soglie |
@@ -331,11 +368,6 @@ Risolto il 2026-11-06.
 - **Non è una regressione della fase 0.** La stessa prova su `84ae3b8`, con RabbitMQ irraggiungibile come in CI, si è fermata nello stesso punto: heap pieno al 100%, 578 thread, contesto di `AccountResourceIT` non avviato dopo 10 minuti. La suite era già al limite: il 2026-11-06 alle 01:18, prima del commit `e6eff8d`, `AccountResourceIT` aveva impiegato 146 secondi.
 - **Correzione.** `spring.test.context.cache.maxSize=8` in `taurus-be/src/test/resources/spring.properties`. Oltre il limite Spring chiude il contesto usato meno di recente, con i suoi pool e listener; il container PostgreSQL condiviso, registrato senza callback di distruzione, resta acceso. Con il limite ogni contesto parte in 10-13 secondi e `AccountResourceIT` dura 14 secondi. Il [Runbook di test](runbook-test.md) spiega il limite e come riconoscere un heap di nuovo al limite.
 
-#### Passi per chiudere la fase 0
-
-1. Unire la pull request [#118](https://github.com/danielefundaro/Taurus/pull/118), con la CI verde in tutti i job.
-2. Passare alla fase 1: azioni alle nuove versioni maggiori, Trivy, gitleaks e semgrep aggiornati, Dependabot.
-
 #### Note sull'ambiente locale
 
 - Il backend è stato verificato con Java 21.0.2; la CI usa Java 17. Con i servizi di sviluppo avviati, `SPRING_RABBITMQ_PORT=5679` punta i test su una porta chiusa, come in CI dove nessun broker ascolta su `localhost:5672`.
@@ -349,8 +381,9 @@ Risolto il 2026-11-06.
 
 ### Repository
 
-- `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA come già dalla fase 0; Node 26 e Java 25 nei job; Trivy con `version` esplicita; gitleaks e semgrep aggiornati.
-- `.github/dependabot.yml`: nuovo (decisione 7).
+- `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA come già dalla fase 0; Trivy con `version` esplicita e le dipendenze Maven risolte prima della scansione; gitleaks e semgrep aggiornati. Fatto nella fase 1. Node 26 e Java 25 nei job arrivano con le fasi 4–6.
+- `.github/dependabot.yml`: nuovo (decisione 7), nella fase 1.
+- `.gitleaks.toml`: due test del backend nell'allowlist, falsi positivi di gitleaks 8.30 (fase 1).
 - `.trivyignore.yaml`: nuovo nella fase 0, vuoto alla fine della fase 8.
 - `AGENTS.md` e `README.md`: Java 25, Node.js 26, pnpm 12, Angular 22.
 
