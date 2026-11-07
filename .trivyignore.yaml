@@ -5,6 +5,7 @@
 #   o la scadenza si rinnova con una nuova motivazione nella pull request;
 # - la fase che risolve una vulnerabilità toglie la sua voce; alla fine della fase 8 il file è vuoto.
 # Creato il 2026-11-06 nella fase 0; voci Maven del backend e del provider aggiunte il 2026-11-07 nella fase 1.
+# Le voci del provider sono tolte il 2026-11-07 nella fase 3, con Spring Boot 4.1.2.
 
 vulnerabilities:
   # Backend: Spring Boot 3.3. La correzione arriva con Spring Boot 3.5.12 e 4.0.4 (fase 4).
@@ -305,21 +306,6 @@ vulnerabilities:
   - id: CVE-2026-41901
     paths: ["taurus-be/pom.xml"]
     statement: "thymeleaf 3.1.2.RELEASE e thymeleaf-spring6 3.1.2.RELEASE: corretto da 3.1.5.RELEASE, fase 4"
-    expired_at: 2027-01-06
-
-  # Provider Keycloak: spring-boot-starter 4.0.2, dichiarato nel pom.xml del provider, visibile dal
-  # 2026-11-07 come le voci del backend. Si corregge aggiornando la dipendenza (fase 3).
-  - id: CVE-2026-41850
-    paths: ["keycloak-authenticator/pom.xml"]
-    statement: "spring-expression 7.0.3: corretto da 6.2.19 e 7.0.8, fase 3"
-    expired_at: 2027-01-06
-  - id: CVE-2026-40973
-    paths: ["keycloak-authenticator/pom.xml"]
-    statement: "spring-boot 4.0.2: corretto da 3.5.14 e 4.0.6, fase 3"
-    expired_at: 2027-01-06
-  - id: CVE-2026-40976
-    paths: ["keycloak-authenticator/pom.xml"]
-    statement: "spring-boot 4.0.2: corretto da 4.0.6, fase 3"
     expired_at: 2027-01-06
 
   # Frontend: Angular 19.2.25, ultima 19. Corrette solo dalla 20.3 (fase 5).

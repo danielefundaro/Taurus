@@ -234,7 +234,7 @@ Nessuna migrazione e nessuna nuova proprietà di configurazione.
 - i due file dei messaggi del login hanno le stesse chiavi;
 - il logo ha lo SHA-256 atteso.
 
-`EmailDeliveryIT` avvia Keycloak 26.6.4 con il JAR del provider e Mailpit, chiede l'e-mail di configurazione dell'account dall'API di amministrazione e la legge da Mailpit: oggetto italiano, mittente «Taurus», parte testo, e logo citato con `url.resourcesUrl` che Keycloak serve con `200` e `image/png`. Se un aggiornamento di Keycloak togliesse l'attributo, il modello non mostrerebbe il logo ma solo la scritta «Taurus», e il test fallirebbe.
+`EmailDeliveryIT` avvia Keycloak 26.8.2 con il JAR del provider e Mailpit, chiede l'e-mail di configurazione dell'account dall'API di amministrazione e la legge da Mailpit: oggetto italiano, mittente «Taurus», parte testo, e logo citato con `url.resourcesUrl` che Keycloak serve con `200` e `image/png`. Se un aggiornamento di Keycloak togliesse l'attributo, il modello non mostrerebbe il logo ma solo la scritta «Taurus», e il test fallirebbe.
 
 ### Verifica manuale
 
