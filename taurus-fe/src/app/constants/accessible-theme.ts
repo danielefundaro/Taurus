@@ -56,3 +56,58 @@ export const ACCESSIBLE_BUTTON = {
         }
     }
 };
+
+/** Le tavolozze con cui Aura e Lara colorano le severità di p-message e p-toast. */
+export const SEVERITY_PALETTES = { info: 'blue', success: 'green', warn: 'yellow', error: 'red' } as const;
+
+export type MessageSeverity = keyof typeof SEVERITY_PALETTES;
+
+/** Le tinte del testo delle severità in modalità chiara e in modalità scura. */
+const LIGHT_SHADES: Record<MessageSeverity, number> = { info: 700, success: 700, warn: 800, error: 700 };
+const DARK_SHADES: Record<MessageSeverity, number> = { info: 400, success: 400, warn: 400, error: 400 };
+
+/** Il token di ogni severità, con il testo alla tinta che `shades` le assegna nella sua tavolozza. */
+function bySeverity<T>(shades: Record<MessageSeverity, number>, token: (color: string) => T): Record<MessageSeverity, T> {
+    const entries = (Object.keys(SEVERITY_PALETTES) as MessageSeverity[]).map((severity) => [severity, token(`{${SEVERITY_PALETTES[severity]}.${shades[severity]}}`)]);
+    return Object.fromEntries(entries) as Record<MessageSeverity, T>;
+}
+
+/**
+ * Scostamenti di p-message. In modalità chiara Aura e Lara scrivono il testo con la tinta 600 della
+ * tavolozza su un fondo alla tinta 50: warn si ferma a 2,84:1, success a 3,16:1 ed error a 4,45:1.
+ * La tinta 700 basta a info, success ed error, che arrivano almeno a 4,58:1. Il giallo è la
+ * tavolozza più chiara: alla tinta 700 le varianti «outlined» e «simple», che scrivono sul fondo
+ * della pagina (surface.100), si fermano a 4,49:1, e warn scende alla tinta 800. In modalità scura il
+ * testo è alla tinta 500 sopra la stessa tinta al 16%: sul fondo delle card (surface.900) info ed
+ * error si fermano a 3,96:1 e 3,99:1, mentre la tinta 400 arriva almeno a 5,43:1 per tutte.
+ * accessible-theme.spec.ts misura questi rapporti sui token del preset installato.
+ */
+export const ACCESSIBLE_MESSAGE = {
+    colorScheme: {
+        light: bySeverity(LIGHT_SHADES, (color) => ({ color, outlined: { color }, simple: { color } })),
+        dark: bySeverity(DARK_SHADES, (color) => ({ color, outlined: { color }, simple: { color } }))
+    }
+};
+
+/** Scostamenti di p-toast, che usa per il titolo le stesse tinte e gli stessi fondi di p-message. */
+export const ACCESSIBLE_TOAST = {
+    colorScheme: {
+        light: bySeverity(LIGHT_SHADES, (color) => ({ color })),
+        dark: bySeverity(DARK_SHADES, (color) => ({ color }))
+    }
+};
+
+export interface AccessibleComponents {
+    button: typeof ACCESSIBLE_BUTTON;
+    message?: typeof ACCESSIBLE_MESSAGE;
+    toast?: typeof ACCESSIBLE_TOAST;
+}
+
+/**
+ * Gli scostamenti dei componenti per il preset scelto. Nora dà a messaggi e toast un fondo pieno con
+ * il testo chiaro, e le tinte scure qui sopra lo renderebbero illeggibile: tiene i propri.
+ */
+export function accessibleComponents(preset: string | undefined): AccessibleComponents {
+    if (preset === 'Nora') return { button: ACCESSIBLE_BUTTON };
+    return { button: ACCESSIBLE_BUTTON, message: ACCESSIBLE_MESSAGE, toast: ACCESSIBLE_TOAST };
+}
