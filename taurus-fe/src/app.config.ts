@@ -10,14 +10,17 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { HttpInterceptorService } from './app/interceptor/http-interceptor.service';
-import { ACCESSIBLE_BUTTON, ACCESSIBLE_LIGHT_SCHEME, PRIMENG_TRANSLATION_IT, publicPage } from './app/constants';
+import { ACCESSIBLE_LIGHT_SCHEME, accessibleComponents, PRIMENG_TRANSLATION_IT, publicPage } from './app/constants';
 import { LoadingService } from './app/service';
 import { environment } from "./environments/environment";
 
-/** Il preset di partenza: Aura con i colori del tema portati sopra la soglia di contrasto. */
+/**
+ * Il preset di partenza: Aura con i colori del tema portati sopra la soglia di contrasto. È il solo
+ * tema delle pagine pubbliche, che non hanno il configuratore, e il primo disegno delle altre.
+ */
 const taurusPreset = definePreset(Aura, {
     semantic: { colorScheme: { light: ACCESSIBLE_LIGHT_SCHEME } },
-    components: { button: ACCESSIBLE_BUTTON }
+    components: accessibleComponents('Aura')
 });
 
 export const appConfig: ApplicationConfig = {
@@ -49,7 +52,7 @@ export const appConfig: ApplicationConfig = {
         providePrimeNG({
             translation: PRIMENG_TRANSLATION_IT,
             theme: {
-                preset: Aura,
+                preset: taurusPreset,
                 options: {
                     darkModeSelector: '.app-dark'
                 }
