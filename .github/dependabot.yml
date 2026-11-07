@@ -76,9 +76,9 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      # Il tag di maven contiene la versione di Java (`3.9.6-eclipse-temurin-17`) e Dependabot la
+      # Il tag di maven contiene la versione di Java (`3.10.0-eclipse-temurin-25`) e Dependabot la
       # legge come parte della versione: proporrebbe sempre la Java più alta, anche non LTS.
-      # L'immagine si aggiorna a mano; la fase 4 la porta a Maven 3.10 con Temurin 25.
+      # L'immagine si aggiorna a mano.
       - dependency-name: maven
       # Solo Java LTS (decisione 3): la 25, poi la 29.
       - dependency-name: eclipse-temurin
