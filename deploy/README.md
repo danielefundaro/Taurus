@@ -91,6 +91,11 @@ Il backup del database e dello storage media va fatto prima, come dice il runboo
 cambia gli argomenti delle code RabbitMQ, il runbook descrive la cancellazione delle code di lavoro
 prima dell'avvio.
 
+Se la release cambia la versione di Keycloak, anche il JAR in `keycloak/providers/` va sostituito
+con quello della stessa release, dopo il backup di `taurus_keycloak`: la versione nuova aggiorna il
+suo database e non si torna indietro senza quel backup. Procedura e ritorno indietro sono nel
+runbook operativo, §8.5.
+
 ## Quello che questo manifest non risolve
 
 - **Validazione su un host reale.** Il manifest non è ancora stato eseguito su un server di

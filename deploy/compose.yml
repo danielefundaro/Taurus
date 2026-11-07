@@ -52,7 +52,7 @@ services:
           memory: ${TAURUS_DB_MEMORY_LIMIT:-2g}
 
   keycloak:
-    image: quay.io/keycloak/keycloak:${TAURUS_KEYCLOAK_VERSION:-26.6.4}
+    image: quay.io/keycloak/keycloak:${TAURUS_KEYCLOAK_VERSION:-26.8.2}
     restart: unless-stopped
     # `start`, non `start-dev`: modalità produzione, con hostname, proxy e database veri. L'import
     # del realm non è nell'avvio normale: è un'operazione deliberata del primo insediamento, che il
