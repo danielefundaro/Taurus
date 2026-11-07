@@ -2,6 +2,7 @@
   "realm": "tenant-role-test",
   "enabled": true,
   "sslRequired": "none",
+  "resetPasswordAllowed": true,
   "loginTheme": "taurus-theme",
   "browserFlow": "tenant-browser",
   "groups": [
@@ -180,9 +181,43 @@
         }
       ],
       "email": "dario@example.test"
+    },
+    {
+      "username": "elena",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Elena",
+      "lastName": "Nuova App",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "elena-test-password"
+        }
+      ],
+      "groups": [
+        "/TENANT-A"
+      ],
+      "attributes": {
+        "TENANT-A_roles": [
+          "ROLE_USER"
+        ]
+      },
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ],
+      "email": "elena@example.test"
     }
   ],
   "requiredActions": [
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 10,
+      "config": {}
+    },
     {
       "alias": "VERIFY_PROFILE",
       "name": "Verify Profile",
