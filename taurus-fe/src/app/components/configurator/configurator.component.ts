@@ -8,7 +8,7 @@ import Lara from '@primeng/themes/lara';
 import Nora from '@primeng/themes/nora';
 import { PrimeNG } from 'primeng/config';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { ACCESSIBLE_BUTTON, ACCESSIBLE_LIGHT_SCHEME } from '../../constants';
+import { ACCESSIBLE_LIGHT_SCHEME, accessibleComponents } from '../../constants';
 import { ToggleButtonRoleDirective } from '../../directive/toggle-button-role.directive';
 import { LayoutService } from '../../service';
 
@@ -249,7 +249,7 @@ export class ConfiguratorComponent {
 
         if (color.name === 'noir') {
             return {
-                components: { button: ACCESSIBLE_BUTTON },
+                components: accessibleComponents(preset),
                 semantic: {
                     primary: {
                         50: '{surface.50}',
@@ -299,7 +299,7 @@ export class ConfiguratorComponent {
             };
         } else if (preset === 'Nora') {
             return {
-                components: { button: ACCESSIBLE_BUTTON },
+                components: accessibleComponents(preset),
                 semantic: {
                     primary: color.palette,
                     colorScheme: {
@@ -332,7 +332,7 @@ export class ConfiguratorComponent {
             };
         } else {
             return {
-                components: { button: ACCESSIBLE_BUTTON },
+                components: accessibleComponents(preset),
                 semantic: {
                     primary: color.palette,
                     colorScheme: {

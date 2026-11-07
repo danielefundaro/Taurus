@@ -130,6 +130,18 @@ describe('NotificationsWidgetComponent', () => {
         expect(fixture.debugElement.query(By.css('button[aria-label^="Ricordamelo tra"]'))).toBeNull();
     });
 
+    it('names the custom snooze field on the input the screen reader reaches', () => {
+        component.notices = page({ id: 1, name: 'Prova', source: 'CALENDAR' });
+        component.view = 'ACTIVE';
+        fixture.detectChanges();
+
+        const input: HTMLInputElement | null = fixture.nativeElement.querySelector('p-datepicker input');
+        expect(input).withContext('the date and time field should be rendered').not.toBeNull();
+        expect(input!.getAttribute('aria-label')).toBe('Scegli data e ora per Prova');
+        // Il nome sull'elemento ospite non arriva al campo, che resterebbe senza etichetta.
+        expect(fixture.nativeElement.querySelector('p-datepicker').hasAttribute('aria-label')).toBeFalse();
+    });
+
     it('hides the snooze actions on a notice that is already read', () => {
         component.notices = page({ id: 1, source: 'CALENDAR', readDate: new Date() });
         component.view = 'ACTIVE';
