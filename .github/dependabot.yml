@@ -8,7 +8,12 @@
 # `cooldown` aspetta sette giorni dalla pubblicazione di una versione prima di proporla: una
 # release ritirata o manomessa, come i tag di trivy-action nel marzo 2026, di solito si scopre in
 # quei giorni. Sette è anche il minimo della regola `dependabot-missing-cooldown` di semgrep, nel
-# set `p/ci` del job `security`. Gli aggiornamenti di sicurezza non aspettano.
+# set `p/ci` del job `security`. Gli aggiornamenti di sicurezza non aspettano. Per le immagini
+# Docker l'attesa conta dall'ultimo push del tag: un tag mobile come `26-alpine`, ripubblicato
+# spesso, può arrivare con qualche settimana di ritardo, mentre un tag fermo passa subito.
+#
+# Le regole `ignore` tengono fuori le versioni che la specifica esclude: decisioni 3, 8 e 9 ed
+# Eccezioni alla versione più recente. Si tolgono insieme alla decisione o all'eccezione.
 version: 2
 
 updates:
@@ -60,6 +65,14 @@ updates:
       timezone: Europe/Rome
     cooldown:
       default-days: 7
+    ignore:
+      # Il tag di maven contiene la versione di Java (`3.9.6-eclipse-temurin-17`) e Dependabot la
+      # legge come parte della versione: proporrebbe sempre la Java più alta, anche non LTS.
+      # L'immagine si aggiorna a mano; la fase 4 la porta a Maven 3.10 con Temurin 25.
+      - dependency-name: maven
+      # Solo Java LTS (decisione 3): la 25, poi la 29.
+      - dependency-name: eclipse-temurin
+        versions: ['>=26, <29']
     groups:
       backend-docker-minor-patch:
         update-types: [minor, patch]
@@ -86,7 +99,16 @@ updates:
       timezone: Europe/Rome
     cooldown:
       default-days: 7
+    ignore:
+      # TypeScript resta alla 6.0: Angular 22 chiede `>=6.0 <6.1` (Eccezioni).
+      - dependency-name: typescript
+        versions: ['>=6.1']
     groups:
+      # Angular, i suoi strumenti, PrimeNG e keycloak-angular cambiano maggiore insieme, con
+      # `ng update`: una pull request per tutti invece di una per pacchetto.
+      frontend-angular-major:
+        patterns: ['@angular/*', '@angular-devkit/*', primeng, '@primeng/*', keycloak-angular]
+        update-types: [major]
       frontend-npm-minor-patch:
         update-types: [minor, patch]
   - package-ecosystem: docker
@@ -98,6 +120,14 @@ updates:
       timezone: Europe/Rome
     cooldown:
       default-days: 7
+    ignore:
+      # Solo Node LTS: la 26 è l'obiettivo delle fasi 5 e 6, la 25 non è LTS.
+      - dependency-name: node
+        versions: ['>=25, <26']
+      # Solo la linea stabile di nginx, con le minor pari (decisione 8). Vale anche per
+      # `nginxinc/nginx-unprivileged`.
+      - dependency-name: 'nginx*'
+        versions: ['>=1.31, <1.32', '>=1.33, <1.34']
     groups:
       frontend-docker-minor-patch:
         update-types: [minor, patch]
@@ -112,6 +142,10 @@ updates:
       timezone: Europe/Rome
     cooldown:
       default-days: 7
+    ignore:
+      # TypeScript resta alla 6.0, l'ultima che `@astrojs/check` supporta: Eccezioni.
+      - dependency-name: typescript
+        versions: ['>=7']
     groups:
       info-site-npm-minor-patch:
         update-types: [minor, patch]
@@ -124,6 +158,12 @@ updates:
       timezone: Europe/Rome
     cooldown:
       default-days: 7
+    ignore:
+      # Come per il frontend: Node solo LTS e nginx solo stabile.
+      - dependency-name: node
+        versions: ['>=25, <26']
+      - dependency-name: 'nginx*'
+        versions: ['>=1.31, <1.32', '>=1.33, <1.34']
     groups:
       info-site-docker-minor-patch:
         update-types: [minor, patch]
@@ -152,6 +192,27 @@ updates:
       timezone: Europe/Rome
     cooldown:
       default-days: 7
+    ignore:
+      # I limiti che homr 0.7.0 dichiara sulle librerie fissate qui (decisione 9 ed Eccezioni).
+      # Dependabot non li ricava da solo: legge i file fissati, non le dipendenze di homr.
+      - dependency-name: pillow
+        versions: ['>=13']
+      - dependency-name: opencv-python-headless
+        versions: ['>=5']
+      - dependency-name: musicxml
+        versions: ['>1.4']
+      - dependency-name: numpy
+        versions: ['>=3']
+      - dependency-name: onnxruntime
+        versions: ['>=2']
+      - dependency-name: rapidocr
+        versions: ['>=4']
+      - dependency-name: requests
+        versions: ['>=3']
+      - dependency-name: typing-extensions
+        versions: ['>=5']
+      - dependency-name: types-pillow
+        versions: ['>=11']
     groups:
       omr-pip-minor-patch:
         update-types: [minor, patch]
@@ -164,6 +225,11 @@ updates:
       timezone: Europe/Rome
     cooldown:
       default-days: 7
+    ignore:
+      # Ubuntu resta alla 24.04 finché Audiveris non pubblica un pacchetto per la 26.04
+      # (decisione 9). Il limite esclude anche le versioni intermedie non LTS, come la 24.10.
+      - dependency-name: ubuntu
+        versions: ['>24.04']
     groups:
       omr-docker-minor-patch:
         update-types: [minor, patch]
