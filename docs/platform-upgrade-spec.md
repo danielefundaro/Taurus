@@ -275,7 +275,7 @@ Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che par
 
 La verifica visiva ha aggiunto un settimo commit il 2026-11-07, `Align PrimeNG themes with PrimeNG 19.1`: `@primeng/themes` 19.1.4 nel `package.json` e nel lockfile del frontend, allineato a PrimeNG 19.1 (vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend)). La suite end to end ha aggiunto un ottavo commit lo stesso giorno, `Restore the button role of PrimeNG toggle buttons`: `ToggleButtonRoleDirective` nel frontend, con il suo test e una nota nel README della suite (vedi [Suite end to end](#suite-end-to-end)). Sempre il 2026-11-07 il merge `16e5044` ha unito il ramo `fix-a11y-defects`, che parte da `main` e ne porta anche `6c36409`, `Mark track page image editing as implemented`. I suoi tre commit correggono due difetti di accessibilità già presenti, trovati dalla suite end to end: il nome del campo data del rinvio nel widget delle notifiche e il contrasto di `p-message` e `p-toast`, insieme al preset accessibile di `app.config.ts`, che non arrivava a `providePrimeNG`.
 
-Il ramo è pubblicato e la pull request è la [#118](https://github.com/danielefundaro/Taurus/pull/118). Nella prima esecuzione della CI, il 2026-11-07, sono passati tutti i job tranne `security`, compreso il backend con Java 17. Trivy passava; si fermava semgrep, con 29 segnalazioni della regola `github-actions-mutable-action-tag`, che il set `p/ci` ha aggiunto da poco. semgrep scarica le regole a ogni esecuzione, e su `main` non era mai arrivato a girare perché il job si fermava prima, su Trivy. Il commit `Pin GitHub Actions to commit SHAs` fissa le sette azioni allo SHA del commit a cui portava il loro tag maggiore, con la versione in commento, e anticipa così la parte della fase 1 che le fissa per SHA. Per `pnpm/action-setup` il tag `v4` porta alla 4.3.0: la 4.4.0 è lo stesso commit della 5.0.0.
+Il ramo è pubblicato e la pull request è la [#118](https://github.com/danielefundaro/Taurus/pull/118). Nella prima esecuzione della CI, il 2026-11-07, sono passati tutti i job tranne `security`, compreso il backend con Java 17. Trivy passava; si fermava semgrep, con 29 segnalazioni della regola `github-actions-mutable-action-tag`, che il set `p/ci` ha aggiunto da poco. semgrep scarica le regole a ogni esecuzione, e su `main` non era mai arrivato a girare perché il job si fermava prima, su Trivy. Il commit `Pin GitHub Actions to commit SHAs` fissa le sette azioni allo SHA del commit a cui portava il loro tag maggiore, con la versione in commento, e anticipa così la parte della fase 1 che le fissa per SHA. Per `pnpm/action-setup` il tag `v4` porta alla 4.3.0: la 4.4.0 è lo stesso commit della 5.0.0. Con quel commit la CI della pull request è passata in tutti gli otto job, lo stesso giorno: il backend in 11 minuti con Java 17, il servizio OMR in 5, gli altri in meno di 2.
 
 #### Verifiche eseguite
 
@@ -296,6 +296,7 @@ Il ramo è pubblicato e la pull request è la [#118](https://github.com/danielef
 | Repository | `validate-feature-catalog.mjs` e `check-feature-drift.mjs` dopo il merge | superati |
 | Tutti | CI della pull request [#118](https://github.com/danielefundaro/Taurus/pull/118), prima esecuzione | superati tutti i job tranne `security`: 29 segnalazioni di semgrep sulle azioni non fissate per SHA |
 | Repository | semgrep 1.97.0 con `p/ci`, come nel job `security`, sui file versionati con le azioni fissate per SHA | 0 segnalazioni su 1798 file, codice di uscita 0; sui workflow di prima, 29 segnalazioni come in CI |
+| Tutti | CI della pull request [#118](https://github.com/danielefundaro/Taurus/pull/118) sul commit `Pin GitHub Actions to commit SHAs` | otto job su otto superati, fra cui `security` e `backend` con Java 17 |
 | Sito informativo | `pnpm check`, `pnpm build`, `pnpm test`, `pnpm test:image` | superati |
 | Servizio OMR | `python -m pytest` in `python:3.12-slim` con `requirements-test.txt` | 71 superati, 6 saltati: i test di accuratezza, che chiedono un servizio con i motori reali |
 | Backend | `./mvnw verify -Dtaurus.test.requireDocker=true`, con RabbitMQ irraggiungibile come in CI | superata in 26 minuti: 1225 test unitari e 279 di integrazione; copertura unita 75,59% delle linee e 60,53% dei branch, sopra le soglie |
@@ -332,8 +333,8 @@ Risolto il 2026-11-06.
 
 #### Passi per chiudere la fase 0
 
-1. Far passare la CI della pull request [#118](https://github.com/danielefundaro/Taurus/pull/118): gli altri job sono passati, backend compreso con Java 17, e resta il job `security` dopo il commit che fissa le azioni per SHA.
-2. Aggiornare questa sezione e la nota della voce in `docs/features.json`, poi passare alla fase 1.
+1. Unire la pull request [#118](https://github.com/danielefundaro/Taurus/pull/118), con la CI verde in tutti i job.
+2. Passare alla fase 1: azioni alle nuove versioni maggiori, Trivy, gitleaks e semgrep aggiornati, Dependabot.
 
 #### Note sull'ambiente locale
 
