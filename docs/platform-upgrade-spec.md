@@ -240,7 +240,7 @@ Ogni fase è una pull request separata, di un solo modulo, come chiede `AGENTS.m
 | Fase | Contenuto | Moduli | Vulnerabilità risolte |
 | --- | --- | --- | --- |
 | 0 | Sblocco della CI (decisione 13) | tutti | patch e minor, Dockerfile |
-| 1 | Azioni GitHub fissate per SHA, Trivy, gitleaks e semgrep aggiornati, Dependabot | repository | — |
+| 1 | Azioni GitHub alle nuove versioni maggiori, già fissate per SHA dalla fase 0; Trivy, gitleaks e semgrep aggiornati, Dependabot | repository | — |
 | 2 | Servizio OMR: librerie Python | `taurus-omr` | 29 |
 | 3 | Provider e immagine Keycloak 26.8 | `keycloak-authenticator`, compose | — |
 | 4 | Backend: Java 25, Spring Boot 3.5 → 4.0 → 4.1, JHipster 9, librerie e plugin | `taurus-be` | 9 |
@@ -258,6 +258,7 @@ Applicata e verificata il 2026-11-06 sul ramo `update-versions`; i commit per mo
 - Sito informativo: devalue, js-yaml, source-map-js, svgo e vite alle versioni corrette. Restano Astro e sharp 0.34, l'ultima linea che Astro 5 accetta (fase 6).
 - Servizio OMR: certifi 2026.10.23. Pillow resta alla 12.3.0 per il vincolo di homr (vedi [Eccezioni](#eccezioni-alla-versione-più-recente)).
 - Dockerfile: restano le immagini nginx e il dev container che girano come root (fase 7).
+- CI: le sette azioni GitHub che usavano un tag (`actions/checkout`, `setup-node`, `setup-java`, `setup-python`, `upload-artifact`, `attest-build-provenance` e `pnpm/action-setup`, 29 riferimenti) sono fissate per SHA del commit a cui portava il loro tag maggiore, con la versione in commento: nessuna versione cambia. Le segnalava semgrep (vedi [Stato dei lavori](#stato-dei-lavori)).
 
 Trivy risolve le dipendenze del `pom.xml` scaricando i POM da Maven Central e non sempre ci riesce: due esecuzioni sullo stesso file possono dare risultati diversi. Il confronto vale sul report completo, quello che elenca anche Spring Boot e il driver PostgreSQL.
 
@@ -272,7 +273,9 @@ Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che par
 - `Update certifi in the OMR service`: i requisiti del servizio OMR;
 - `Add expiring Trivy exceptions for the platform upgrade`: `.trivyignore.yaml`, il job `security` e la documentazione.
 
-La verifica visiva ha aggiunto un settimo commit il 2026-11-07, `Align PrimeNG themes with PrimeNG 19.1`: `@primeng/themes` 19.1.4 nel `package.json` e nel lockfile del frontend, allineato a PrimeNG 19.1 (vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend)). La suite end to end ha aggiunto un ottavo commit lo stesso giorno, `Restore the button role of PrimeNG toggle buttons`: `ToggleButtonRoleDirective` nel frontend, con il suo test e una nota nel README della suite (vedi [Suite end to end](#suite-end-to-end)). Sempre il 2026-11-07 il merge `16e5044` ha unito il ramo `fix-a11y-defects`, che parte da `main` e ne porta anche `6c36409`, `Mark track page image editing as implemented`. I suoi tre commit correggono due difetti di accessibilità già presenti, trovati dalla suite end to end: il nome del campo data del rinvio nel widget delle notifiche e il contrasto di `p-message` e `p-toast`, insieme al preset accessibile di `app.config.ts`, che non arrivava a `providePrimeNG`. Il ramo non è ancora pubblicato.
+La verifica visiva ha aggiunto un settimo commit il 2026-11-07, `Align PrimeNG themes with PrimeNG 19.1`: `@primeng/themes` 19.1.4 nel `package.json` e nel lockfile del frontend, allineato a PrimeNG 19.1 (vedi [Verifica visiva del frontend](#verifica-visiva-del-frontend)). La suite end to end ha aggiunto un ottavo commit lo stesso giorno, `Restore the button role of PrimeNG toggle buttons`: `ToggleButtonRoleDirective` nel frontend, con il suo test e una nota nel README della suite (vedi [Suite end to end](#suite-end-to-end)). Sempre il 2026-11-07 il merge `16e5044` ha unito il ramo `fix-a11y-defects`, che parte da `main` e ne porta anche `6c36409`, `Mark track page image editing as implemented`. I suoi tre commit correggono due difetti di accessibilità già presenti, trovati dalla suite end to end: il nome del campo data del rinvio nel widget delle notifiche e il contrasto di `p-message` e `p-toast`, insieme al preset accessibile di `app.config.ts`, che non arrivava a `providePrimeNG`.
+
+Il ramo è pubblicato e la pull request è la [#118](https://github.com/danielefundaro/Taurus/pull/118). Nella prima esecuzione della CI, il 2026-11-07, sono passati tutti i job tranne `security`, compreso il backend con Java 17. Trivy passava; si fermava semgrep, con 29 segnalazioni della regola `github-actions-mutable-action-tag`, che il set `p/ci` ha aggiunto da poco. semgrep scarica le regole a ogni esecuzione, e su `main` non era mai arrivato a girare perché il job si fermava prima, su Trivy. Il commit `Pin GitHub Actions to commit SHAs` fissa le sette azioni allo SHA del commit a cui portava il loro tag maggiore, con la versione in commento, e anticipa così la parte della fase 1 che le fissa per SHA. Per `pnpm/action-setup` il tag `v4` porta alla 4.3.0: la 4.4.0 è lo stesso commit della 5.0.0.
 
 #### Verifiche eseguite
 
@@ -291,6 +294,8 @@ La verifica visiva ha aggiunto un settimo commit il 2026-11-07, `Align PrimeNG t
 | Frontend | login in Google Chrome 156 con il service worker attivo | riuscito: vedi [Suite end to end](#suite-end-to-end) |
 | Frontend | `npm run build` e `npm run test:coverage` dopo il merge di `fix-a11y-defects` | build riuscita con gli stessi due avvisi di budget; 752 test su 752, copertura sopra la baseline (statements 64,59%, branches 54,37%, lines 66,64%); le misure di contrasto di `accessible-theme.spec.ts` passano sui token di `@primeng/themes` 19.1.4 |
 | Repository | `validate-feature-catalog.mjs` e `check-feature-drift.mjs` dopo il merge | superati |
+| Tutti | CI della pull request [#118](https://github.com/danielefundaro/Taurus/pull/118), prima esecuzione | superati tutti i job tranne `security`: 29 segnalazioni di semgrep sulle azioni non fissate per SHA |
+| Repository | semgrep 1.97.0 con `p/ci`, come nel job `security`, sui file versionati con le azioni fissate per SHA | 0 segnalazioni su 1798 file, codice di uscita 0; sui workflow di prima, 29 segnalazioni come in CI |
 | Sito informativo | `pnpm check`, `pnpm build`, `pnpm test`, `pnpm test:image` | superati |
 | Servizio OMR | `python -m pytest` in `python:3.12-slim` con `requirements-test.txt` | 71 superati, 6 saltati: i test di accuratezza, che chiedono un servizio con i motori reali |
 | Backend | `./mvnw verify -Dtaurus.test.requireDocker=true`, con RabbitMQ irraggiungibile come in CI | superata in 26 minuti: 1225 test unitari e 279 di integrazione; copertura unita 75,59% delle linee e 60,53% dei branch, sopra le soglie |
@@ -327,7 +332,7 @@ Risolto il 2026-11-06.
 
 #### Passi per chiudere la fase 0
 
-1. Pubblicare il ramo e aprire la pull request: la CI verifica i moduli con Java 17, mentre in locale il backend è stato provato con Java 21.
+1. Far passare la CI della pull request [#118](https://github.com/danielefundaro/Taurus/pull/118): gli altri job sono passati, backend compreso con Java 17, e resta il job `security` dopo il commit che fissa le azioni per SHA.
 2. Aggiornare questa sezione e la nota della voce in `docs/features.json`, poi passare alla fase 1.
 
 #### Note sull'ambiente locale
@@ -343,7 +348,7 @@ Risolto il 2026-11-06.
 
 ### Repository
 
-- `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA; Node 26 e Java 25 nei job; Trivy con `version` esplicita; gitleaks e semgrep aggiornati.
+- `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA come già dalla fase 0; Node 26 e Java 25 nei job; Trivy con `version` esplicita; gitleaks e semgrep aggiornati.
 - `.github/dependabot.yml`: nuovo (decisione 7).
 - `.trivyignore.yaml`: nuovo nella fase 0, vuoto alla fine della fase 8.
 - `AGENTS.md` e `README.md`: Java 25, Node.js 26, pnpm 12, Angular 22.
