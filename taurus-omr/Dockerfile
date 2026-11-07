@@ -1,7 +1,7 @@
 # Taurus OMR service: Audiveris, homr and the RapidOCR text reading, unmodified, behind an internal HTTP API.
 # Every downloaded component is pinned and verified with SHA-256; the models are part of the image, so the service
 # never reaches the Internet while running.
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 ARG AUDIVERIS_VERSION=5.11.0
 ARG AUDIVERIS_SHA256=f20113aaa33b3149ec8d6a09b2a7963360e65fafd92d69389987a85bbc3ec7a3
