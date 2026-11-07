@@ -12,8 +12,10 @@
 # Docker l'attesa conta dall'ultimo push del tag: un tag mobile come `26-alpine`, ripubblicato
 # spesso, può arrivare con qualche settimana di ritardo, mentre un tag fermo passa subito.
 #
-# Le regole `ignore` tengono fuori le versioni che la specifica esclude: decisioni 3, 8 e 9 ed
-# Eccezioni alla versione più recente. Si tolgono insieme alla decisione o all'eccezione.
+# Le regole `ignore` tengono fuori le versioni che la specifica esclude (decisioni 2, 3, 8 e 9 ed
+# Eccezioni alla versione più recente) e quelle che funzionano solo con la maggiore successiva del
+# loro framework, con cui si aggiornano. Una regola legata a una decisione o a un'eccezione si toglie
+# con lei.
 version: 2
 
 updates:
@@ -41,6 +43,14 @@ updates:
       timezone: Europe/Rome
     cooldown:
       default-days: 7
+    ignore:
+      # Le maggiori di Spring Boot si fanno a mano, una per volta (decisione 2): prima la 3.5, poi la
+      # 4.0 e la 4.1. springdoc-openapi segue la maggiore di Spring Boot: la 3 è la linea per Spring
+      # Boot 4.
+      - dependency-name: 'org.springframework.boot:*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'org.springdoc:*'
+        update-types: ['version-update:semver-major']
     groups:
       backend-maven-minor-patch:
         update-types: [minor, patch]
@@ -100,15 +110,30 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      # TypeScript resta alla 6.0: Angular 22 chiede `>=6.0 <6.1` (Eccezioni).
+      # Le maggiori di Angular, PrimeNG e keycloak-angular si fanno a mano con `ng update`, una per
+      # volta (decisione 2): Dependabot salterebbe dalla 19 alla 22 e perderebbe le migrazioni
+      # automatiche intermedie. Minor e patch restano nel gruppo.
+      - dependency-name: '@angular/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@angular-devkit/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: primeng
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@primeng/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: keycloak-angular
+        update-types: ['version-update:semver-major']
+      # Seguono Angular e PrimeNG e si aggiornano con loro: TypeScript (Angular 19 chiede `>=5.5 <5.9`,
+      # Angular 22 `>=6.0 <6.1`, come nelle Eccezioni), zone.js (Angular 19 chiede `~0.15.0`) e
+      # tailwindcss-primeui (la 0.6 va con Tailwind 4 e i temi nuovi della fase 5). TypeScript non
+      # segue semver e nelle versioni 0.x la minor è una maggiore: restano solo le patch.
       - dependency-name: typescript
-        versions: ['>=6.1']
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: zone.js
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: tailwindcss-primeui
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
     groups:
-      # Angular, i suoi strumenti, PrimeNG e keycloak-angular cambiano maggiore insieme, con
-      # `ng update`: una pull request per tutti invece di una per pacchetto.
-      frontend-angular-major:
-        patterns: ['@angular/*', '@angular-devkit/*', primeng, '@primeng/*', keycloak-angular]
-        update-types: [major]
       frontend-npm-minor-patch:
         update-types: [minor, patch]
   - package-ecosystem: docker
@@ -121,9 +146,11 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      # Solo Node LTS: la 26 è l'obiettivo delle fasi 5 e 6, la 25 non è LTS.
+      # Solo Node LTS, cioè le maggiori pari: la 26 è l'obiettivo delle fasi 5 e 6. Le dispari non
+      # diventano mai LTS e la 24 è più vecchia dell'obiettivo. Escluderle serve anche per `cooldown`:
+      # i tag delle LTS si ripubblicano spesso e restano in attesa, quelli delle dispari finite no.
       - dependency-name: node
-        versions: ['>=25, <26']
+        versions: ['>=23, <26', '>=27, <28']
       # Solo la linea stabile di nginx, con le minor pari (decisione 8). Vale anche per
       # `nginxinc/nginx-unprivileged`.
       - dependency-name: 'nginx*'
@@ -143,6 +170,12 @@ updates:
     cooldown:
       default-days: 7
     ignore:
+      # Le maggiori di Astro e delle sue integrazioni si fanno a mano, una per volta (decisione 2):
+      # prima la 6, poi la 7.
+      - dependency-name: astro
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@astrojs/*'
+        update-types: ['version-update:semver-major']
       # TypeScript resta alla 6.0, l'ultima che `@astrojs/check` supporta: Eccezioni.
       - dependency-name: typescript
         versions: ['>=7']
@@ -161,7 +194,7 @@ updates:
     ignore:
       # Come per il frontend: Node solo LTS e nginx solo stabile.
       - dependency-name: node
-        versions: ['>=25, <26']
+        versions: ['>=23, <26', '>=27, <28']
       - dependency-name: 'nginx*'
         versions: ['>=1.31, <1.32', '>=1.33, <1.34']
     groups:
