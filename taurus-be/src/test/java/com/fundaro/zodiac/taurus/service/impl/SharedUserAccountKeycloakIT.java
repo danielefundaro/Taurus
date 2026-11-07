@@ -67,7 +67,7 @@ class SharedUserAccountKeycloakIT {
     @BeforeAll
     static void startKeycloak() throws Exception {
         DockerRequirement.required();
-        keycloak = new GenericContainer<>("quay.io/keycloak/keycloak:26.6.4")
+        keycloak = new GenericContainer<>("quay.io/keycloak/keycloak:26.8.2")
             .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", ADMIN)
             .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", PASSWORD)
             .withCommand("start-dev")
