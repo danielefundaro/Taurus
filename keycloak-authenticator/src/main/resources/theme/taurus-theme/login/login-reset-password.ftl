@@ -44,7 +44,7 @@ section>
 
       <div class="taurus-back-row">
         <a href="${url.loginUrl}" class="taurus-back-link">
-          ← ${kcSanitize(msg("backToLogin"))?no_esc}
+          ${kcSanitize(msg("backToLogin"))?no_esc}
         </a>
       </div>
     </form>

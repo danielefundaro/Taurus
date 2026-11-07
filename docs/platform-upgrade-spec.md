@@ -231,7 +231,7 @@ Le voci di `.trivyignore.yaml` vengono tolte dalla fase che risolve la vulnerabi
 | Pillow del servizio OMR | 12.3.0 | 13.0.0 | homr 0.7.0, ultima versione, richiede `Pillow<13`; le 28 CVE corrette solo dalla 13 restano in `.trivyignore.yaml` finché homr non accetta la 13 |
 | opencv-python-headless del servizio OMR | 4.14.0.94 | 5.0.0.93 | homr 0.7.0 richiede `<5`: decisione 9 |
 | musicxml del servizio OMR | 1.4 | 1.6.3 | homr 0.7.0 richiede `==1.4`: decisione 9 |
-| Java del provider Keycloak | quella dell'immagine Keycloak | 25 | il provider gira nella JVM di Keycloak |
+| Java del provider Keycloak | 21, quella dell'immagine di Keycloak 26.8.2 | 25 | il provider gira nella JVM di Keycloak |
 | Prometheus | 3.13 LTS | 3.15 | la 3.15 esce dal supporto il 06/11/2026; la LTS è supportata fino a luglio 2027 |
 | Karma | 6.4 | — | deprecato senza successore diretto: decisione 6 |
 
@@ -291,6 +291,18 @@ Applicata e verificata il 2026-11-07 sul ramo `upgrade-phase-2`, che parte da `9
 - **Limiti di homr.** Pillow resta alla 12.3.0, opencv-python-headless alla 4.14.0.94 e musicxml alla 1.4, tutte elencate in [Eccezioni](#eccezioni-alla-versione-più-recente). Delle 29 vulnerabilità del servizio, certifi è stata corretta nella fase 0, mentre le 28 di Pillow restano in `.trivyignore.yaml` finché homr non accetta Pillow 13: la fase 2 non ne risolve altre. music21 non è una dipendenza di homr, quindi sale alla 10. La conversione MIDI e i suoi test non cambiano, e `/v1/health` riporta music21 10.5.2.
 - **Accuratezza.** Sull'immagine nuova, con le restrizioni di `omr.yml`, i test di accuratezza danno gli stessi risultati di prima: 132 battute su 151 corrette con Audiveris (87%) e 124 con homr (82%), segni di struttura 15 e 6 su 26, nomi delle parti 6 su 6.
 
+### Esito della fase 3
+
+Applicata e verificata il 2026-11-07 sul ramo `upgrade-phase-3`, che parte da `bb1c2f4`.
+
+- **Versioni.** Keycloak 26.8.2 nelle SPI del provider, nei compose di sviluppo e di produzione, in `deploy/.env.example` e nei Testcontainers dei tre IT del provider e dei due IT del backend che usano Keycloak. È uscita il 2026-11-05, quindi da meno di sette giorni, ma è un rilascio di sicurezza, che per la decisione 7 non aspetta: corregge, fra le altre, una XSS memorizzata nella pagina di accesso e un furto di account. Nel provider salgono anche il parent Spring Boot alla 4.1.2, FreeMarker alla 2.3.35, la versione che Keycloak 26.8.2 porta a runtime e che `EmailTemplatesTest` usa per rendere i modelli, il wrapper Maven alla 3.10.0 e i plugin compiler 3.16.0, jar 3.5.1 e resources 3.5.0. Sono le versioni della [#129](https://github.com/danielefundaro/Taurus/pull/129) di Dependabot, che proponeva Keycloak 26.8.1.
+- **Java.** L'immagine di Keycloak 26.8.2 gira su OpenJDK 21.0.13: il provider si compila con `release` 21 al posto di `source` e `target` 17, come chiede la decisione 3, e le classi del JAR sono nella versione 65. Serve un JDK 21, quindi i job `keycloak` di `verify.yml` e `publish-provider` di `docker-publish.yml` installano Java 21; `backend` e `security` restano su Java 17, che basta a `dependency:resolve`. Il compilatore di Maven non ricompila quando cambia solo `release`: dopo l'aggiornamento serve `clean verify`, come già indica il [Runbook di test](runbook-test.md).
+- **Vulnerabilità.** Spring Boot 4.1.2 corregge le tre vulnerabilità del provider emerse nella fase 1, CVE-2026-41850 di spring-expression 7.0.3 e CVE-2026-40973 e CVE-2026-40976 di spring-boot 4.0.2: le loro voci escono da `.trivyignore.yaml`. Le voci con gli stessi identificativi per il backend restano alla fase 4.
+- **Tema.** I modelli `keycloak.v2` e `base` di 26.6.4 e 26.8.2, estratti dalle immagini, cambiano poco per il tema Taurus. La macro `registrationLayout` ha gli stessi parametri e le stesse sezioni del nostro `template.ftl`. Nei modelli che il tema sostituisce cambia solo la macro `buttons`, che i nostri non usano. `login-update-profile.ftl` e `login-verify-email.ftl` sono nuovi in `keycloak.v2`, prima arrivavano da `base`, e funzionano con il nostro layout. Fra i messaggi italiani c'è una chiave nuova; i modelli delle e-mail che Taurus usa sono identici. La versione nuova non chiede modifiche al tema; quelle della fase correggono difetti già presenti.
+- **Prova a mano.** Su un Keycloak 26.8.2 usa e getta, con il JAR della build, il realm di Taurus e Mailpit, nel browser integrato: accesso con nome utente e con e-mail; scelta di tenant e ruolo con due tenant e due ruoli, scelta automatica con un tenant e un ruolo; configurazione dell'app di autenticazione e accesso con il codice, con l'errore su un codice sbagliato; recupero della password dall'e-mail fino alla password nuova, con l'errore su due password diverse; invito con l'e-mail di configurazione dell'account e scelta della password; pagine di aggiornamento del profilo e di verifica dell'e-mail; prova SMTP. Le e-mail hanno oggetto italiano, mittente «Taurus», logo e colori dello [standard delle e-mail](email-layout-standard.md). La registrazione, spenta nel realm, è stata accesa solo nel realm di prova per vedere la pagina. Nel log di Keycloak nessun errore dei modelli; gli avvisi `KC-SERVICES0047` sulle SPI interne compaiono anche nel Keycloak 26.6.4 di sviluppo.
+- **Difetti già presenti, corretti.** La prova a mano li ha trovati, ma i modelli e i messaggi coinvolti sono identici in 26.6.4: non sono regressioni. Nella configurazione dell'app di autenticazione i nomi delle app comparivano come chiavi, `totpAppGoogleName` e le altre, perché `login-config-totp.ftl` stampava `${app}` dove il tema base usa `${msg(app)}`. Nella stessa pagina «Non riesci a scansionare il codice QR?» compariva due volte, come testo e come link, e senza script il link riapriva la pagina del codice QR. Ora compare una volta e porta a `totp.manualUrl`: la stessa pagina in modo manuale, con il codice da inserire già in vista e il modo conservato nel form. Nel recupero della password il ritorno all'accesso si leggeva «← « Torna al Login», perché il tema aggiungeva una freccia al messaggio, che ha già «: la freccia del tema è tolta. Le pagine che vengono da `base` e `keycloak.v2`, cioè conferma dell'uscita, informazione, errore, pagina scaduta, aggiornamento del profilo, verifica dell'e-mail e registrazione, usano classi di PatternFly 5 che `login.css` non definiva: campi e pulsanti avevano lo stile predefinito del browser e il titolo era testo semplice. Ora `login.css` dà a titolo, testi, campi, messaggi di errore e pulsanti di quelle pagine la forma delle pagine Taurus, senza caricare PatternFly; il pulsante per mostrare la password delle pagine `keycloak.v2`, che dipende da uno script che il tema non carica, è nascosto. Nei messaggi italiani del tema tornano gli accenti di «È necessario» e «non è valido». Due contrasti, visti nella stessa prova, restavano sotto il 4,5:1 di WCAG 2.1 AA: il testo degli avvisi gialli, 3,1:1 sul loro fondo, e il rosso dei messaggi di errore e degli asterischi, 3,8:1 sul bianco. Passano a 4,8:1 entrambi, e il testo degli avvisi di errore da 4,4:1 a 5,9:1. Resta com'è il recupero della password che toglie anche l'app di autenticazione, da configurare di nuovo al primo accesso: il flow di reimpostazione del realm ha `reset-otp` senza configurazione, come quello predefinito di Keycloak.
+- **Runbook.** Il [Runbook operativo](runbook-operativo.md) descrive l'aggiornamento di Keycloak e il ritorno indietro (§8.5): la versione nuova aggiorna lo schema di `taurus_keycloak` all'avvio e non si torna indietro senza il backup preso prima. Il [README del deploy](../deploy/README.md) ci rimanda. Anche il Keycloak di sviluppo aggiorna il proprio database al primo avvio con `keycloak.yml`, quindi il JAR in `realm-config` va ricompilato e copiato insieme.
+
 ### Stato dei lavori
 
 Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che parte da `84ae3b8`. I commit sono sei, uno per modulo e due per il backend:
@@ -324,7 +336,18 @@ Fase 2 verificata il 2026-11-07 sul ramo `upgrade-phase-2`, che parte da `9db617
 - `Update the OMR service libraries`: requisiti, `pyproject.toml`, Dockerfile e `THIRD_PARTY_NOTICES.md` del servizio OMR;
 - `Record phase 2 of the platform upgrade`: questa specifica e il catalogo.
 
-Con il merge, Dependabot dovrebbe chiudere da solo [#140](https://github.com/danielefundaro/Taurus/pull/140), [#142](https://github.com/danielefundaro/Taurus/pull/142), [#144](https://github.com/danielefundaro/Taurus/pull/144) e [#150](https://github.com/danielefundaro/Taurus/pull/150), che la fase contiene.
+La pull request è la [#158](https://github.com/danielefundaro/Taurus/pull/158), unita su `main` il 2026-11-07 con il merge `bb1c2f4`: la CI di `main` è passata in tutti i job. Subito dopo Dependabot ha chiuso da solo [#140](https://github.com/danielefundaro/Taurus/pull/140), [#142](https://github.com/danielefundaro/Taurus/pull/142), [#144](https://github.com/danielefundaro/Taurus/pull/144) e [#150](https://github.com/danielefundaro/Taurus/pull/150), che la fase conteneva. Uno dei cinque job di Dependabot sul merge è fallito, e il suo log richiede l'accesso al repository. La fase 2 è chiusa.
+
+Fase 3 verificata il 2026-11-07 sul ramo `upgrade-phase-3`, che parte da `bb1c2f4` (vedi [Esito della fase 3](#esito-della-fase-3)). I commit sono sei:
+
+- `Update the Keycloak provider to Keycloak 26.8.2`: `pom.xml`, wrapper Maven, IT e README del provider;
+- `Fix the Taurus theme on Keycloak pages`: modelli, messaggi italiani e `login.css` del tema, con le prove nuove di `TenantRoleFlowIT` e il suo realm (vedi [Esito della fase 3](#esito-della-fase-3));
+- `Build the Keycloak provider with Java 21 in CI`: i job `keycloak` e `publish-provider` dei workflow;
+- `Use Keycloak 26.8.2 in the backend development services`: `keycloak.yml` e i due IT del backend su Keycloak;
+- `Use Keycloak 26.8.2 in the deployment manifest`: `compose.yml`, `.env.example` e README del deploy;
+- `Record phase 3 of the platform upgrade`: `.trivyignore.yaml`, `AGENTS.md`, `README.md`, i runbook, lo standard delle e-mail, questa specifica e il catalogo.
+
+Con il merge, Dependabot dovrebbe chiudere da solo la [#129](https://github.com/danielefundaro/Taurus/pull/129), che la fase contiene con Keycloak 26.8.2 al posto della 26.8.1.
 
 #### Verifiche eseguite
 
@@ -385,6 +408,17 @@ Con il merge, Dependabot dovrebbe chiudere da solo [#140](https://github.com/dan
 | Servizio OMR | `python -m pytest` in `python:3.12-slim` con `requirements-test.txt` | 71 superati, 6 saltati: i test di accuratezza, che chiedono un servizio con i motori reali |
 | Backend | `./mvnw verify -Dtaurus.test.requireDocker=true`, con RabbitMQ irraggiungibile come in CI | superata in 26 minuti: 1225 test unitari e 279 di integrazione; copertura unita 75,59% delle linee e 60,53% dei branch, sopra le soglie |
 | Servizio OMR | `docker build` e `tests/test_accuracy.py` sull'immagine costruita, come il job `omr` della CI | immagine costruita con certifi 2026.10.23; 6 test su 6 in 3 minuti: battute lette 87% con Audiveris e 82% con homr, nomi delle parti 6 su 6 |
+| Tutti | CI di `main` sul merge `bb1c2f4` della fase 2 e quarta esecuzione di Dependabot | tutti i job superati; chiuse da sole #140, #142, #144 e #150; un job di Dependabot su cinque fallito |
+| Provider Keycloak | `./mvnw clean verify` con JDK 21 e Maven 3.10.0 | superata in 2 minuti e 15 secondi: 32 test unitari e 10 di integrazione su Keycloak 26.8.2, cioè `TenantRoleFlowIT` 6, `TaurusOtpResourceIT` 3 ed `EmailDeliveryIT` 1; con `javap` le classi sono nella versione 65, Java 21, in `target/classes` e nel JAR |
+| Provider Keycloak | `java -version` nell'immagine `quay.io/keycloak/keycloak:26.8.2` | OpenJDK 21.0.13 |
+| Backend | `SharedUserAccountKeycloakIT` e `OnboardingKeycloakIT` con Keycloak 26.8.2 e `-Dtaurus.test.requireDocker=true` | 9 test su 9, 7 e 2 |
+| Repository | Trivy 0.76.2 come nella CI sul provider, con i POM del repository Maven locale dopo `dependency:resolve` | nessuna segnalazione, con e senza `.trivyignore.yaml`; senza il repository locale Maven Central risponde 429, come nella fase 1 |
+| Provider Keycloak | modelli e messaggi di `keycloak.v2` e `base` estratti dalle immagini 26.6.4 e 26.8.2 | `registrationLayout` e sezioni invariati; nuovi `login-update-profile.ftl` e `login-verify-email.ftl`; una chiave italiana nuova; modelli delle e-mail usati da Taurus identici |
+| Provider Keycloak | prova a mano su Keycloak 26.8.2 con il JAR della build, il realm di Taurus e Mailpit, nel browser integrato | flussi riusciti, e-mail con il tema Taurus: vedi [Esito della fase 3](#esito-della-fase-3) |
+| Repository | i controlli del job `documentation` con la fase 3 | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento |
+| Provider Keycloak | `./mvnw clean verify` con JDK 21 dopo la correzione del tema | superata: 32 test unitari e 13 di integrazione, cioè `TenantRoleFlowIT` 9, con le tre prove nuove sulle pagine del tema, `TaurusOtpResourceIT` 3 ed `EmailDeliveryIT` 1 |
+| Provider Keycloak | prova a mano del tema corretto su Keycloak 26.8.2 usa e getta, con il JAR della build, il realm di Taurus e Mailpit, nel browser integrato a 375×812 | in stile Taurus conferma dell'uscita, errore, aggiornamento del profilo con l'errore su un campo vuoto, verifica dell'e-mail, informazione dell'invito, account aggiornato e pagina scaduta; app di autenticazione con i nomi delle app, un solo link al codice manuale, codice in vista con lo script, aprendo il link e dopo un codice sbagliato, configurazione conclusa; ritorno all'accesso con una sola «; «È necessario selezionare un tenant» con l'accento; nessun errore dei modelli nel log |
+| Repository | i controlli del job `documentation` dopo la correzione del tema | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento |
 
 Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta. Dopo il merge di `fix-a11y-defects` non sono stati ripetuti né axe né la suite end to end: le due correzioni sono state verificate con axe sul loro ramo, con PrimeNG 19.0.10, e sul ramo unito le coprono i test unitari.
 
@@ -459,7 +493,7 @@ Risolto il 2026-11-06.
 
 ### Provider Keycloak
 
-- `pom.xml`: Keycloak 26.8, FreeMarker del runtime, `--release` della JVM di Keycloak; temi verificati sulle pagine di login, registrazione ed e-mail.
+- `pom.xml`: Keycloak 26.8, FreeMarker del runtime, `--release` della JVM di Keycloak; temi verificati sulle pagine di login, registrazione ed e-mail. Fatto nella fase 3, con Keycloak 26.8.2 e Java 21.
 
 ### Servizi
 

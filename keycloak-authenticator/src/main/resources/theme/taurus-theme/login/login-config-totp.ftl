@@ -16,7 +16,7 @@ section>
         <p class="taurus-totp-step-text">${msg("loginTotpStep1")}</p>
         <ul class="taurus-totp-apps">
           <#list totp.supportedApplications as app>
-            <li>${app}</li>
+            <li>${msg(app)}</li>
           </#list>
         </ul>
       </li>
@@ -29,11 +29,10 @@ section>
                alt="QR Code"
                class="taurus-qr-img" />
         </div>
-        <p class="taurus-totp-manual-label">${msg("loginTotpUnableToScan")}</p>
-        <a href="${totp.qrUrl}" class="taurus-totp-link" id="mode-manual">
+        <a href="${totp.manualUrl}" class="taurus-totp-link" id="mode-manual">
           ${msg("loginTotpUnableToScan")}
         </a>
-        <div id="totp-manual-container" style="display: none;" class="taurus-totp-secret-box">
+        <div id="totp-manual-container"<#if !(mode?? && mode = "manual")> style="display: none;"</#if> class="taurus-totp-secret-box">
           <p class="taurus-totp-manual-label">${msg("loginTotpManualStep2")}</p>
           <code class="taurus-totp-secret">${totp.totpSecretEncoded}</code>
           <p class="taurus-totp-manual-label" style="margin-top:10px">${msg("loginTotpManualStep3")}</p>
@@ -103,6 +102,7 @@ section>
           </#if>
 
           <input type="hidden" name="totpSecret" value="${totp.totpSecret}" />
+          <#if mode??><input type="hidden" name="mode" value="${mode}" /></#if>
 
           <div class="taurus-totp-buttons">
             <button class="taurus-btn-primary" type="submit" name="submitAction" value="Save">

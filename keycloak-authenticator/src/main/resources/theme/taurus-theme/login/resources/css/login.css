@@ -72,9 +72,19 @@ body {
 }
 
 /* ─── Header ────────────────────────────────────────────────── */
+/* Le pagine di base e keycloak.v2 scrivono il titolo come testo nudo: prende la forma di .taurus-title. */
 .taurus-header {
   text-align: center;
   margin-bottom: 28px;
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.taurus-header > p {
+  font-weight: 400;
+  line-height: normal;
 }
 
 .taurus-title {
@@ -91,6 +101,7 @@ body {
 }
 
 /* ─── Alerts ────────────────────────────────────────────────── */
+/* Testo degli avvisi sul loro fondo: errore 5,9:1, successo 6,8:1, avviso 4,8:1, informazione 4,7:1. */
 .taurus-alert {
   padding: 12px 14px;
   border-radius: 10px;
@@ -102,7 +113,7 @@ body {
 
 .taurus-alert-error {
   background: #fef2f2;
-  color: #dc2626;
+  color: #b91c1c;
   border-color: #fecaca;
 }
 
@@ -114,7 +125,7 @@ body {
 
 .taurus-alert-warning {
   background: #fffbeb;
-  color: #d97706;
+  color: #b45309;
   border-color: #fde68a;
 }
 
@@ -125,6 +136,7 @@ body {
 }
 
 /* ─── Form fields ────────────────────────────────────────────── */
+/* Il rosso dei messaggi di errore e degli asterischi, #dc2626, arriva a 4,8:1 sul bianco. */
 .taurus-field {
   margin-bottom: 18px;
 }
@@ -172,7 +184,7 @@ body {
 .taurus-field-error {
   display: block;
   font-size: 0.8rem;
-  color: #ef4444;
+  color: #dc2626;
   margin-top: 5px;
 }
 
@@ -263,7 +275,9 @@ body {
 }
 
 /* ─── Submit button ──────────────────────────────────────────── */
-.taurus-btn-primary {
+.taurus-btn-primary,
+.taurus-card .pf-v5-c-button.pf-m-primary,
+.taurus-card .btn-primary {
   width: 100%;
   padding: 12px 16px;
   background: var(--taurus-green-strong);
@@ -278,16 +292,21 @@ body {
   font-family: inherit;
 }
 
-.taurus-btn-primary:hover {
+.taurus-btn-primary:hover,
+.taurus-card .pf-v5-c-button.pf-m-primary:hover,
+.taurus-card .btn-primary:hover {
   background: var(--taurus-green-dark);
 }
 
-.taurus-btn-primary:active {
+.taurus-btn-primary:active,
+.taurus-card .pf-v5-c-button.pf-m-primary:active,
+.taurus-card .btn-primary:active {
   transform: scale(0.99);
   background: var(--taurus-green-darker);
 }
 
-.taurus-btn-primary:disabled {
+.taurus-btn-primary:disabled,
+.taurus-card .pf-v5-c-button.pf-m-primary:disabled {
   background: #86efac;
   cursor: not-allowed;
 }
@@ -534,7 +553,7 @@ select.taurus-input {
 }
 
 .taurus-required {
-  color: #ef4444;
+  color: #dc2626;
   margin-left: 2px;
 }
 
@@ -550,7 +569,8 @@ select.taurus-input {
   margin-top: 4px;
 }
 
-.taurus-btn-secondary {
+.taurus-btn-secondary,
+.taurus-card .pf-v5-c-button.pf-m-secondary {
   width: 100%;
   padding: 11px 16px;
   background: transparent;
@@ -564,7 +584,8 @@ select.taurus-input {
   transition: border-color 0.18s, color 0.18s;
 }
 
-.taurus-btn-secondary:hover {
+.taurus-btn-secondary:hover,
+.taurus-card .pf-v5-c-button.pf-m-secondary:hover {
   border-color: #94a3b8;
   color: #374151;
 }
@@ -666,6 +687,195 @@ select.taurus-input {
   color: #cbd5e1;
 }
 
+/* ─── Pagine di Keycloak senza modello Taurus ───────────────── */
+/*
+ * Informazione, errore, uscita, pagina scaduta, profilo, verifica dell'e-mail e le altre pagine che
+ * il tema non riscrive arrivano da base e keycloak.v2, con le classi di PatternFly 5: il tema non
+ * carica PatternFly, quindi qui quelle classi prendono la forma delle pagine Taurus.
+ */
+.taurus-card .instruction,
+.taurus-form-body > p,
+#kc-delete-text {
+  font-size: 0.9375rem;
+  color: #475569;
+  line-height: 1.55;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.taurus-card .instruction b {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+#kc-info-message,
+#kc-error-message {
+  text-align: center;
+  font-size: 0.9375rem;
+}
+
+#traceId {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.taurus-form-body > ul {
+  list-style: none;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #475569;
+  margin-bottom: 16px;
+}
+
+.taurus-card .instruction a,
+#kc-info-message a,
+#kc-error-message a,
+.taurus-card .pf-v5-c-helper-text a,
+.taurus-card .pf-v5-c-button.pf-m-link {
+  color: var(--taurus-green-strong);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.taurus-card .instruction a:hover,
+#kc-info-message a:hover,
+#kc-error-message a:hover,
+.taurus-card .pf-v5-c-helper-text a:hover,
+.taurus-card .pf-v5-c-button.pf-m-link:hover {
+  color: var(--taurus-green-dark);
+  text-decoration: underline;
+}
+
+/* Pulsanti: anche <input type="submit"> e <a>, oltre a <button>. */
+.taurus-card .pf-v5-c-button,
+.taurus-card .btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.taurus-card .pf-v5-c-button.pf-m-link {
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.taurus-card .pf-v5-c-form__actions,
+#kc-form-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+#kc-logout-confirm #kc-info-message {
+  margin-top: 16px;
+}
+
+/* Campi */
+.taurus-card .pf-v5-c-form__group {
+  margin-bottom: 18px;
+}
+
+.taurus-card .pf-v5-c-form__label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.taurus-card .pf-v5-c-form__label-required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+.taurus-card .pf-v5-c-form-control input,
+.taurus-card .pf-v5-c-form-control select,
+.taurus-card .pf-v5-c-form-control textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  color: #1e293b;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  line-height: 1.4;
+  font-family: inherit;
+}
+
+.taurus-card .pf-v5-c-form-control input:focus,
+.taurus-card .pf-v5-c-form-control select:focus,
+.taurus-card .pf-v5-c-form-control textarea:focus {
+  border-color: var(--taurus-green-strong);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+}
+
+/* I campi del profilo segnano l'errore solo con aria-invalid, gli altri con pf-m-error sul contenitore. */
+.taurus-card .pf-v5-c-form-control.pf-m-error input,
+.taurus-card .pf-v5-c-form-control.pf-m-error select,
+.taurus-card .pf-v5-c-form-control.pf-m-error textarea,
+.taurus-card .pf-v5-c-form-control [aria-invalid="true"] {
+  border-color: #f87171;
+}
+
+.taurus-card .pf-v5-c-form-control input[readonly] {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+/* Icone di errore e frecce delle select vogliono PatternFly e Font Awesome: restano i controlli nativi. */
+.taurus-card .pf-v5-c-form-control__utilities {
+  display: none;
+}
+
+.taurus-card .pf-v5-c-helper-text__item {
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 5px;
+}
+
+.taurus-card .pf-v5-c-helper-text__item.pf-m-error,
+.taurus-card .kc-feedback-text {
+  color: #dc2626;
+}
+
+/* Il pulsante "mostra password" di keycloak.v2 dipende da uno script che questo tema non carica. */
+.taurus-card .pf-v5-c-input-group {
+  display: flex;
+}
+
+.taurus-card .pf-v5-c-input-group .pf-m-fill {
+  flex: 1;
+}
+
+.taurus-card [data-password-toggle] {
+  display: none;
+}
+
+.taurus-card .pf-v5-c-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.taurus-card .pf-v5-c-check__input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--taurus-green-strong);
+}
+
 /* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 460px) {
   .taurus-card {
@@ -673,6 +883,7 @@ select.taurus-input {
     border-radius: 16px;
   }
 
+  .taurus-header,
   .taurus-title {
     font-size: 1.4rem;
   }

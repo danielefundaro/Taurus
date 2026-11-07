@@ -45,10 +45,10 @@ Finché questi campi non sono valorizzati e approvati, il runbook è utilizzabil
 | `taurus-fe` | Angular 19, Nginx | SPA utente/amministrazione, PWA e Web Push; nel container serve anche da ingresso unico, inoltrando `/api` e `/auth` | `4200` in sviluppo, `80` nel container | Nessuno; configurazione letta all'avvio del container (§4.2) |
 | `taurus-be` | Java 17, Spring Boot 3.3, JHipster | API, processi asincroni, scheduler, migrazioni e accesso ai dati | `8080` | Media su filesystem; dati in PostgreSQL |
 | PostgreSQL | PostgreSQL 17 nel compose locale | Schema globale `public`, schemi tenant e database Keycloak | `5432` | Critico |
-| Keycloak | Keycloak 26.6.4 nel compose locale | OIDC, utenti, ruoli, tenant claim, login e-mail e temi | `9080`, `9443` locali | Database `taurus_keycloak` e provider custom |
+| Keycloak | Keycloak 26.8.2 nel compose locale | OIDC, utenti, ruoli, tenant claim, login e-mail e temi | `9080`, `9443` locali | Database `taurus_keycloak` e provider custom |
 | RabbitMQ | RabbitMQ 4.0.7 management nel compose locale | Code `upload.files` (elaborazione PDF) e `score.recognition` (riconoscimento delle parti), con le rispettive code di scarto `.dead` | `5672`, console `15672` | Code e messaggi in transito |
 | `taurus-omr` | Python 3.12, FastAPI, Audiveris 5.11.0, homr 0.7.0 | Riconoscimento ottico della musica e conversione MIDI per l'ascolto delle parti, chiamato solo dal backend | `8090` | Nessuno; file temporanei in `/tmp`, eliminati a fine richiesta |
-| `keycloak-authenticator` | Java 17, provider Keycloak | Selezione tenant/ruolo, protocol mapper e verifica dei codici dell'app per la firma (`taurus-otp`) | n/a | JAR e temi distribuiti in Keycloak |
+| `keycloak-authenticator` | Java 21, provider Keycloak | Selezione tenant/ruolo, protocol mapper e verifica dei codici dell'app per la firma (`taurus-otp`) | n/a | JAR e temi distribuiti in Keycloak |
 | `taurus-info` | Astro, Nginx | Sito informativo statico | `4321` dev, `8088` container locale | Nessuno; variabili incorporate in build |
 | Prometheus/Grafana | Compose opzionale | Metriche JVM/HTTP e dashboard | `9090`, `3000` | Configurazione e dashboard locali |
 
@@ -87,7 +87,7 @@ L'ordine di arresto è inverso. Durante un arresto pianificato, fermare prima l'
 ### 3.1 Sviluppo locale
 
 - Git;
-- Java 17;
+- un JDK 21: il provider Keycloak si compila per Java 21, la JVM dell'immagine di Keycloak; il backend resta su Java 17 e si compila anche con un JDK 21;
 - Node.js 22 e npm;
 - pnpm 11 per `taurus-info`;
 - Docker Engine con Docker Compose, con almeno 4 CPU e 8 GB di memoria assegnati: il servizio OMR del compose è limitato a 4 CPU e 6 GB;
@@ -287,11 +287,11 @@ Facoltativamente `SIGNATURE_SEAL_TSA_URL` indica un servizio di marca temporale 
 
 **App di autenticazione** (facoltativa, non è un requisito): chi ha configurato in Keycloak l'app OTP può confermare le firme con il suo codice invece che via e-mail. Servono:
 
-1. il provider `taurus-otp`, compreso nel JAR di `keycloak-authenticator` (§7.3), installato sulla stessa versione di Keycloak con cui è compilato (26.6.4);
+1. il provider `taurus-otp`, compreso nel JAR di `keycloak-authenticator` (§7.3), installato sulla stessa versione di Keycloak con cui è compilato (26.8.2);
 2. nel realm un client confidenziale `taurus-signature` con solo **Service accounts roles** attivo (nessun flusso browser né direct access grant), un ruolo del client `otp-verifier` assegnato al suo service account e lo scope client `basic`. Il realm di sviluppo `taurus-realm.json` lo contiene già; un realm esistente lo riceve dalla console di amministrazione (**Clients › Create client**, poi **Roles › Create role** `otp-verifier`, poi **Service accounts roles › Assign role**), oppure, in sviluppo, ricreando il realm;
 3. il segreto del client, dalla scheda **Credentials**, in `SIGNATURE_KEYCLOAK_CLIENT_SECRET`; il backend raggiunge il realm all'indirizzo dell'issuer OIDC o a `SIGNATURE_KEYCLOAK_REALM_URI`.
 
-In sviluppo `keycloak.yml` monta il JAR da `taurus-be/src/main/docker/realm-config/keycloak-authenticator.jar`, file non versionato: dopo `.\mvnw.cmd verify` in `keycloak-authenticator` si copia lì `target/keycloak-authenticator.jar` e si riavvia Keycloak. `--import-realm` non sovrascrive un realm già presente, quindi un database Keycloak esistente riceve il client solo a mano o ricreando il realm.
+In sviluppo `keycloak.yml` monta il JAR da `taurus-be/src/main/docker/realm-config/keycloak-authenticator.jar`, file non versionato: dopo `.\mvnw.cmd verify` in `keycloak-authenticator` si copia lì `target/keycloak-authenticator.jar` e si riavvia Keycloak. Va rifatto anche quando cambia l'immagine di `keycloak.yml`: al primo avvio la versione nuova aggiorna il database `taurus_keycloak` di sviluppo, che la precedente non riapre più. `--import-realm` non sovrascrive un realm già presente, quindi un database Keycloak esistente riceve il client solo a mano o ricreando il realm.
 
 Senza segreto il profilo mostra l'app come non disponibile e le firme usano il codice via e-mail. Se Keycloak non risponde entro 5 secondi la firma con l'app fallisce senza consumare tentativi, l'utente può passare all'e-mail e il log registra `signature_totp_unavailable`: più errori consecutivi indicano Keycloak irraggiungibile o il ruolo `otp-verifier` mancante. La policy OTP del realm deve restare con codici non riutilizzabili. Chi configura l'app la usa anche al login, come già previsto dal flusso del realm. Nel profilo `dev` il backend usa il segreto di sviluppo `taurus-signature`.
 
@@ -596,7 +596,7 @@ Resta aperto il gate che nessun file può chiudere: il manifest non è ancora st
 2. Verificare health, tasso errori, code RabbitMQ, spazio disco e stato backup.
 3. Sospendere modifiche amministrative ai tenant durante la finestra.
 4. Eseguire backup coerente di PostgreSQL e storage media.
-5. Distribuire l'eventuale provider Keycloak compatibile; riavviare e verificare Keycloak.
+5. Distribuire l'eventuale provider Keycloak compatibile; riavviare e verificare Keycloak. Se cambia anche la versione di Keycloak, seguire §8.5.
 6. Se la release cambia il servizio OMR, distribuire la nuova immagine e verificare `GET /v1/health` dalla rete del backend; il servizio non ha stato e si sostituisce senza migration.
 7. Avviare un'unica istanza backend target per applicare Liquibase.
 8. Verificare `public.databasechangelog` e il changelog di ogni schema attivo.
@@ -669,13 +669,28 @@ un'identità vera e dati di collaudo:
 
 Usare dati di collaudo dedicati ed eliminarli secondo le regole applicative, evitando cancellazioni SQL dirette.
 
+### 8.5 Aggiornamento di Keycloak
+
+La versione di Keycloak è `TAURUS_KEYCLOAK_VERSION` in `.env`, o il valore predefinito di `deploy/compose.yml`. Il provider è compilato per una versione precisa di Keycloak (`keycloak.version` nel `pom.xml` di `keycloak-authenticator`) e per la JVM della sua immagine: immagine e JAR cambiano insieme, e il JAR è quello della stessa release di Taurus.
+
+All'avvio la versione nuova aggiorna lo schema del database `taurus_keycloak`, e Keycloak non supporta il ritorno a una versione precedente sullo stesso database. L'unico ritorno indietro è il backup preso prima.
+
+1. Fare il backup di `taurus_keycloak` (§12.2) e copiare il contenuto di `keycloak/providers/`.
+2. Fermare Keycloak: `docker compose --env-file .env -f compose.yml stop keycloak`. Il login resta indisponibile fino al punto 5. Il manifest di riferimento ha un'istanza sola; con più istanze si fermano tutte prima di avviare la versione nuova.
+3. Sostituire in `keycloak/providers/` il JAR con `keycloak-authenticator-<versione>.jar` della release, dopo averne controllato l'impronta con il file `.sha256` che lo accompagna. Aggiornare `TAURUS_KEYCLOAK_VERSION`.
+4. `docker compose --env-file .env -f compose.yml pull keycloak`, poi `up -d keycloak`. Con `start` Keycloak ricostruisce la configurazione all'avvio, perché provider e versione sono cambiati: il primo avvio è più lento.
+5. Nel log di Keycloak verificare la versione nuova e il caricamento di `tenant-role-selector-authenticator`, `tenant-role-mapper` e `taurus-otp`. Gli avvisi `KC-SERVICES0047`, che dicono che questi provider usano SPI interne, sono attesi.
+6. Subito dopo l'avvio, prima di chiudere la change: smoke test (§8.4), login di un utente non amministratore con la scelta di tenant e ruolo, codice dell'app di autenticazione se configurata, e un'e-mail di reimpostazione della password ricevuta con il tema Taurus.
+
+**Ritorno indietro.** Fermare Keycloak, ripristinare il dump del punto 1 in un database `taurus_keycloak` vuoto (§12.4), rimettere il JAR e la versione precedenti e riavviare. Le modifiche fatte in Keycloak dopo l'aggiornamento, come utenti creati, password cambiate e app di autenticazione configurate, vanno perse: per questo la verifica del punto 6 si fa subito.
+
 ## 9. Rollback
 
 ### 9.1 Solo applicazione, senza migration incompatibili
 
 1. Fermare il rollout.
 2. Riportare frontend e backend ai digest precedenti, e il servizio OMR alla versione precedente se era cambiato.
-3. Ripristinare l'eventuale provider Keycloak precedente.
+3. Ripristinare l'eventuale provider Keycloak precedente. Se la release aveva cambiato anche la versione di Keycloak, il provider da solo non basta: il ritorno indietro è quello di §8.5.
 4. Verificare health, login, tenant isolation, coda e storage.
 5. Lasciare aperto l'incidente e conservare log e artefatti.
 

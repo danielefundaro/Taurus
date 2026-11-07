@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.2</version>
+        <version>4.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.fundaro.zodiac</groupId>
@@ -27,16 +27,16 @@
         <url/>
     </scm>
     <properties>
-        <java.version>17</java.version>
-        <keycloak.version>26.6.4</keycloak.version>
-        <!-- Il motore dei modelli del tema: la stessa versione che Keycloak 26.6.4 porta a runtime. -->
-        <freemarker.version>2.3.32</freemarker.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-        <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
-        <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
-        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+        <!-- Il provider gira nella JVM di Keycloak: Java 21 nell'immagine 26.8.2. Si compila con `release`
+             per quella versione, perché Keycloak non caricherebbe classi di una versione più recente. -->
+        <java.version>21</java.version>
+        <keycloak.version>26.8.2</keycloak.version>
+        <!-- Il motore dei modelli del tema: la stessa versione che Keycloak 26.8.2 porta a runtime. -->
+        <freemarker.version>2.3.35</freemarker.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+        <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+        <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
     </properties>
     <dependencies>
         <dependency>
@@ -117,8 +117,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
                 <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
+                    <release>${maven.compiler.release}</release>
                 </configuration>
             </plugin>
 

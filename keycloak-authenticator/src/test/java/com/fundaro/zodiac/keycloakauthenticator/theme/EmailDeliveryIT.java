@@ -55,7 +55,7 @@ class EmailDeliveryIT {
             .withExposedPorts(8025)
             .waitingFor(Wait.forHttp("/readyz").forPort(8025).forStatusCode(200));
         mailpit.start();
-        keycloak = new GenericContainer<>("quay.io/keycloak/keycloak:26.6.4")
+        keycloak = new GenericContainer<>("quay.io/keycloak/keycloak:26.8.2")
             .withNetwork(network)
             .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", ADMIN)
             .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", ADMIN_PASSWORD)
