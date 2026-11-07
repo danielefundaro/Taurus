@@ -387,13 +387,15 @@ Le intestazioni di sicurezza stanno in `security-headers.conf`, incluso dal bloc
 
 ### 8.7 Sicurezza
 
-Gli stessi controlli del job `security` della CI, eseguibili in locale con Docker:
+Gli stessi controlli del job `security` della CI, eseguibili in locale con Docker e con le stesse versioni:
 
 ```powershell
-docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:v8.21.2 detect --source /repo --config /repo/.gitleaks.toml --redact --no-banner --exit-code 1
-docker run --rm -v "${PWD}:/repo" aquasec/trivy:0.70.0 fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL --ignore-unfixed --ignorefile /repo/.trivyignore.yaml --exit-code 1 /repo
-docker run --rm -v "${PWD}:/src" returntocorp/semgrep:1.97.0 semgrep scan --config p/ci --error --quiet --metrics=off
+docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:v8.30.1 detect --source /repo --config /repo/.gitleaks.toml --redact --no-banner --exit-code 1
+docker run --rm -v "${PWD}:/repo" aquasec/trivy:0.76.2 fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL --ignore-unfixed --ignorefile /repo/.trivyignore.yaml --exit-code 1 /repo
+docker run --rm -v "${PWD}:/src" semgrep/semgrep:1.183.0 semgrep scan --config p/ci --error --quiet --metrics=off
 ```
+
+Dependabot aggiorna le azioni GitHub, non le immagini lanciate con `docker run` nel job né l'input `version` di Trivy: quando si aggiornano gitleaks, Trivy o semgrep in `verify.yml`, si aggiornano anche questi comandi. Su Windows il montaggio della cartella può rendere semgrep lentissimo: in quel caso si copia il repository nel container con `docker create`, `docker cp` e `docker start -a`.
 
 La ricerca dei segreti attraversa tutta la storia del repository. Le eccezioni vivono in `.gitleaks.toml` e sono soltanto valori di prova, di sviluppo e di documentazione: una credenziale vera non va aggiunta lì, va ruotata.
 
