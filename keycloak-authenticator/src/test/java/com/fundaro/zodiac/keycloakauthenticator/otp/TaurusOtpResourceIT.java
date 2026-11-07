@@ -43,7 +43,7 @@ class TaurusOtpResourceIT {
     @BeforeAll
     static void startKeycloak() {
         assertThat(PROVIDER).as("package the provider before the integration tests").exists();
-        keycloak = new GenericContainer<>("quay.io/keycloak/keycloak:26.6.4")
+        keycloak = new GenericContainer<>("quay.io/keycloak/keycloak:26.8.2")
             .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", "otp-test-admin")
             .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "otp-test-password")
             .withCopyFileToContainer(MountableFile.forHostPath(PROVIDER), "/opt/keycloak/providers/keycloak-authenticator.jar")
