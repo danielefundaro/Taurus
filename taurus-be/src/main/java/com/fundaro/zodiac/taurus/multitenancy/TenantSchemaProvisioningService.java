@@ -7,6 +7,8 @@ import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -150,8 +152,12 @@ public class TenantSchemaProvisioningService {
         liquibase.setChangeLog(TENANT_CHANGELOG);
         liquibase.setDefaultSchema(schemaName);
         liquibase.setLiquibaseSchema(schemaName);
-        liquibase.setContexts(liquibaseProperties.getContexts());
-        liquibase.setLabelFilter(liquibaseProperties.getLabelFilter());
+        if (!CollectionUtils.isEmpty(liquibaseProperties.getContexts())) {
+            liquibase.setContexts(StringUtils.collectionToCommaDelimitedString(liquibaseProperties.getContexts()));
+        }
+        if (!CollectionUtils.isEmpty(liquibaseProperties.getLabelFilter())) {
+            liquibase.setLabelFilter(StringUtils.collectionToCommaDelimitedString(liquibaseProperties.getLabelFilter()));
+        }
         Map<String, String> parameters = liquibaseProperties.getParameters() == null
             ? new HashMap<>()
             : new HashMap<>(liquibaseProperties.getParameters());

@@ -73,7 +73,7 @@ public class CommonOpenSearchResource<E extends CommonFieldsOpenSearch, D extend
     public ResponseEntity<D> createEntity(@Valid @RequestBody D dto, AbstractAuthenticationToken abstractAuthenticationToken) throws URISyntaxException {
         log.debug("REST request to save {} : {}", entityName, dto);
         D result = service.save(dto, abstractAuthenticationToken);
-        return ResponseEntity.created(new URI(String.format("/api/%s/", entityName) + result.getId()))
+        return ResponseEntity.created(new URI("/api/%s/".formatted(entityName) + result.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, false, entityName, result.getId().toString()))
             .body(result);
     }

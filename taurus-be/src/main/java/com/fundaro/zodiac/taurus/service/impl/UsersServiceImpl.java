@@ -101,7 +101,7 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
         Long maxUsers = tenantsDTO.getMaxUsers();
 
         if (maxUsers != null && maxUsers >= 0 && usersCount >= maxUsers) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("Limit exceeded for this tenant (max users: %s)", maxUsers), getEntityName(), "user.limit.exceeded").with("maximum", maxUsers);
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "Limit exceeded for this tenant (max users: %s)".formatted(maxUsers), getEntityName(), "user.limit.exceeded").with("maximum", maxUsers);
         }
 
         // The account is the person's, shared by all their tenants: an existing one is only linked to this tenant,
@@ -611,6 +611,6 @@ public class UsersServiceImpl extends CommonOpenSearchServiceImpl<Users, UsersDT
     }
 
     private String getAttributeKey(String tenantId) {
-        return String.format("%s_roles", tenantId);
+        return "%s_roles".formatted(tenantId);
     }
 }

@@ -16,8 +16,8 @@ import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class OAuth2TestUtil {
@@ -36,7 +36,7 @@ public class OAuth2TestUtil {
         claims.put("sub", TEST_USER_LOGIN);
         claims.put("preferred_username", TEST_USER_LOGIN);
         claims.put("email", "john.doe@jhipster.com");
-        claims.put("roles", Collections.singletonList(AuthoritiesConstants.ADMIN));
+        claims.put("roles", List.of(AuthoritiesConstants.ADMIN));
 
         return authenticationToken(claims);
     }

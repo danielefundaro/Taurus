@@ -16,7 +16,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -58,7 +58,7 @@ public final class Converter {
         String normalizedFilename = filename.replace(" ", "_");
         Set<Integer> excludedPages = annotations != null && annotations.getExcludedPages() != null
             ? new HashSet<>(annotations.getExcludedPages())
-            : Collections.emptySet();
+            : Set.of();
         Map<Integer, List<PdfCropRegion>> cropMap = new HashMap<>();
         if (annotations != null && annotations.getCropRegions() != null) {
             annotations.getCropRegions().forEach(crop ->
@@ -67,10 +67,10 @@ public final class Converter {
         }
         Map<Integer, PdfPageTransform> transformMap = annotations != null && annotations.getPageTransforms() != null
             ? annotations.getPageTransforms().stream().collect(Collectors.toMap(PdfPageTransform::getPage, transform -> transform, (first, ignored) -> first))
-            : Collections.emptyMap();
+            : Map.of();
 
-        File destination = new File(Paths.get(destinationPath, normalizedFilename).toString());
-        Files.createDirectories(destination.toPath());
+        Path destination = Path.of(destinationPath, normalizedFilename);
+        Files.createDirectories(destination);
         try (PDDocument document = Loader.loadPDF(content)) {
             PDFRenderer renderer = new PDFRenderer(document);
             for (int page = 0; page < document.getNumberOfPages(); page++) {
@@ -92,7 +92,7 @@ public final class Converter {
                     List<PdfCropRegion> crops = cropMap.get(pageNumber);
                     if (crops != null && !crops.isEmpty()) image = applyCrops(image, crops);
                 }
-                String target = Paths.get(destination.getPath(), pageNumber + ".png").toString();
+                String target = destination.resolve(pageNumber + ".png").toString();
                 ImageIOUtil.writeImage(image, target, dpi);
                 files.add(target);
             }
@@ -153,6 +153,6 @@ public final class Converter {
     }
 
     public static String imageEncodeBase64(String filePath) throws IOException {
-        return Base64.getEncoder().encodeToString(Files.readAllBytes(Paths.get(filePath)));
+        return Base64.getEncoder().encodeToString(Files.readAllBytes(Path.of(filePath)));
     }
 }

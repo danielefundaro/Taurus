@@ -62,7 +62,7 @@ public class TracksServiceImpl implements TracksService {
 
     private static void filterScores(TracksDTO track, UsersDTO user) {
         if (track.getScores() == null) return;
-        Set<Long> assignedInstrumentIds = Optional.ofNullable(user.getInstruments()).orElse(Collections.emptySet()).stream()
+        Set<Long> assignedInstrumentIds = Optional.ofNullable(user.getInstruments()).orElse(Set.of()).stream()
             .filter(Objects::nonNull)
             .map(instrument -> instrument.getIndex())
             .filter(Objects::nonNull)

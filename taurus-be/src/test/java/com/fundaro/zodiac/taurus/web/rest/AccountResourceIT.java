@@ -10,8 +10,8 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.fundaro.zodiac.taurus.test.util.OAuth2TestUtil.TEST_USER_LOGIN;
@@ -36,7 +36,7 @@ class AccountResourceIT {
     @BeforeEach
     public void setup() {
         claims = new HashMap<>();
-        claims.put("groups", Collections.singletonList(AuthoritiesConstants.ADMIN));
+        claims.put("groups", List.of(AuthoritiesConstants.ADMIN));
         claims.put("sub", "jane");
         claims.put("email", "jane.doe@jhipster.com");
     }

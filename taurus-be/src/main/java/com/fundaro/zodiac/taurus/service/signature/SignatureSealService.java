@@ -27,7 +27,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HexFormat;
@@ -294,7 +293,7 @@ public class SignatureSealService {
         }
         X509Certificate certificate = new JcaX509CertificateConverter()
             .getCertificate(builder.build(new JcaContentSignerBuilder("SHA256withRSA").build(pair.getPrivate())));
-        return new SealKey(pair.getPrivate(), Collections.singletonList(certificate));
+        return new SealKey(pair.getPrivate(), List.of(certificate));
     }
 
     private SealKey requiredKey() {

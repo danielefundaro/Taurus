@@ -128,6 +128,10 @@ class SignatureMailServiceTest {
         assertThat(html).contains(">Leggi e firma</a>").contains(">" + LINK_URL + "</a>");
         assertThat(html).contains(">Emissione del foglio – foglio di affidamento n. 2026/007</td>").contains(">Luca Rossi</td>");
         assertThat(html).contains("Banda musicale di prova ti chiede di firmare un atto.</div>");
+        // Testi con apostrofi, passati ai frammenti con th:with.
+        assertThat(html)
+            .contains(">L&#39;associazione ti chiede di firmare elettronicamente un atto del foglio di affidamento,")
+            .contains("documenti dell&#39;atto. Se non ti aspettavi questa richiesta, ignorala e avvisa l&#39;associazione.</p>");
         assertThat(registry.counter("taurus.signature.mail", "outcome", "sent").count()).isEqualTo(1);
     }
 
@@ -144,7 +148,10 @@ class SignatureMailServiceTest {
             .contains("Tutte le parti hanno firmato l'atto.")
             .contains(LINK_URL)
             .contains("conserva una copia dei documenti");
-        assertThat(MailParts.html(mail)).contains(">Scarica i documenti</a>").contains("conserva una copia dei documenti");
+        assertThat(MailParts.html(mail))
+            .contains(">Scarica i documenti</a>")
+            .contains(">Tutte le parti hanno firmato l&#39;atto. I documenti firmati e l&#39;attestazione si scaricano")
+            .contains("conserva una copia dei documenti. Dopo questa data puoi chiederli all&#39;associazione.</p>");
         assertThat(link(true).toString()).doesNotContain("firma/abc").doesNotContain("genitore");
     }
 

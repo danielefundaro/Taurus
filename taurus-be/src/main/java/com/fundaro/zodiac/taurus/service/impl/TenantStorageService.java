@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,7 +21,7 @@ public class TenantStorageService {
     private final Path basePath;
 
     public TenantStorageService(ApplicationProperties applicationProperties) {
-        this.basePath = Paths.get(applicationProperties.getBasePath()).toAbsolutePath().normalize();
+        this.basePath = Path.of(applicationProperties.getBasePath()).toAbsolutePath().normalize();
     }
 
     public Path resolve(String tenantCode, String... parts) {
@@ -42,7 +41,7 @@ public class TenantStorageService {
         if (storageKey == null || storageKey.isBlank()) {
             throw new IllegalArgumentException("Storage key is required");
         }
-        Path relative = Paths.get(storageKey.replace('/', java.io.File.separatorChar)).normalize();
+        Path relative = Path.of(storageKey.replace('/', java.io.File.separatorChar)).normalize();
         if (relative.isAbsolute() || relative.startsWith("..")) {
             throw new IllegalArgumentException("Invalid storage key");
         }
@@ -102,7 +101,7 @@ public class TenantStorageService {
         if (rawPath == null || rawPath.isBlank()) {
             return false;
         }
-        Path path = Paths.get(rawPath).toAbsolutePath().normalize();
+        Path path = Path.of(rawPath).toAbsolutePath().normalize();
         if (!path.startsWith(basePath) || path.equals(basePath)) {
             return false;
         }

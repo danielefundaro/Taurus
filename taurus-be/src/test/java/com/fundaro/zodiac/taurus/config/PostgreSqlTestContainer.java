@@ -6,7 +6,7 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 
-import java.util.Collections;
+import java.util.Map;
 
 public class PostgreSqlTestContainer implements SqlTestContainer {
 
@@ -26,7 +26,7 @@ public class PostgreSqlTestContainer implements SqlTestContainer {
         if (null == postgreSQLContainer) {
             postgreSQLContainer = new PostgreSQLContainer<>("postgres:17.0")
                 .withDatabaseName("taurus")
-                .withTmpFs(Collections.singletonMap("/testtmpfs", "rw"))
+                .withTmpFs(Map.of("/testtmpfs", "rw"))
                 // Spring tiene in cache un contesto per ogni configurazione di test, fino a 8
                 // (spring.properties dei test): i loro pool arrivano a 80 connessioni, vicino al
                 // max_connections di default (100), e con quelle dei test e di Liquibase gli ultimi
