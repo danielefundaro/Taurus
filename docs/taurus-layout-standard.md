@@ -390,6 +390,8 @@ Quattro gravità e due forme. Il toast è effimero e riguarda un'azione appena c
 
 **Accessibilità.** I banner di errore dichiarano `role="alert"`, quelli informativi `role="status"`, come già fa `legal-acceptance`, oggi unica pagina a farlo.
 
+**Contrasto.** Il testo di banner e toast arriva almeno a 4,5:1 in entrambe le modalità. Aura e Lara lo scrivono con la tinta 600 della tavolozza in modalità chiara e con la 500 in modalità scura, e ne restano sotto `warn`, `success` ed `error` in chiaro, `info` ed `error` in scuro sul fondo delle card. Gli scostamenti stanno nei design token, in `ACCESSIBLE_MESSAGE` e `ACCESSIBLE_TOAST` di `app/constants/accessible-theme.ts`: tinta 700 in chiaro, 800 per `warn`, perché il giallo è la tavolozza più chiara, e tinta 400 in scuro. `accessible-theme.spec.ts` misura i rapporti sui token del preset installato, così un aggiornamento di PrimeNG che li riporta sotto soglia fa fallire i test. Il preset Nora, che dà ai messaggi un fondo pieno con il testo chiaro, tiene i propri colori.
+
 ## Regole trasversali di modali e avvisi
 
 **Una sola meccanica di dialogo.** `DialogService.open` ovunque, con il piede dichiarato dal guscio condiviso.
