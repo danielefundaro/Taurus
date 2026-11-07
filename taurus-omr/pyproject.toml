@@ -14,7 +14,7 @@ dependencies = [
     "uvicorn==0.54.0",
     "python-multipart==0.0.32",
     "pillow==12.3.0",
-    "music21==9.7.1",
+    "music21==10.5.2",
 ]
 
 [tool.setuptools.packages.find]
