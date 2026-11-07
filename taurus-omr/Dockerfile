@@ -41,7 +41,7 @@ RUN apt-get update \
 
 COPY requirements.txt models.sha256 /opt/taurus-omr/
 RUN python3 -m venv /opt/venv \
-    && pip install --no-cache-dir --upgrade "pip==26.2.1" \
+    && pip install --no-cache-dir --upgrade "pip==26.2.2" \
     && pip install --no-cache-dir -r /opt/taurus-omr/requirements.txt \
     && homr --init \
     && sha256sum -c /opt/taurus-omr/models.sha256 \
