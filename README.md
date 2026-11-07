@@ -14,7 +14,7 @@ Taurus è una piattaforma multi-tenant per la gestione operativa di organizzazio
 
 ## Prerequisiti
 
-- Java 17 per il backend e Java 21 per il provider Keycloak, che gira nella JVM dell'immagine di Keycloak: un JDK 21 li compila entrambi;
+- Java 25 per il backend e Java 21 per il provider Keycloak, che gira nella JVM dell'immagine di Keycloak: un JDK 25 li compila entrambi;
 - Node.js 22 e npm;
 - pnpm 11 per `taurus-info`;
 - Python 3.12 per i test di `taurus-omr`;

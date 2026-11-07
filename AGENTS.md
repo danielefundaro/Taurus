@@ -4,7 +4,7 @@
 
 Modules are built independently:
 
-- `taurus-be/`: Java 17 Spring Boot API. Code is under `src/main/java`; configuration, Liquibase migrations, and Docker files are under `src/main/resources`; tests are under `src/test/java`.
+- `taurus-be/`: Java 25 Spring Boot API. Code is under `src/main/java`; configuration, Liquibase migrations, and Docker files are under `src/main/resources`; tests are under `src/test/java`.
 - `taurus-fe/`: Angular 19 client. Features live in `src/app/pages`, shared UI in `components` and `dialogs`, API access in `service`, and assets in `src/assets`.
 - `taurus-omr/`: Python 3.12 FastAPI service for optical music recognition (Audiveris, homr), MIDI conversion and the text reading of scanned pages (RapidOCR), called only by the backend. Code is under `src/taurus_omr`, tests under `tests`; engines, models and dependencies are pinned in the `Dockerfile`, `requirements.txt` and `models.sha256`.
 - `keycloak-authenticator/`: Java 21 Keycloak provider and custom themes, compiled for the Java version of the Keycloak image, following the standard Maven `src/main`/`src/test` layout.
