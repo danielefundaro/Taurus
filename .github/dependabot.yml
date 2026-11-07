@@ -1,0 +1,183 @@
+# Aggiornamenti proposti da Dependabot: docs/platform-upgrade-spec.md, decisione 7.
+#
+# Un blocco per modulo ed ecosistema, ogni lunedì mattina. Patch e minor arrivano in una sola pull
+# request per blocco; ogni versione maggiore arriva in una pull request a sé, perché di solito chiede
+# modifiche al codice. Le azioni GitHub restano fissate per SHA del commit con la versione in
+# commento: Dependabot aggiorna l'uno e l'altro.
+#
+# `cooldown` aspetta sette giorni dalla pubblicazione di una versione prima di proporla: una
+# release ritirata o manomessa, come i tag di trivy-action nel marzo 2026, di solito si scopre in
+# quei giorni. Sette è anche il minimo della regola `dependabot-missing-cooldown` di semgrep, nel
+# set `p/ci` del job `security`. Gli aggiornamenti di sicurezza non aspettano.
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions-minor-patch:
+        update-types: [minor, patch]
+
+  # Backend: dipendenze Maven, strumenti npm di JHipster, immagine e dev container. I compose di
+  # sviluppo in src/main/docker hanno nomi che Dependabot non riconosce: si aggiornano a mano.
+  - package-ecosystem: maven
+    directory: /taurus-be
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      backend-maven-minor-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: npm
+    directory: /taurus-be
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      backend-npm-minor-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: docker
+    directories: [/taurus-be, /taurus-be/.devcontainer]
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      backend-docker-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: maven
+    directory: /keycloak-authenticator
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      keycloak-provider-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /taurus-fe
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      frontend-npm-minor-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: docker
+    directory: /taurus-fe
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      frontend-docker-minor-patch:
+        update-types: [minor, patch]
+
+  # Sito informativo: l'ecosistema npm di Dependabot legge anche pnpm-lock.yaml.
+  - package-ecosystem: npm
+    directory: /taurus-info
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      info-site-npm-minor-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: docker
+    directory: /taurus-info
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      info-site-docker-minor-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: docker-compose
+    directory: /taurus-info
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      info-site-compose-minor-patch:
+        update-types: [minor, patch]
+
+  # Servizio OMR: una pull request su requirements.txt va completata come chiede la sua intestazione,
+  # con il Dockerfile e models.sha256, e ripetendo test e controlli di accuratezza. Le stesse librerie
+  # compaiono anche in requirements-test.txt, che va tenuto allineato.
+  - package-ecosystem: pip
+    directory: /taurus-omr
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      omr-pip-minor-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: docker
+    directory: /taurus-omr
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      omr-docker-minor-patch:
+        update-types: [minor, patch]
+
+  # Manifest di produzione.
+  - package-ecosystem: docker-compose
+    directory: /deploy
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Rome
+    cooldown:
+      default-days: 7
+    groups:
+      deploy-compose-minor-patch:
+        update-types: [minor, patch]
