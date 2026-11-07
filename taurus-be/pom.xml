@@ -35,36 +35,36 @@
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
     <run.addResources>false</run.addResources>
     <spring-boot.version>${project.parent.version}</spring-boot.version>
-    <archunit-junit5.version>1.3.0</archunit-junit5.version>
+    <archunit-junit5.version>1.5.1</archunit-junit5.version>
     <bouncycastle.version>1.86</bouncycastle.version>
 <checkstyle.version>10.19.0</checkstyle.version>
     <commonmark.version>0.31.0</commonmark.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <git-commit-id-maven-plugin.version>9.0.1</git-commit-id-maven-plugin.version>
-    <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
+    <jacoco-maven-plugin.version>0.8.16</jacoco-maven-plugin.version>
     <!-- Soglia di copertura: baseline misurata, da alzare quando la copertura sale (runbook di test, 4). -->
     <jacoco.line.minimum>0.75</jacoco.line.minimum>
     <jacoco.branch.minimum>0.60</jacoco.branch.minimum>
     <jhipster-framework.version>8.7.2</jhipster-framework.version>
     <jib-maven-plugin.architecture>amd64</jib-maven-plugin.architecture>
     <jib-maven-plugin.image>eclipse-temurin:17-jre-focal</jib-maven-plugin.image>
-    <jib-maven-plugin.version>3.4.4</jib-maven-plugin.version>
+    <jib-maven-plugin.version>3.5.2</jib-maven-plugin.version>
     <lifecycle-mapping.version>1.0.0</lifecycle-mapping.version>
     <liquibase-plugin.password/>
     <liquibase-plugin.url/>
     <liquibase-plugin.username/>
-    <mapstruct.version>1.6.2</mapstruct.version>
+    <mapstruct.version>1.6.3</mapstruct.version>
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
-    <maven-clean-plugin.version>3.4.0</maven-clean-plugin.version>
-    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-    <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
-    <maven-failsafe-plugin.version>3.5.1</maven-failsafe-plugin.version>
-    <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
-    <maven-javadoc-plugin.version>3.10.1</maven-javadoc-plugin.version>
+    <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
+    <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+    <maven-enforcer-plugin.version>3.7.0</maven-enforcer-plugin.version>
+    <maven-failsafe-plugin.version>3.6.1</maven-failsafe-plugin.version>
+    <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+    <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
     <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
-    <maven-site-plugin.version>3.21.0</maven-site-plugin.version>
-    <maven-surefire-plugin.version>3.5.1</maven-surefire-plugin.version>
-    <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
+    <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
+    <maven-surefire-plugin.version>3.6.1</maven-surefire-plugin.version>
+    <maven-war-plugin.version>3.5.1</maven-war-plugin.version>
 <modernizer-maven-plugin.version>2.9.0</modernizer-maven-plugin.version>
     <nohttp-checkstyle.version>0.0.11</nohttp-checkstyle.version>
     <!-- Sopra la versione gestita da Spring Boot 3.3: corregge le CVE del driver (platform-upgrade, fase 0). -->
@@ -74,7 +74,7 @@
     <profile.no-liquibase/>
     <profile.test/>
     <profile.tls/>
-    <properties-maven-plugin.version>1.2.1</properties-maven-plugin.version>
+    <properties-maven-plugin.version>1.3.1</properties-maven-plugin.version>
     <resource.delimiter>@</resource.delimiter>
     <sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
     <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
@@ -88,7 +88,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-compress</artifactId>
-        <version>1.26.2</version>
+        <version>1.28.0</version>
       </dependency>
       <dependency>
         <groupId>org.springframework.cloud</groupId>
@@ -295,19 +295,19 @@
     <dependency>
       <groupId>org.mnode.ical4j</groupId>
       <artifactId>ical4j</artifactId>
-      <version>4.2.4</version>
+      <version>4.4.0</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
     <dependency>
       <groupId>org.apache.pdfbox</groupId>
       <artifactId>pdfbox</artifactId>
-      <version>3.0.3</version>
+      <version>3.0.8</version>
     </dependency>
     <!-- Last OpenHTMLtoPDF release built on PDFBox 3.0.3, kept aligned with the pdfbox dependency above. -->
     <dependency>
       <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-pdfbox</artifactId>
-      <version>1.1.44</version>
+      <version>1.1.105</version>
     </dependency>
     <!-- Logic-less templates uploaded by tenants for the inventory loan sheet; version managed by Spring Boot. -->
     <dependency>
@@ -339,13 +339,13 @@
     <dependency>
       <groupId>com.google.zxing</groupId>
       <artifactId>core</artifactId>
-      <version>3.5.3</version>
+      <version>3.5.4</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox-tools -->
     <dependency>
       <groupId>org.apache.pdfbox</groupId>
       <artifactId>pdfbox-tools</artifactId>
-      <version>3.0.3</version>
+      <version>3.0.8</version>
     </dependency>
     <dependency>
       <groupId>org.apache.poi</groupId>
@@ -355,7 +355,7 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-csv</artifactId>
-      <version>1.11.0</version>
+      <version>1.14.1</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -376,14 +376,14 @@
     <dependency>
       <groupId>org.apache.pdfbox</groupId>
       <artifactId>jbig2-imageio</artifactId>
-      <version>3.0.4</version>
+      <version>3.0.5</version>
     </dependency>
 
     <!-- Web Push (VAPID) -->
     <dependency>
       <groupId>nl.martijndwars</groupId>
       <artifactId>web-push</artifactId>
-      <version>5.1.1</version>
+      <version>5.1.2</version>
     </dependency>
     <!-- Security provider of Web Push; bcpkix creates the CMS signatures of the electronic signature seal. -->
     <dependency>
