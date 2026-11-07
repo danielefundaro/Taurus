@@ -32,7 +32,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -90,13 +90,13 @@ class ScoreRecognitionIT {
     private static final String WRONG_DURATIONS = GOOD.replace("<duration>2</duration></note></measure>\n  <measure number=\"2\">", "<duration>3</duration></note></measure>\n  <measure number=\"2\">");
     private static final String LAYOUT = "[{\"measure\":1,\"page\":1,\"x\":0.1,\"y\":0.2,\"width\":0.3,\"height\":0.05,\"approximate\":false}]";
 
-    @MockBean
+    @MockitoBean
     private ClientRegistrationRepository clientRegistrationRepository;
 
-    @MockBean
+    @MockitoBean
     private JwtDecoder jwtDecoder;
 
-    @MockBean
+    @MockitoBean
     private ScoreRecognitionQueue queue;
 
     private final String tenantCode = "score-recognition-it-" + UUID.randomUUID();

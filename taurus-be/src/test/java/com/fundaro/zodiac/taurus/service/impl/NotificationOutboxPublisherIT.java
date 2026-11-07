@@ -15,7 +15,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.TestPropertySource;
@@ -41,9 +41,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 )
 class NotificationOutboxPublisherIT {
 
-    @MockBean
+    @MockitoBean
     ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean
+    @MockitoBean
     JwtDecoder jwtDecoder;
     @Autowired
     TenantSchemaProvisioningService provisioningService;

@@ -9,7 +9,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -19,9 +19,9 @@ import org.springframework.test.context.TestPropertySource;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestPropertySource(properties = {"application.base-path=D:/data", "spring.liquibase.contexts=test", "spring.security.oauth2.client.registration.oidc.client-id=test", "spring.security.oauth2.client.registration.oidc.client-secret=test"})
 class CalendarFeedMigrationIT {
-    @MockBean
+    @MockitoBean
     ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean
+    @MockitoBean
     JwtDecoder jwtDecoder;
     @Autowired
     TenantSchemaProvisioningService provisioning;

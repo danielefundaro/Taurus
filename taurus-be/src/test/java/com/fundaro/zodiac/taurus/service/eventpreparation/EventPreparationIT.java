@@ -58,7 +58,7 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -96,11 +96,11 @@ class EventPreparationIT {
         TenantFeature.EVENT_PREPARATION, TenantFeature.FINANCE, TenantFeature.INVENTORY, TenantFeature.INVENTORY_QR
     );
 
-    @MockBean
+    @MockitoBean
     ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean
+    @MockitoBean
     JwtDecoder jwtDecoder;
-    @MockBean
+    @MockitoBean
     TenantFeatureService tenantFeatureService;
 
     @Autowired

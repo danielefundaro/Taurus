@@ -53,7 +53,7 @@ management:
         readiness:
           include: readinessState
     jhimetrics:
-      enabled: true
+      access: unrestricted
   info:
     git:
       mode: full

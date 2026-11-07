@@ -34,7 +34,7 @@ public final class MailParts {
         return sender;
     }
 
-    /** Gives a mocked mail sender, such as a {@code @MockBean}, the behaviour of {@link #sender()}. */
+    /** Gives a mocked mail sender, such as a {@code @MockitoBean}, the behaviour of {@link #sender()}. */
     public static void stub(JavaMailSender sender) {
         when(sender.createMimeMessage()).thenAnswer(invocation -> new MimeMessage(Session.getInstance(new Properties())));
         doAnswer(invocation -> {

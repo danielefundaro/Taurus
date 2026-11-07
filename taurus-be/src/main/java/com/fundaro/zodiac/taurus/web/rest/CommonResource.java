@@ -136,7 +136,7 @@ public class CommonResource<E extends CommonFields, D extends CommonFieldsDTO, C
         log.debug("REST request to get {} by criteria: {}", entityName, criteria);
         Page<D> page = service.findByCriteria(criteria, pageable, abstractAuthenticationToken);
         return ResponseEntity.ok()
-            .headers(PaginationUtil.generatePaginationHttpHeaders(UriComponentsBuilder.fromHttpUrl(request.getRequestURL().toString()), page))
+            .headers(PaginationUtil.generatePaginationHttpHeaders(UriComponentsBuilder.fromUriString(request.getRequestURL().toString()), page))
             .body(page);
     }
 

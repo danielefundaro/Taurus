@@ -93,7 +93,6 @@ public class LoanSheetPdfRenderer {
     private static byte[] toPdf(Document document) {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.useFastMode();
             builder.useUriResolver((baseUri, uri) -> isEmbedded(uri) ? uri : null);
             builder.useExternalResourceAccessControl((uri, type) -> isEmbedded(uri), ExternalResourceControlPriority.RUN_BEFORE_RESOLVING_URI);
             builder.useExternalResourceAccessControl((uri, type) -> isEmbedded(uri), ExternalResourceControlPriority.RUN_AFTER_RESOLVING_URI);

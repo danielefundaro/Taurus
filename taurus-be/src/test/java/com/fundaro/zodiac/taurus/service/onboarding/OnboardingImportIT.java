@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -88,11 +88,11 @@ class OnboardingImportIT {
     private static final String VALID_CSV = "riferimento,nome,descrizione\r\nSTR-1,Clarinetto,Legni\r\n";
     private static final String INVALID_CSV = "riferimento,nome,descrizione\r\nSTR-2,,Nome obbligatorio\r\n";
 
-    @MockBean
+    @MockitoBean
     ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean
+    @MockitoBean
     JwtDecoder jwtDecoder;
-    @MockBean
+    @MockitoBean
     KeycloakService keycloakService;
 
     @Autowired
