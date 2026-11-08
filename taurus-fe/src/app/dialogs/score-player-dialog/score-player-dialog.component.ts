@@ -238,7 +238,7 @@ export class ScorePlayerDialogComponent implements OnInit, OnDestroy {
             measureNumber: this.currentMeasure || null
         };
         const ref = this.dialogService.open(ScoreReportDialogComponent, { showHeader: false, width: 'min(36rem, 95vw)', modal: true, focusOnShow: false, data });
-        ref.onClose.pipe(first()).subscribe((sent: boolean | undefined) => {
+        ref?.onClose.pipe(first()).subscribe((sent: boolean | undefined) => {
             if (sent) this.toastService.success('Segnalazione inviata', 'Archivisti e amministratori la riceveranno e correggeranno la parte.');
         });
     }

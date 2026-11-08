@@ -13,7 +13,7 @@ import { Tracks } from '../../../../module';
     host: {
         class: 'col-span-12'
     },
-    changeDetection: ChangeDetectionStrategy.Default
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class RecentsWidgetComponent {
     @Input() tracks: Tracks[] = [];

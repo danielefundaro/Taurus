@@ -21,7 +21,7 @@
                             <strong>{{ report.measureNumber ? 'Battuta ' + report.measureNumber : 'Battuta non indicata' }}</strong>
                             <span class="text-sm text-muted-color">versione {{ report.versionNumber }}</span>
                         </div>
-                        <span class="whitespace-pre-line break-words">{{ report.message }}</span>
+                        <span class="whitespace-pre-line wrap-break-word">{{ report.message }}</span>
                         <span class="text-sm text-muted-color">{{ report.reportedBy || 'Utente' }} · {{ report.reportedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
                     </div>
                     <p-button label="Chiudi segnalazione" icon="pi pi-check" size="small" severity="secondary" outlined [loading]="closing === report.id" [disabled]="closing !== null" (onClick)="closeReport(report)" />
@@ -36,7 +36,7 @@
                             <strong>{{ report.measureNumber ? 'Battuta ' + report.measureNumber : 'Battuta non indicata' }}</strong>
                             <span class="text-sm text-muted-color">versione {{ report.versionNumber }}</span>
                         </div>
-                        <span class="whitespace-pre-line break-words">{{ report.message }}</span>
+                        <span class="whitespace-pre-line wrap-break-word">{{ report.message }}</span>
                         <span class="text-sm text-muted-color">{{ report.reportedBy || 'Utente' }} · {{ report.reportedAt | date: 'dd/MM/yyyy HH:mm' }} · {{ closureLabel(report) }}</span>
                     </div>
                 }

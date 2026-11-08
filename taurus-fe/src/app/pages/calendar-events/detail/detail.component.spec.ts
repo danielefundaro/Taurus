@@ -5,7 +5,6 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { signal } from '@angular/core';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { ConfirmationService } from 'primeng/api';
@@ -81,7 +80,6 @@ describe('DetailComponent preparation', () => {
                 provideRouter([{ path: 'calendar/:id', component: DetailComponent }]),
                 provideHttpClient(),
                 provideHttpClientTesting(),
-                provideNoopAnimations(),
                 ConfirmationService,
                 DateConverterPipe,
                 {

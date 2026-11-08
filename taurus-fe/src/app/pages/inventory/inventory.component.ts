@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DialogService } from 'primeng/dynamicdialog';
 import { first, forkJoin } from 'rxjs';
 import { AddInventoryDialogComponent } from '../../dialogs/add-inventory-dialog/add-inventory-dialog.component';
 import { InventoryLabelDialogComponent } from '../../dialogs/inventory-label-dialog/inventory-label-dialog.component';
@@ -160,7 +160,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
 
     protected addNew(): void {
         if (!this.isAdmin || this.personalView) return;
-        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddInventoryDialogComponent, {
+        const dynamicDialogRef = this.dialogService.open(AddInventoryDialogComponent, {
             header: 'Aggiungi oggetto di inventario',
             closable: false,
             showHeader: false,
@@ -171,7 +171,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
             breakpoints: { '767px': 'calc(100vw - 2rem)' }
         });
 
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result?: InventoryItem) => {
+        dynamicDialogRef?.onClose.pipe(first()).subscribe((result?: InventoryItem) => {
             if (!result) return;
             this.inventoryService
                 .createItem(result)
@@ -267,7 +267,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((result?: SignatureCodeDialogResult) => {
                 if (!result) return;
                 if (result.confirmation) {
@@ -291,7 +291,7 @@ export class InventoryComponent extends ListPageBase implements OnInit {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data: { items: this.selectedItems }
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((request?: InventoryLabelRequest) => {
                 if (!request) return;
                 this.inventoryService

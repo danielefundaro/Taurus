@@ -14,7 +14,7 @@
     deleteLabel="Elimina istanze selezionate" (toggleAll)="toggleSelectAll(tenants)" (clear)="selectedTenants = []"
     (delete)="deleteSelectedElements()" />
 
-<div class="card !p-0 overflow-hidden" appTourAnchor="tenants.list">
+<div class="card p-0! overflow-hidden" appTourAnchor="tenants.list">
     <p-dataview [value]="tenants" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
         paginatorPosition="bottom" [showCurrentPageReport]="true"

@@ -11,8 +11,8 @@
         <p-skeleton height="8rem" />
     </div>
     } @else {
-    <app-page-header kicker="Oggetto inventario" [heading]="isNew ? 'Nuovo oggetto' : item.name"
-        [subtitle]="isNew ? 'Compila i dati del nuovo oggetto.' : item.inventoryNumber" backLink="/inventory"
+    <app-page-header kicker="Oggetto inventario" [heading]="isNew ? 'Nuovo oggetto' : inventoryItem.name"
+        [subtitle]="isNew ? 'Compila i dati del nuovo oggetto.' : inventoryItem.inventoryNumber" backLink="/inventory"
         [dirty]="isDirty">
         <div pageActions><p-button label="Salva oggetto" icon="pi pi-check" [loading]="saving" [disabled]="!canSave"
                 (onClick)="save()" /></div>
@@ -21,13 +21,13 @@
     @if (!isNew) {
     <div class="card grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="inventory-stat">
-            <strong>{{ item.totalQuantity }}</strong><span>Quantità totale</span>
+            <strong>{{ inventoryItem.totalQuantity }}</strong><span>Quantità totale</span>
         </div>
         <div class="inventory-stat">
-            <strong>{{ item.assignedQuantity }}</strong><span>Assegnati</span>
+            <strong>{{ inventoryItem.assignedQuantity }}</strong><span>Assegnati</span>
         </div>
         <div class="inventory-stat">
-            <strong>{{ item.availableQuantity }}</strong><span>Disponibili</span>
+            <strong>{{ inventoryItem.availableQuantity }}</strong><span>Disponibili</span>
         </div>
     </div>
     }
@@ -37,44 +37,44 @@
         [dirty]="itemDirty">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <app-form-field label="Numero inventariale" forId="inventoryNumber" required
-                [error]="item.inventoryNumber.trim() ? undefined : 'Inserisci il numero inventariale.'">
-                <input pInputText id="inventoryNumber" [(ngModel)]="item.inventoryNumber"
+                [error]="inventoryItem.inventoryNumber.trim() ? undefined : 'Inserisci il numero inventariale.'">
+                <input pInputText id="inventoryNumber" [(ngModel)]="inventoryItem.inventoryNumber"
                     (ngModelChange)="markItemDirty()" />
             </app-form-field>
             <app-form-field label="Nome" forId="name" required
-                [error]="item.name.trim() ? undefined : 'Inserisci il nome dell’oggetto.'">
-                <input pInputText id="name" [(ngModel)]="item.name" (ngModelChange)="markItemDirty()" />
+                [error]="inventoryItem.name.trim() ? undefined : 'Inserisci il nome dell’oggetto.'">
+                <input pInputText id="name" [(ngModel)]="inventoryItem.name" (ngModelChange)="markItemDirty()" />
             </app-form-field>
             <app-form-field label="Quantità totale" forId="totalQuantity">
-                <p-inputnumber inputId="totalQuantity" [(ngModel)]="item.totalQuantity" [min]="0" [showButtons]="true"
+                <p-inputnumber inputId="totalQuantity" [(ngModel)]="inventoryItem.totalQuantity" [min]="0" [showButtons]="true"
                     (ngModelChange)="markItemDirty()" />
             </app-form-field>
             <app-form-field label="Stato di conservazione" forId="condition">
                 <p-select inputId="condition" [options]="conditions" optionLabel="label" optionValue="value"
-                    [(ngModel)]="item.conditionStatus" (ngModelChange)="markItemDirty()" />
+                    [(ngModel)]="inventoryItem.conditionStatus" (ngModelChange)="markItemDirty()" />
             </app-form-field>
             <app-form-field label="Valore unitario stimato" forId="value"
                 hint="In euro, è il valore concordato del foglio di affidamento.">
-                <p-inputnumber inputId="value" [(ngModel)]="item.estimatedUnitValue" mode="decimal"
+                <p-inputnumber inputId="value" [(ngModel)]="inventoryItem.estimatedUnitValue" mode="decimal"
                     [minFractionDigits]="2" (ngModelChange)="markItemDirty()" />
             </app-form-field>
             <app-form-field label="Valuta ISO" forId="currency" hint="Ad esempio EUR">
-                <input pInputText id="currency" maxlength="3" [(ngModel)]="item.currency"
+                <input pInputText id="currency" maxlength="3" [(ngModel)]="inventoryItem.currency"
                     (ngModelChange)="markItemDirty()" />
             </app-form-field>
             <app-form-field label="Marca / modello" forId="brandModel">
-                <input pInputText id="brandModel" maxlength="255" [(ngModel)]="item.brandModel"
+                <input pInputText id="brandModel" maxlength="255" [(ngModel)]="inventoryItem.brandModel"
                     (ngModelChange)="markItemDirty()" />
             </app-form-field>
             <app-form-field label="Matricola" forId="serialNumber" hint="Numero di serie del costruttore.">
-                <input pInputText id="serialNumber" maxlength="128" [(ngModel)]="item.serialNumber"
+                <input pInputText id="serialNumber" maxlength="128" [(ngModel)]="inventoryItem.serialNumber"
                     (ngModelChange)="markItemDirty()" />
             </app-form-field>
             <app-form-field label="Regime di comodato" forId="loanType"
                 hint="Necessario per inserire il bene in un foglio di affidamento.">
                 <p-select inputId="loanType" [options]="loanTypes" optionLabel="label" optionValue="value"
-                    [(ngModel)]="item.loanType" (ngModelChange)="markItemDirty()">
-                    <ng-template pTemplate="item" let-option>
+                    [(ngModel)]="inventoryItem.loanType" (ngModelChange)="markItemDirty()">
+                    <ng-template #item let-option>
                         <span class="flex flex-col">
                             <span>{{ option.label }}</span>
                             @if (option.description) {
@@ -85,11 +85,11 @@
                 </p-select>
             </app-form-field>
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Descrizione" forId="description">
-                <textarea pTextarea id="description" rows="4" [(ngModel)]="item.description"
+                <textarea pTextarea id="description" rows="4" [(ngModel)]="inventoryItem.description"
                     (ngModelChange)="markItemDirty()"></textarea>
             </app-form-field>
             <app-form-field class="md:col-span-2 lg:col-span-3" label="Note di conservazione" forId="conditionNotes">
-                <textarea pTextarea id="conditionNotes" rows="3" [(ngModel)]="item.conditionNotes"
+                <textarea pTextarea id="conditionNotes" rows="3" [(ngModel)]="inventoryItem.conditionNotes"
                     (ngModelChange)="markItemDirty()"></textarea>
             </app-form-field>
         </div>
@@ -108,7 +108,7 @@
                 (onClick)="rotateQrCode()" />
         </div>
         <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-            <img [src]="qrCodeUrl() | secure | async" [alt]="'QR code dell’oggetto ' + item.inventoryNumber"
+            <img [src]="qrCodeUrl() | secure | async" [alt]="'QR code dell’oggetto ' + inventoryItem.inventoryNumber"
                 class="w-48 h-48 bg-white border border-surface rounded-lg" />
             <app-inline-alert severity="info" heading="Etichetta privata"
                 detail="La scansione richiede sempre l’autenticazione e non espone dati dell’oggetto nel collegamento." />
@@ -116,7 +116,7 @@
     </app-detail-section>
     }
 
-    <app-detail-section appTourAnchor="inventoryItem.photos" heading="Fotografie" headingId="fotografie" [count]="item.photos?.length"
+    <app-detail-section appTourAnchor="inventoryItem.photos" heading="Fotografie" headingId="fotografie" [count]="inventoryItem.photos?.length"
         description="JPEG o PNG, massimo 10 MB ciascuna: puoi sceglierne più di una alla volta. Usa le frecce per riordinare e la stella per scegliere l’anteprima. L’ordine si salva per conto proprio."
         [dirty]="photoOrderDirty">
         <div sectionActions class="flex flex-wrap gap-2">
@@ -127,12 +127,12 @@
                 <input type="file" accept="image/jpeg,image/png" multiple class="hidden" (change)="upload($event)" />
             </label>
         </div>
-        @if (item.photos?.length) {
+        @if (inventoryItem.photos?.length) {
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            @for (photo of item.photos; track photo.id; let index = $index; let first = $first; let last = $last) {
+            @for (photo of inventoryItem.photos; track photo.id; let index = $index; let first = $first; let last = $last) {
             <div class="inventory-photo relative" [class.inventory-photo-preview]="photo.preview">
-                <p-image class="block" [src]="(photoUrl(photo.id) | secure | async) ?? undefined" [alt]="photo.fileName"
-                    [preview]="true" appendTo="body" styleClass="w-full" imageClass="block w-full h-40 object-cover" />
+                <p-image class="block w-full" [src]="(photoUrl(photo.id) | secure | async) ?? undefined" [alt]="photo.fileName"
+                    [preview]="true" appendTo="body" imageClass="block w-full h-40 object-cover" />
                 @if (photo.preview) {
                 <span class="preview-label"><i class="pi pi-star-fill"></i> Anteprima</span>
                 }
@@ -170,14 +170,14 @@
                         (ngModelChange)="onAssigneeChange()"
                         placeholder="Seleziona utente" [filter]="true" filterBy="name,lastName" class="w-full">
                         <ng-template #selectedItem let-user>{{ user.name }} {{ user.lastName }}</ng-template>
-                        <ng-template pTemplate="item" let-user>{{ user.name }} {{ user.lastName }}</ng-template>
+                        <ng-template #item let-user>{{ user.name }} {{ user.lastName }}</ng-template>
                     </p-select>
                 </app-form-field>
             </div>
             <div class="md:col-span-2">
                 <app-form-field label="Quantità" forId="assignmentQuantity">
                     <p-inputnumber inputId="assignmentQuantity" [(ngModel)]="assignmentQuantity" [min]="1"
-                        [max]="item.availableQuantity || 1" [showButtons]="true" class="w-full" />
+                        [max]="inventoryItem.availableQuantity || 1" [showButtons]="true" class="w-full" />
                 </app-form-field>
             </div>
             <div class="md:col-span-3">
@@ -190,7 +190,7 @@
             </div>
             <div class="md:col-span-3 assign-action">
                 <p-button label="Assegna" icon="pi pi-user-plus" class="w-full" styleClass="w-full"
-                    [disabled]="!selectedUser || assignmentQuantity < 1 || !item.availableQuantity"
+                    [disabled]="!selectedUser || assignmentQuantity < 1 || !inventoryItem.availableQuantity"
                     (onClick)="assign()" />
             </div>
             <div class="md:col-span-12">
@@ -208,13 +208,13 @@
         </div>
     </app-detail-section>
 
-    <app-detail-section appTourAnchor="inventoryItem.assignments" heading="Assegnazioni e riconsegne" headingId="assegnazioni" [count]="item.assignments?.length"
+    <app-detail-section appTourAnchor="inventoryItem.assignments" heading="Assegnazioni e riconsegne" headingId="assegnazioni" [count]="inventoryItem.assignments?.length"
         description="Ogni riga si salva con il proprio pulsante «Salva»: non dipende da «Salva oggetto»."
         [dirty]="dirtyAssignments.size > 0">
-        <p-table [value]="item.assignments || []" [paginator]="true" [rows]="12" [rowsPerPageOptions]="[12, 24, 48]"
+        <p-table [value]="inventoryItem.assignments || []" [paginator]="true" [rows]="12" [rowsPerPageOptions]="[12, 24, 48]"
             dataKey="id" [rowHover]="true"
             currentPageReportTemplate="Da {first} a {last} di {totalRecords} assegnazioni"
-            [showCurrentPageReport]="true" responsiveLayout="scroll">
+            [showCurrentPageReport]="true">
             <ng-template #header>
                 <tr>
                     <th scope="col">Utente</th>
@@ -378,7 +378,7 @@
     </app-detail-section>
 
     @if (inventoryQrEnabled()) {
-    <app-inventory-issue-list [itemId]="item.id!" [totalQuantity]="item.totalQuantity" headingId="segnalazioni" />
+    <app-inventory-issue-list [itemId]="inventoryItem.id!" [totalQuantity]="inventoryItem.totalQuantity" headingId="segnalazioni" />
     }
 
     <app-danger-zone

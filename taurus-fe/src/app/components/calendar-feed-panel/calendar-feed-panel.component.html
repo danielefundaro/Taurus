@@ -38,7 +38,7 @@
             <strong>Feed esistenti</strong>
             <small>Per sicurezza l'elenco mostra solo un codice identificativo, non il link completo.</small>
         </div>
-        <p-table appTourAnchor="calendarFeed.list" [value]="feeds" responsiveLayout="scroll">
+        <p-table appTourAnchor="calendarFeed.list" [value]="feeds">
             <ng-template #header>
                 <tr>
                     <th>Feed</th>
@@ -100,7 +100,7 @@
             @if (historyLoading) {
                 <p-skeleton height="4rem" />
             } @else if (historyEntries.length) {
-                <p-table [value]="historyEntries" responsiveLayout="scroll">
+                <p-table [value]="historyEntries">
                     <ng-template #header>
                         <tr>
                             <th>Operazione</th>

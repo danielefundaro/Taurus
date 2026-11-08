@@ -18,7 +18,7 @@
                 @if (completing) {
                     <p-button label="Inserisci il testo" icon="pi pi-check" [loading]="saving" [disabled]="saving || !isDirty" (onClick)="completeText()" />
                 }
-                <a pButton label="Apri pagina pubblica" icon="pi pi-external-link" severity="secondary" [outlined]="true" [href]="publicPath" target="_blank" rel="noopener"></a>
+                <a pButton severity="secondary" [outlined]="true" [href]="publicPath" target="_blank" rel="noopener"><i class="pi pi-external-link" pButtonIcon aria-hidden="true"></i><span pButtonLabel>Apri pagina pubblica</span></a>
                 <p-button appTourAnchor="legalDocument.newVersion" label="Nuova versione da questa" icon="pi pi-copy" severity="secondary" [outlined]="true" (onClick)="newVersion()" />
                 @if (saved?.active) {
                     <p-button appTourAnchor="legalDocument.publish" label="Ritira" icon="pi pi-ban" severity="warn" [outlined]="true" [loading]="saving" (onClick)="withdraw()" />

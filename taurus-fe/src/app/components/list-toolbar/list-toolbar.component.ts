@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -8,7 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
-import { ToggleButtonRoleDirective } from '../../directive/toggle-button-role.directive';
+import { ToggleButtonDisabledDirective } from '../../directive/toggle-button-disabled.directive';
 
 export interface ListToolbarOption {
     label?: string;
@@ -18,7 +17,7 @@ export interface ListToolbarOption {
 @Component({
     selector: 'app-list-toolbar',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, IconFieldModule, InputIconModule, InputTextModule, SelectModule, SelectButtonModule, ToggleButtonRoleDirective],
+    imports: [FormsModule, ButtonModule, IconFieldModule, InputIconModule, InputTextModule, SelectModule, SelectButtonModule, ToggleButtonDisabledDirective],
     templateUrl: './list-toolbar.component.html',
     styleUrl: './list-toolbar.component.scss'
 })

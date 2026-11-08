@@ -70,7 +70,7 @@ export class InventoryLoanSheetsComponent implements OnInit, OnChanges {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data: { userIndex: this.userIndex, proposal: this.proposal }
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((request?: InventoryLoanSheetIssueRequest) => {
                 if (!request) return;
                 this.inventoryService
@@ -130,7 +130,7 @@ export class InventoryLoanSheetsComponent implements OnInit, OnChanges {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data: { sheet }
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((request?: InventoryLoanSheetCloseRequest) => {
                 if (!request) return;
                 this.inventoryService
@@ -179,7 +179,7 @@ export class InventoryLoanSheetsComponent implements OnInit, OnChanges {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data: { sheet }
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((reason?: string) => {
                 if (!reason) return;
                 this.inventoryService

@@ -166,7 +166,6 @@
                                     [totalRecords]="previewTotal"
                                     [rowsPerPageOptions]="[25, 50, 100]"
                                     (onLazyLoad)="loadPreview(($event.first || 0) / ($event.rows || 50))"
-                                    responsiveLayout="scroll"
                                 >
                                     <ng-template #header>
                                         <tr>

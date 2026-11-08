@@ -57,7 +57,7 @@
             [rowsPerPageOptions]="[12, 24, 48]" (onRowReorder)="onRowReorder()">
             <ng-template #caption>
                 <p-iconfield>
-                    <p-inputicon styleClass="pi pi-search" />
+                    <p-inputicon class="pi pi-search" />
                     <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Cerca traccia..." />
                 </p-iconfield>
             </ng-template>

@@ -31,11 +31,11 @@
             forId="substitutionItem"
             required
             hint="Sono elencati gli oggetti disponibili con il regime di comodato indicato."
-            [error]="shell.validationAttempted && !item ? 'Seleziona l’oggetto da consegnare.' : undefined"
+            [error]="shell.validationAttempted && !substituteItem ? 'Seleziona l’oggetto da consegnare.' : undefined"
         >
-            <p-select inputId="substitutionItem" [options]="items" [(ngModel)]="item" [filter]="true" filterBy="name,inventoryNumber" placeholder="Seleziona oggetto" appendTo="body" (onChange)="selectItem()">
+            <p-select inputId="substitutionItem" [options]="items" [(ngModel)]="substituteItem" [filter]="true" filterBy="name,inventoryNumber" placeholder="Seleziona oggetto" appendTo="body" (onChange)="selectItem()">
                 <ng-template #selectedItem let-value>{{ value.inventoryNumber }} – {{ value.name }}</ng-template>
-                <ng-template pTemplate="item" let-value>
+                <ng-template #item let-value>
                     <span class="flex flex-col">
                         <span>{{ value.inventoryNumber }} – {{ value.name }}</span>
                         <small class="text-muted-color">{{ loanTypeLabel(value.loanType) }} · disponibili {{ value.availableQuantity }}</small>
@@ -44,7 +44,7 @@
             </p-select>
         </app-form-field>
         <app-form-field label="Quantità" forId="substitutionQuantity" required>
-            <p-inputnumber inputId="substitutionQuantity" [(ngModel)]="quantity" [min]="1" [max]="item?.availableQuantity || 1" [showButtons]="true" />
+            <p-inputnumber inputId="substitutionQuantity" [(ngModel)]="quantity" [min]="1" [max]="substituteItem?.availableQuantity || 1" [showButtons]="true" />
         </app-form-field>
         @if (fixedTerm) {
             <app-form-field

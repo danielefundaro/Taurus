@@ -21,7 +21,7 @@ export class InventorySubstitutionDialogComponent implements OnInit {
     protected readonly assignment: InventoryAssignment;
     protected readonly terms: InventoryLoanSheetTerms;
     protected items: InventoryItem[] = [];
-    protected item?: InventoryItem;
+    protected substituteItem?: InventoryItem;
     protected quantity: number;
     protected expirationDate?: Date | null;
     protected accessories = '';
@@ -57,7 +57,7 @@ export class InventorySubstitutionDialogComponent implements OnInit {
     }
 
     protected get fixedTerm(): boolean {
-        return this.item?.loanType === 'FIXED_TERM';
+        return this.substituteItem?.loanType === 'FIXED_TERM';
     }
 
     protected get minimumExpiration(): Date {
@@ -69,22 +69,22 @@ export class InventorySubstitutionDialogComponent implements OnInit {
     }
 
     protected get invalidCount(): number {
-        let invalid = this.item ? 0 : 1;
-        if (this.quantity < 1 || (this.item && this.quantity > (this.item.availableQuantity ?? 0))) invalid++;
+        let invalid = this.substituteItem ? 0 : 1;
+        if (this.quantity < 1 || (this.substituteItem && this.quantity > (this.substituteItem.availableQuantity ?? 0))) invalid++;
         if (this.fixedTerm && !this.expirationDate) invalid++;
         return invalid;
     }
 
     protected selectItem(): void {
-        if (!this.item) return;
-        this.quantity = Math.min(this.quantity, this.item.availableQuantity ?? 1) || 1;
+        if (!this.substituteItem) return;
+        this.quantity = Math.min(this.quantity, this.substituteItem.availableQuantity ?? 1) || 1;
         this.expirationDate = this.fixedTerm ? this.maximumExpiration : undefined;
     }
 
     protected save(): void {
-        if (this.invalidCount || !this.item?.id) return;
+        if (this.invalidCount || !this.substituteItem?.id) return;
         const request: InventorySubstitutionRequest = {
-            itemId: this.item.id,
+            itemId: this.substituteItem.id,
             quantity: this.quantity,
             expirationDate: this.fixedTerm ? toLocalDate(this.expirationDate) : undefined,
             accessories: this.accessories.trim() || undefined,

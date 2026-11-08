@@ -18,7 +18,7 @@ import { NotificationCategoryPreference, NotificationPreferences, NotificationPu
     templateUrl: './profile.component.html',
     styleUrl: './profile.component.scss',
     providers: [UsersService],
-    changeDetection: ChangeDetectionStrategy.Default
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class ProfileComponent extends DetailPageBase implements OnInit {
     private readonly keycloak = inject(Keycloak);

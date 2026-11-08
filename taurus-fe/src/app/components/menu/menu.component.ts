@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, effect, inject, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
@@ -9,7 +8,7 @@ import { TenantFeatureService, TenantStatusService } from '../../service';
 
 @Component({
     selector: 'app-menu',
-    imports: [CommonModule, MenuItemComponent, RouterModule, HasRolesDirective, TourAnchorDirective],
+    imports: [MenuItemComponent, RouterModule, HasRolesDirective, TourAnchorDirective],
     templateUrl: './menu.component.html',
     styleUrl: './menu.component.scss'
 })

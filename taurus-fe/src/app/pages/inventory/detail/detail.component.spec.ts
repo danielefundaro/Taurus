@@ -31,8 +31,8 @@ describe('InventoryDetailComponent', () => {
             { snapshot: { fragment: null } } as unknown as ActivatedRoute,
             {} as Router
         );
-        const item: InventoryItem = { ...component['item'], id: 7, photos: [], assignments: [] };
-        component['item'] = item;
+        const item: InventoryItem = { ...component['inventoryItem'], id: 7, photos: [], assignments: [] };
+        component['inventoryItem'] = item;
         inventoryService.getItem.and.returnValue(of(item));
         return { component, inventoryService, toastService, uploads };
     }

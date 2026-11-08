@@ -10,7 +10,6 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DataViewModule } from 'primeng/dataview';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DragDropModule } from 'primeng/dragdrop';
-import { DropdownModule } from 'primeng/dropdown';
 import { DynamicDialogModule } from 'primeng/dynamicdialog';
 import { FileUploadModule } from 'primeng/fileupload';
 import { FloatLabelModule } from 'primeng/floatlabel';
@@ -37,7 +36,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToggleButtonModule } from 'primeng/togglebutton';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TooltipModule } from 'primeng/tooltip';
-import { HasRolesDirective, ToggleButtonRoleDirective, TourAnchorDirective } from './directive';
+import { HasRolesDirective, ToggleButtonDisabledDirective, TourAnchorDirective } from './directive';
 import { DangerZoneComponent } from './components/danger-zone/danger-zone.component';
 import { DetailSectionComponent } from './components/detail-section/detail-section.component';
 import { DialogShellComponent } from './components/dialog-shell/dialog-shell.component';
@@ -64,7 +63,6 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         RouterModule,
         RouterOutlet,
         ButtonModule,
-        DropdownModule,
         InputTextModule,
         ImageModule,
         InputNumberModule,
@@ -98,7 +96,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         DateConverterPipe,
         EnumConverterPipe,
         HasRolesDirective,
-        ToggleButtonRoleDirective,
+        ToggleButtonDisabledDirective,
         TourAnchorDirective,
         InitialsPipe,
         ConfirmDialogModule,
@@ -129,7 +127,6 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         RouterModule,
         RouterOutlet,
         ButtonModule,
-        DropdownModule,
         InputTextModule,
         ImageModule,
         InputNumberModule,
@@ -163,7 +160,7 @@ import { DateConverterPipe, EnumConverterPipe, InitialsPipe, SecurePipe } from '
         DateConverterPipe,
         EnumConverterPipe,
         HasRolesDirective,
-        ToggleButtonRoleDirective,
+        ToggleButtonDisabledDirective,
         TourAnchorDirective,
         InitialsPipe,
         ConfirmDialogModule,

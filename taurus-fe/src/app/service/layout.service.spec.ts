@@ -36,14 +36,14 @@ describe('LayoutService', () => {
             ]
         });
         service = TestBed.inject(LayoutService);
-        TestBed.flushEffects();
+        TestBed.tick();
     });
 
     it('keeps a preference without id local instead of updating it on the server', () => {
         storage.set('primary', { key: 'primary', value: 'emerald' } as Preferences);
 
         service.layoutConfig.update((config) => ({ ...config, primary: 'blue' }));
-        TestBed.flushEffects();
+        TestBed.tick();
 
         expect(preferencesService.update).not.toHaveBeenCalled();
         expect(storage.get('primary')?.value).toBe('blue');
@@ -54,7 +54,7 @@ describe('LayoutService', () => {
         preferencesService.update.and.returnValue(of({ id: 3, key: 'primary', value: 'blue' } as Preferences));
 
         service.layoutConfig.update((config) => ({ ...config, primary: 'blue' }));
-        TestBed.flushEffects();
+        TestBed.tick();
 
         expect(preferencesService.update).toHaveBeenCalledOnceWith(3, jasmine.objectContaining({ key: 'primary', value: 'blue' }));
         expect(storage.get('primary')).toEqual(jasmine.objectContaining({ id: 3, value: 'blue' }));
@@ -67,7 +67,7 @@ describe('LayoutService', () => {
         preferencesService.count.calls.reset();
 
         service.layoutConfig.update((config) => ({ ...config, preset: 'Lara', primary: 'blue' }));
-        TestBed.flushEffects();
+        TestBed.tick();
 
         expect(preferencesService.update).not.toHaveBeenCalled();
         expect(preferencesService.count).not.toHaveBeenCalled();

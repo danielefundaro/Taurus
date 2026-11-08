@@ -12,7 +12,7 @@
 
 <app-list-toolbar [search]="searchTerm" searchPlaceholder="Cerca documento…" [showLayout]="false" (searchChange)="onSearchChange($event)" />
 
-<div class="card !p-0 overflow-hidden">
+<div class="card p-0! overflow-hidden">
     <p-table
         #documentTable
         [value]="documents"
@@ -25,7 +25,6 @@
         paginatorDropdownAppendTo="body"
         [showCurrentPageReport]="true"
         currentPageReportTemplate="Da {first} a {last} di {totalRecords} elementi"
-        responsiveLayout="scroll"
     >
         <ng-template #header>
             <tr>

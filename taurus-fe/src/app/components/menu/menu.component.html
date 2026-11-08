@@ -1,19 +1,19 @@
 <ul class="layout-menu" appTourAnchor="layout.menu">
-    <ng-container *ngFor="let item of model; let i = index">
-        <ng-container *ngIf="!item['hasRoles']; else roleBlock">
-            <li app-menuitem *ngIf="!item.separator; else separatorBlock" [item]="item" [index]="i" [root]="true"></li>
-            <ng-template #separatorBlock>
+    @for (item of model; track item; let i = $index) {
+        @if (!item['hasRoles']) {
+            @if (!item.separator) {
+                <li app-menuitem [item]="item" [index]="i" [root]="true"></li>
+            } @else {
                 <li class="menu-separator"></li>
-            </ng-template>
-        </ng-container>
-        <ng-template #roleBlock>
+            }
+        } @else {
             <ng-container *hasRoles="item['hasRoles']">
-                <li app-menuitem *ngIf="!item.separator; else separatorBlock" [item]="item" [index]="i" [root]="true">
-                </li>
-                <ng-template #separatorBlock>
+                @if (!item.separator) {
+                    <li app-menuitem [item]="item" [index]="i" [root]="true"></li>
+                } @else {
                     <li class="menu-separator"></li>
-                </ng-template>
+                }
             </ng-container>
-        </ng-template>
-    </ng-container>
+        }
+    }
 </ul>

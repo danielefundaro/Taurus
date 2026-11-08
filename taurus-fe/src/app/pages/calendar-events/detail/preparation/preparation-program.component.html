@@ -17,9 +17,8 @@
                         @if (hasMoreTracks) {
                         <div class="px-3 py-2 flex items-center justify-between gap-2">
                             <small class="text-muted-color">{{ trackSuggestions.length }} di {{ trackTotal }}</small>
-                            <button pButton type="button" size="small" severity="secondary" [text]="true"
-                                label="Altri risultati" icon="pi pi-angle-down" (mousedown)="$event.preventDefault()"
-                                (click)="loadMoreTracks()"></button>
+                            <button pButton type="button" size="small" severity="secondary" [text]="true" (mousedown)="$event.preventDefault()"
+                                (click)="loadMoreTracks()"><i class="pi pi-angle-down" pButtonIcon aria-hidden="true"></i><span pButtonLabel>Altri risultati</span></button>
                         </div>
                         }
                     </ng-template>
@@ -68,7 +67,7 @@
                     }
                     <div class="min-w-0">
                         <div class="flex flex-wrap items-center gap-2">
-                            <strong class="break-words">{{ i + 1 }}.
+                            <strong class="wrap-break-word">{{ i + 1 }}.
                                 @if (row.trackAvailable) {
                                 <a class="text-primary" [routerLink]="['/tracks', row.trackId]">{{ row.trackName }}</a>
                                 } @else {
@@ -122,10 +121,8 @@
                     </label>
                     }
                     <button pButton type="button" size="small" severity="secondary" [text]="true"
-                        [label]="'Spartiti (' + row.scores.length + ')'"
-                        [icon]="expanded.has(row.key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
                         [attr.aria-expanded]="expanded.has(row.key)" [attr.aria-controls]="'program-scores-' + row.key"
-                        (click)="toggleScores(row)"></button>
+                        (click)="toggleScores(row)"><i [class]="expanded.has(row.key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" pButtonIcon aria-hidden="true"></i><span pButtonLabel>{{ 'Spartiti (' + row.scores.length + ')' }}</span></button>
                     @if (editable) {
                     <p-button icon="pi pi-arrow-up" severity="secondary" text rounded
                         [ariaLabel]="'Sposta prima ' + row.trackName" [disabled]="i === 0" (onClick)="moveBy(i, -1)" />

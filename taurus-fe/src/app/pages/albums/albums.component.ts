@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DialogService } from 'primeng/dynamicdialog';
 import { delay, finalize, first, forkJoin } from 'rxjs';
 import { RoleEnums, StateEnums } from '../../constants';
 import { AddAlbumsDialogComponent } from '../../dialogs/add-albums-dialog/add-albums-dialog.component';
@@ -17,7 +17,7 @@ import { ListPageBase } from '../_shared/list-page.base';
     templateUrl: './albums.component.html',
     styleUrl: './albums.component.scss',
     providers: [AlbumsService, MediaService, DialogService],
-    changeDetection: ChangeDetectionStrategy.Default
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class AlbumsComponent extends ListPageBase implements OnInit {
     protected sortOptions!: SelectItem[];
@@ -55,7 +55,7 @@ export class AlbumsComponent extends ListPageBase implements OnInit {
     }
 
     protected addNew(): void {
-        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddAlbumsDialogComponent, {
+        const dynamicDialogRef = this.dialogService.open(AddAlbumsDialogComponent, {
             header: 'Aggiungi album',
             closable: false,
             showHeader: false,
@@ -66,7 +66,7 @@ export class AlbumsComponent extends ListPageBase implements OnInit {
             breakpoints: { '767px': 'calc(100vw - 2rem)' }
         });
 
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Albums) => {
+        dynamicDialogRef?.onClose.pipe(first()).subscribe((result: Albums) => {
             if (result) {
                 this.albumsService
                     .create(result)

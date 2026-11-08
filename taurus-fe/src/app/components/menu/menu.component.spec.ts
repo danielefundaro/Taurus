@@ -29,7 +29,7 @@ describe('MenuComponent', () => {
             ]
         });
         const component = TestBed.runInInjectionContext(() => new MenuComponent(service as never));
-        TestBed.flushEffects();
+        TestBed.tick();
 
         expect(menuItem(component, 'Economia')?.visible).toBeFalse();
         expect(menuItem(component, 'Inventario')?.visible).toBeFalse();
@@ -39,27 +39,27 @@ describe('MenuComponent', () => {
         loaded.set(true);
         financeEnabled.set(true);
         onboardingImportEnabled.set(true);
-        TestBed.flushEffects();
+        TestBed.tick();
 
         expect(menuItem(component, 'Economia')?.visible).toBeTrue();
         expect(menuItem(component, 'Inventario')?.visible).toBeFalse();
         expect(menuItem(component, 'Configurazione iniziale')?.visible).toBeTrue();
 
         inventoryEnabled.set(true);
-        TestBed.flushEffects();
+        TestBed.tick();
 
         expect(menuItem(component, 'Economia')?.visible).toBeTrue();
         expect(menuItem(component, 'Inventario')?.visible).toBeTrue();
 
         financeEnabled.set(false);
-        TestBed.flushEffects();
+        TestBed.tick();
 
         expect(menuItem(component, 'Economia')?.visible).toBeFalse();
         expect(menuItem(component, 'Inventario')?.visible).toBeTrue();
         expect(menuItem(component, 'Calendario')?.visible).toBeFalse();
 
         calendarEnabled.set(true);
-        TestBed.flushEffects();
+        TestBed.tick();
 
         expect(menuItem(component, 'Calendario')?.visible).toBeTrue();
     });
@@ -83,7 +83,7 @@ describe('MenuComponent for the board', () => {
             ]
         });
         const component = TestBed.runInInjectionContext(() => new MenuComponent(service as never));
-        TestBed.flushEffects();
+        TestBed.tick();
 
         for (const label of ['Utenti', 'Economia', 'Inventario', 'Album', 'Tracce', 'Strumenti', 'Calendario']) {
             expect(menuItem(component, label)?.['hasRoles']).withContext(label).toContain(RoleEnums.BOARD);
@@ -113,12 +113,12 @@ describe('MenuComponent in bootstrap mode', () => {
             ]
         });
         const component = TestBed.runInInjectionContext(() => new MenuComponent(service as never));
-        TestBed.flushEffects();
+        TestBed.tick();
 
         expect(component.model.flatMap((section) => section.items ?? []).map((item) => item.label)).toEqual(['Tenant']);
 
         bootstrap.set(false);
-        TestBed.flushEffects();
+        TestBed.tick();
 
         expect(menuItem(component, 'Dashboard')).toBeDefined();
         expect(menuItem(component, 'Tenant')).toBeDefined();

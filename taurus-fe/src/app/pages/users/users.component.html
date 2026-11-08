@@ -10,7 +10,7 @@
     deleteLabel="Elimina utenti selezionati" (toggleAll)="toggleSelectAll(users)" (clear)="selectedUsers = []"
     (delete)="deleteSelectedElements()" />
 
-<div class="card !p-0 overflow-hidden" appTourAnchor="users.list">
+<div class="card p-0! overflow-hidden" appTourAnchor="users.list">
     <p-dataview [value]="users" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
         paginatorPosition="bottom" [showCurrentPageReport]="true"

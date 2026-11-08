@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DialogService } from 'primeng/dynamicdialog';
 import { delay, finalize, first, forkJoin } from 'rxjs';
 import { RoleEnums, StateEnums } from '../../constants';
 import { AddFilesDialogComponent } from '../../dialogs/add-files-dialog/add-files-dialog.component';
@@ -55,7 +55,7 @@ export class TracksComponent extends ListPageBase implements OnInit {
     }
 
     public addNewFile(): void {
-        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddFilesDialogComponent, {
+        const dynamicDialogRef = this.dialogService.open(AddFilesDialogComponent, {
             header: 'Aggiungi traccia',
             closable: false,
             showHeader: false,
@@ -66,7 +66,7 @@ export class TracksComponent extends ListPageBase implements OnInit {
             breakpoints: { '767px': 'calc(100vw - 2rem)' }
         });
 
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result?: TrackUploadJob) => {
+        dynamicDialogRef?.onClose.pipe(first()).subscribe((result?: TrackUploadJob) => {
             if (result) {
                 this.toastService.success('PDF ricevuto', 'La nuova traccia è in elaborazione.');
                 this.router.navigate(['/tracks', result.trackId]);
@@ -75,7 +75,7 @@ export class TracksComponent extends ListPageBase implements OnInit {
     }
 
     public addNew(): void {
-        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddTracksDialogComponent, {
+        const dynamicDialogRef = this.dialogService.open(AddTracksDialogComponent, {
             header: 'Aggiungi traccia',
             closable: false,
             showHeader: false,
@@ -86,7 +86,7 @@ export class TracksComponent extends ListPageBase implements OnInit {
             breakpoints: { '767px': 'calc(100vw - 2rem)' }
         });
 
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tracks) => {
+        dynamicDialogRef?.onClose.pipe(first()).subscribe((result: Tracks) => {
             if (result) {
                 this.tracksService
                     .create(result)

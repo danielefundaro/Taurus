@@ -16,7 +16,7 @@
     actionLabel="Riprova" (action)="retryPreview()" />
 }
 
-<div class="card !p-0 overflow-hidden">
+<div class="card p-0! overflow-hidden">
     <p-dataview [value]="albums" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
         paginatorPosition="bottom" [showCurrentPageReport]="true"

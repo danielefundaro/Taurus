@@ -40,7 +40,7 @@
     (delete)="deleteSelectedElements()" />
 }
 
-<div class="card !p-0 overflow-hidden" appTourAnchor="calendar.events">
+<div class="card p-0! overflow-hidden" appTourAnchor="calendar.events">
     @if (layout === 'list') {
     <p-dataview [value]="events" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"

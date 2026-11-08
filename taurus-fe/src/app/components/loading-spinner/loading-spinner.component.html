@@ -1,3 +1,5 @@
-<div class="progress-spinner" *ngIf="isLoading">
-    <p-progress-spinner></p-progress-spinner>
-</div>
+@if (isLoading) {
+    <div class="progress-spinner">
+        <p-progress-spinner></p-progress-spinner>
+    </div>
+}

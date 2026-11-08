@@ -308,7 +308,7 @@ export class PreviewComponent implements OnInit, OnDestroy {
 
     /** Un accesso diretto non ha una superficie precedente nell'applicazione: in quel caso l'uscita è la home. */
     private returnToPreviousSurface(): void {
-        const navigation = this.router.getCurrentNavigation() ?? this.router.lastSuccessfulNavigation;
+        const navigation = this.router.currentNavigation() ?? this.router.lastSuccessfulNavigation();
 
         if (navigation?.previousNavigation) {
             this.location.back();

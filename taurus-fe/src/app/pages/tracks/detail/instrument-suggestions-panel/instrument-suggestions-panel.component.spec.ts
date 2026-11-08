@@ -1,7 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { SimpleChange } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { InstrumentSuggestionName, InstrumentSuggestions, Tracks } from '../../../../module';
 import { ApiErrorService, ToastService, TracksService } from '../../../../service';
@@ -199,7 +198,7 @@ describe('InstrumentSuggestionsPanelComponent template', () => {
         tracks.getInstrumentSuggestions.and.returnValue(of(read));
         await TestBed.configureTestingModule({
             imports: [InstrumentSuggestionsPanelComponent],
-            providers: [provideNoopAnimations(), { provide: TracksService, useValue: tracks }, { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['success']) }]
+            providers: [{ provide: TracksService, useValue: tracks }, { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['success']) }]
         }).compileComponents();
         const fixture = TestBed.createComponent(InstrumentSuggestionsPanelComponent);
         fixture.componentRef.setInput('trackId', 5);

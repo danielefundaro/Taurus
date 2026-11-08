@@ -31,7 +31,7 @@
         </div>
     }
 
-    <p-table [value]="sheets" [loading]="loading" dataKey="id" [rowHover]="true" responsiveLayout="scroll">
+    <p-table [value]="sheets" [loading]="loading" dataKey="id" [rowHover]="true">
         <ng-template #header>
             <tr>
                 <th scope="col">Foglio</th>
@@ -106,7 +106,7 @@
             }
             <div>
                 <h3 class="text-base font-semibold mb-2">Beni consegnati (sezione 3)</h3>
-                <p-table [value]="detail.lines" responsiveLayout="scroll">
+                <p-table [value]="detail.lines">
                     <ng-template #header>
                         <tr>
                             <th scope="col">N.</th>
@@ -137,7 +137,7 @@
             <div>
                 <h3 class="text-base font-semibold mb-2">Registro delle variazioni</h3>
                 @if (detail.register.length) {
-                    <p-table [value]="detail.register" responsiveLayout="scroll">
+                    <p-table [value]="detail.register">
                         <ng-template #header>
                             <tr>
                                 <th scope="col">Data</th>

@@ -134,7 +134,7 @@ export class ScorePlaybackPanelComponent implements OnChanges, OnDestroy {
     protected upload(part: PartPlayback): void {
         const data: ScoreUploadDialogData = { trackId: this.trackId, scoreId: part.scoreId, partLabel: partLabel(part), midi: !!this.playback?.recognitionAvailable };
         const ref = this.dialogService.open(ScoreUploadDialogComponent, { showHeader: false, width: 'min(40rem, 95vw)', modal: true, focusOnShow: false, data });
-        ref.onClose.pipe(first()).subscribe((version: ScoreVersion | undefined) => {
+        ref?.onClose.pipe(first()).subscribe((version: ScoreVersion | undefined) => {
             if (!version) return;
             this.toastService.success('File caricato', `La versione ${version.versionNumber} è ora quella ascoltata per la parte.`);
             this.reload();
@@ -150,7 +150,7 @@ export class ScorePlaybackPanelComponent implements OnChanges, OnDestroy {
             instrument: part.instruments[0] ?? null
         };
         const ref = this.dialogService.open(ScoreVersionsDialogComponent, { showHeader: false, width: 'min(56rem, 95vw)', modal: true, focusOnShow: false, data });
-        ref.onClose.pipe(first()).subscribe((result: ScoreVersionsDialogResult | undefined) => {
+        ref?.onClose.pipe(first()).subscribe((result: ScoreVersionsDialogResult | undefined) => {
             if (result?.changed) this.reload();
             if (result?.correctVersionId) this.correct(part, result.correctVersionId);
         });
@@ -172,7 +172,7 @@ export class ScorePlaybackPanelComponent implements OnChanges, OnDestroy {
             style: { 'max-height': '100vh', 'border-radius': '0' },
             contentStyle: { padding: '0', overflow: 'hidden', height: '100vh' }
         });
-        ref.onClose.pipe(first()).subscribe((version: ScoreVersion | undefined) => {
+        ref?.onClose.pipe(first()).subscribe((version: ScoreVersion | undefined) => {
             if (!version) return;
             if (version.status === 'APPROVED') {
                 this.toastService.success('Correzione approvata', `La versione ${version.versionNumber} è approvata e ascoltata per la parte; le segnalazioni aperte sono chiuse.`);
@@ -186,7 +186,7 @@ export class ScorePlaybackPanelComponent implements OnChanges, OnDestroy {
     protected reports(part: PartPlayback): void {
         const data: ScoreReportsDialogData = { trackId: this.trackId, scoreId: part.scoreId, partLabel: partLabel(part), canCorrect: !!part.version };
         const ref = this.dialogService.open(ScoreReportsDialogComponent, { showHeader: false, width: 'min(48rem, 95vw)', modal: true, focusOnShow: false, data });
-        ref.onClose.pipe(first()).subscribe((result: ScoreReportsDialogResult | undefined) => {
+        ref?.onClose.pipe(first()).subscribe((result: ScoreReportsDialogResult | undefined) => {
             if (result?.changed) this.reload();
             if (result?.correct) this.correct(part);
         });

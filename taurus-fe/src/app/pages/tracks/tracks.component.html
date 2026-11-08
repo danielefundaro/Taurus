@@ -13,7 +13,7 @@
     [count]="selectedTracks.length" [allSelected]="isAllSelected(tracks)" (toggleAll)="toggleSelectAll(tracks)"
     (clear)="selectedTracks = []" (delete)="deleteSelectedElements()" />
 
-<div class="card !p-0 overflow-hidden" appTourAnchor="tracks.list">
+<div class="card p-0! overflow-hidden" appTourAnchor="tracks.list">
     <p-dataview [value]="tracks" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
         paginatorPosition="bottom" [showCurrentPageReport]="true"

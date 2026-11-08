@@ -145,7 +145,7 @@ export class LoanSheetSignaturesComponent implements OnChanges {
                 const data: SignatureSignerDialogData = { act, options };
                 this.dialogService
                     .open(SignatureSignerDialogComponent, { header: 'Cambia firmatario', showHeader: false, modal: true, width: '32rem', breakpoints: { '767px': 'calc(100vw - 1rem)' }, data })
-                    .onClose.pipe(first())
+                    ?.onClose.pipe(first())
                     .subscribe((userId?: string) => {
                         if (!userId) return;
                         this.inventoryService
@@ -163,7 +163,7 @@ export class LoanSheetSignaturesComponent implements OnChanges {
         const data: SignaturePaperDialogData = { act };
         this.dialogService
             .open(SignaturePaperDialogComponent, { header: 'Firmato su carta', showHeader: false, modal: true, width: '34rem', breakpoints: { '767px': 'calc(100vw - 1rem)' }, data })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((note?: string) => {
                 if (!note) return;
                 this.flow

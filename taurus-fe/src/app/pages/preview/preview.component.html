@@ -43,7 +43,7 @@
 
             <label class="instrument-row select-all-row" for="selectAll">
                 <span class="instrument-check">
-                    <p-checkBox inputId="selectAll" [binary]="true" [(ngModel)]="selectAll"
+                    <p-checkbox inputId="selectAll" [binary]="true" [(ngModel)]="selectAll"
                         (onChange)="selectAllChange($event)" />
                 </span>
                 <span class="instrument-name">Seleziona tutto</span>
@@ -53,7 +53,7 @@
                 @for (key of instrumentKeys; track key) {
                 <label class="instrument-row" [for]="key">
                     <span class="instrument-check">
-                        <p-checkBox [inputId]="key" [binary]="true" [value]="key"
+                        <p-checkbox [inputId]="key" [binary]="true" [value]="key"
                             [(ngModel)]="selectedInstruments[key]" (onChange)="selectedInstrumentChange()" />
                     </span>
                     <span class="instrument-name">{{ instruments[key] }}</span>

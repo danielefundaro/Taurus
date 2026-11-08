@@ -1,5 +1,4 @@
 import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { RoleEnums } from '../../../../constants';
 import { EventPreparationEvaluation, EventPreparationIssue } from '../../../../module';
@@ -50,7 +49,7 @@ describe('PreparationSummaryComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [PreparationSummaryComponent],
-            providers: [provideRouter([]), provideNoopAnimations(), { provide: KeycloakService, useValue: { currentUserRole: RoleEnums.ADMIN } }]
+            providers: [provideRouter([]), { provide: KeycloakService, useValue: { currentUserRole: RoleEnums.ADMIN } }]
         }).compileComponents();
         fixture = TestBed.createComponent(PreparationSummaryComponent);
         element = fixture.nativeElement;

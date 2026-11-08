@@ -14,7 +14,7 @@ import { CalendarEvents, Page } from '../../../../module';
     host: {
         class: 'col-span-12 xl:col-span-6'
     },
-    changeDetection: ChangeDetectionStrategy.Default
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class CalendarEventsWidgetComponent implements OnChanges {
     @Input() events?: Page<CalendarEvents>;

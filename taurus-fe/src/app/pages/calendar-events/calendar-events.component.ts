@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DialogService } from 'primeng/dynamicdialog';
 import { Popover } from 'primeng/popover';
 import { delay, finalize, first, forkJoin, Observable } from 'rxjs';
 import { RoleEnums, StateLabelsMap } from '../../constants';
@@ -45,7 +45,7 @@ interface CalendarDay {
     templateUrl: './calendar-events.component.html',
     styleUrl: './calendar-events.component.scss',
     providers: [CalendarEventsService, CalendarEventSeriesService, DialogService],
-    changeDetection: ChangeDetectionStrategy.Default
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class CalendarEventsComponent extends ListPageBase implements OnInit {
     protected sortOptions!: SelectItem[];
@@ -155,7 +155,7 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
     }
 
     private openDialog(data?: { startDate?: Date }): void {
-        const ref: DynamicDialogRef = this.dialogService.open(AddCalendarEventsDialogComponent, {
+        const ref = this.dialogService.open(AddCalendarEventsDialogComponent, {
             header: 'Aggiungi evento',
             closable: false,
             showHeader: false,
@@ -167,7 +167,7 @@ export class CalendarEventsComponent extends ListPageBase implements OnInit {
             data
         });
 
-        ref.onClose.pipe(first()).subscribe((result: CalendarEventDialogResult) => {
+        ref?.onClose.pipe(first()).subscribe((result: CalendarEventDialogResult) => {
             if (result?.event || result?.series) {
                 const creation: Observable<unknown> = result.series ? this.calendarEventSeriesService.create(result.series) : this.calendarEventsService.create(result.event!);
                 creation.pipe(delay(1000), first()).subscribe({

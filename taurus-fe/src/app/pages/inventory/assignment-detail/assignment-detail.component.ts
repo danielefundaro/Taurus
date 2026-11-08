@@ -127,7 +127,7 @@ export class InventoryAssignmentDetailComponent implements OnInit {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((result?: SignatureCodeDialogResult) => {
                 if (!result) return;
                 if (result.confirmation) {
@@ -163,7 +163,7 @@ export class InventoryAssignmentDetailComponent implements OnInit {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data: { assignmentId: this.assignment.id, maxQuantity: this.assignment.outstandingQuantity }
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((issue) => {
                 if (!issue) return;
                 this.toastService.success('Segnalazione inviata', 'Il guasto è stato registrato e notificato agli amministratori.');

@@ -61,7 +61,7 @@
     </div>
 
     @if (calendarEnabled() && dashboard.openEvents.length) {
-    <p-table [value]="dashboard.openEvents" dataKey="eventId" styleClass="open-events">
+    <p-table [value]="dashboard.openEvents" dataKey="eventId" class="open-events">
         <ng-template #caption>Posizioni aperte degli eventi</ng-template>
         <ng-template #header>
             <tr>

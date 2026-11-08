@@ -9,8 +9,8 @@
         </div>
         <button type="button" class="mark-all" [disabled]="unreadCount === 0" (click)="markAll()">Segna tutte come
             lette</button>
-        <button pButton type="button" icon="pi pi-ellipsis-v" class="p-button-rounded p-button-text p-button-plain"
-            aria-label="Altre azioni" (click)="menu.toggle($event)"></button>
+        <button pButton type="button" class="p-button-rounded p-button-text p-button-plain"
+            aria-label="Altre azioni" (click)="menu.toggle($event)"><i class="pi pi-ellipsis-v" pButtonIcon aria-hidden="true"></i></button>
         <p-menu #menu [popup]="true" [model]="items"></p-menu>
     </div>
 
@@ -29,28 +29,28 @@
         </button>
         <div rowActions class="flex items-center gap-1">
             @if (view === 'ACTIVE' && !notice.readDate) {
-            <button pButton type="button" icon="pi pi-clock" class="p-button-rounded p-button-text p-button-plain"
+            <button pButton type="button" class="p-button-rounded p-button-text p-button-plain"
                 [attr.aria-label]="'Ricordamelo tra un’ora: ' + notice.name"
-                (click)="snoozeForOneHour(notice)"></button>
-            <button pButton type="button" icon="pi pi-sun" class="p-button-rounded p-button-text p-button-plain"
+                (click)="snoozeForOneHour(notice)"><i class="pi pi-clock" pButtonIcon aria-hidden="true"></i></button>
+            <button pButton type="button" class="p-button-rounded p-button-text p-button-plain"
                 [attr.aria-label]="'Ricordamelo domani mattina: ' + notice.name"
-                (click)="snoozeUntilTomorrow(notice)"></button>
+                (click)="snoozeUntilTomorrow(notice)"><i class="pi pi-sun" pButtonIcon aria-hidden="true"></i></button>
             <p-datepicker [(ngModel)]="customSnooze[notice.id]" [showIcon]="true" [showTime]="true" hourFormat="24"
                 dateFormat="dd/mm/yy" appendTo="body" [showOnFocus]="false"
                 [inputStyle]="{ width: '1px', padding: 0, border: 0 }"
                 [ariaLabel]="'Scegli data e ora per ' + notice.name" (onSelect)="applyCustomSnooze(notice)" />
             }
             @if (view === 'SNOOZED') {
-            <button pButton type="button" icon="pi pi-bell" class="p-button-rounded p-button-text p-button-plain"
-                [attr.aria-label]="'Mostra ora: ' + notice.name" (click)="unsnooze.emit(notice)"></button>
+            <button pButton type="button" class="p-button-rounded p-button-text p-button-plain"
+                [attr.aria-label]="'Mostra ora: ' + notice.name" (click)="unsnooze.emit(notice)"><i class="pi pi-bell" pButtonIcon aria-hidden="true"></i></button>
             }
             @if (canDisableCategory(notice)) {
-            <button pButton type="button" icon="pi pi-bell-slash" class="p-button-rounded p-button-text p-button-plain"
+            <button pButton type="button" class="p-button-rounded p-button-text p-button-plain"
                 [attr.aria-label]="'Disattiva questa categoria: ' + notice.name"
-                (click)="disableCategory.emit(notice)"></button>
+                (click)="disableCategory.emit(notice)"><i class="pi pi-bell-slash" pButtonIcon aria-hidden="true"></i></button>
             }
-            <button pButton type="button" icon="pi pi-trash" class="p-button-rounded p-button-text p-button-plain"
-                [attr.aria-label]="'Elimina ' + notice.name" (click)="deleteOne(notice)"></button>
+            <button pButton type="button" class="p-button-rounded p-button-text p-button-plain"
+                [attr.aria-label]="'Elimina ' + notice.name" (click)="deleteOne(notice)"><i class="pi pi-trash" pButtonIcon aria-hidden="true"></i></button>
         </div>
     </app-list-row>
     }

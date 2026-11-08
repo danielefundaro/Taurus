@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { MediaService } from '../../../../service';
 import { MediaThumbnailComponent } from './media-thumbnail.component';
@@ -11,7 +10,7 @@ describe('MediaThumbnailComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [MediaThumbnailComponent],
-            providers: [provideNoopAnimations(), { provide: MediaService, useValue: { streamImage: () => of(new Blob()) } }]
+            providers: [{ provide: MediaService, useValue: { streamImage: () => of(new Blob()) } }]
         }).compileComponents();
 
         fixture = TestBed.createComponent(MediaThumbnailComponent);

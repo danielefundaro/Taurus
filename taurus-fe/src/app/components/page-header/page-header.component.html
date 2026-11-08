@@ -1,8 +1,8 @@
 <header class="page-header">
     <div class="page-header__identity">
         @if (backLink) {
-        <a pButton [routerLink]="backLink" text severity="secondary" icon="pi pi-arrow-left"
-            aria-label="Torna all’elenco"></a>
+        <a pButton [routerLink]="backLink" text severity="secondary"
+            aria-label="Torna all’elenco"><i class="pi pi-arrow-left" pButtonIcon aria-hidden="true"></i></a>
         }
         <div class="page-header__copy">
             @if (kicker) {

@@ -1,6 +1,5 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { RoleEnums } from '../../constants';
 import { GUIDED_TOUR_CATALOG_REVISION } from '../../constants/guided-tour-steps';
@@ -46,7 +45,6 @@ describe('GuidedTourComponent', () => {
         TestBed.configureTestingModule({
             imports: [GuidedTourComponent],
             providers: [
-                provideNoopAnimations(),
                 { provide: GuidedTourService, useValue: service },
                 { provide: Router, useValue: router },
                 { provide: KeycloakService, useValue: { currentUserFirstName: 'Maria' } },

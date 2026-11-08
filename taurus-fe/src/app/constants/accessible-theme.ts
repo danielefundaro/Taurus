@@ -97,11 +97,11 @@ export const ACCESSIBLE_TOAST = {
     }
 };
 
-export interface AccessibleComponents {
+export type AccessibleComponents = {
     button: typeof ACCESSIBLE_BUTTON;
     message?: typeof ACCESSIBLE_MESSAGE;
     toast?: typeof ACCESSIBLE_TOAST;
-}
+};
 
 /**
  * Gli scostamenti dei componenti per il preset scelto. Nora dà a messaggi e toast un fondo pieno con

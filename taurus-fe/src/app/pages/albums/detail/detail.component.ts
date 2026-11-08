@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DialogService } from 'primeng/dynamicdialog';
 import { Table } from 'primeng/table';
 import { delay, finalize, first } from 'rxjs';
 import { RoleEnums, StateEnums, StateLabel, StateLabelsMap } from '../../../constants';
@@ -132,7 +132,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected addNew(): void {
-        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(IncludeTracksDialogComponent, {
+        const dynamicDialogRef = this.dialogService.open(IncludeTracksDialogComponent, {
             header: 'Aggiungi traccia',
             closable: false,
             showHeader: false,
@@ -143,7 +143,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             breakpoints: { '1199px': '75vw', '575px': '90vw' }
         });
 
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Tracks[]) => {
+        dynamicDialogRef?.onClose.pipe(first()).subscribe((result: Tracks[]) => {
             if (result) {
                 this.album.tracks ??= [];
 
