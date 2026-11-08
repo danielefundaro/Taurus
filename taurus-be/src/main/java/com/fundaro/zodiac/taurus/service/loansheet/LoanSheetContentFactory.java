@@ -1,7 +1,5 @@
 package com.fundaro.zodiac.taurus.service.loansheet;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryItem;
@@ -20,7 +18,6 @@ import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanSheetDtos.Li
 import com.fundaro.zodiac.taurus.service.dto.inventory.InventoryLoanSheetDtos.RegisterEntry;
 import com.fundaro.zodiac.taurus.service.loansheet.LoanSheetContent.Signature;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -33,6 +30,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Collects what Taurus recorded about an issued sheet into the content printed by the template: the lines frozen at
@@ -221,7 +221,7 @@ public class LoanSheetContentFactory {
                     text(root, "conditionNotes"),
                     expiration == null ? null : LocalDate.parse(expiration)
                 );
-            } catch (IOException | IllegalArgumentException | java.time.format.DateTimeParseException exception) {
+            } catch (JacksonException | IllegalArgumentException | java.time.format.DateTimeParseException exception) {
                 LOG.warn("inventory_loan_sheet_snapshot_unreadable assignmentId={}", assignment.getId());
                 return new DeliverySnapshot(null, null, null);
             }
@@ -230,6 +230,6 @@ public class LoanSheetContentFactory {
 
     private static String text(JsonNode root, String field) {
         JsonNode value = root.get(field);
-        return value == null || value.isNull() ? null : value.asText();
+        return value == null || value.isNull() ? null : value.asString();
     }
 }

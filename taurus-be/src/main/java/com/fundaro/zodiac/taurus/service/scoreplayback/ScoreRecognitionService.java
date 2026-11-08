@@ -1,8 +1,8 @@
 package com.fundaro.zodiac.taurus.service.scoreplayback;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.domain.SheetsMusic;
 import com.fundaro.zodiac.taurus.domain.Tracks;
 import com.fundaro.zodiac.taurus.domain.scoreplayback.ScoreRecognitionJob;
@@ -138,7 +138,7 @@ public class ScoreRecognitionService {
         if (job.getEnginesJson() == null) return List.of();
         try {
             return objectMapper.readValue(job.getEnginesJson(), ENGINES);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Stored engines of recognition job " + job.getId() + " are not readable", exception);
         }
     }

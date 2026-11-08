@@ -1,9 +1,8 @@
 package com.fundaro.zodiac.taurus.service.onboarding;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.TaurusApp;
 import com.fundaro.zodiac.taurus.config.EmbeddedSQL;
-import com.fundaro.zodiac.taurus.config.JacksonConfiguration;
 import com.fundaro.zodiac.taurus.config.TestSecurityConfiguration;
 import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryCondition;
@@ -30,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Pageable;
@@ -63,7 +62,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes = {TaurusApp.class, JacksonConfiguration.class, TestSecurityConfiguration.class})
+@SpringBootTest(classes = {TaurusApp.class, TestSecurityConfiguration.class})
 @EmbeddedSQL
 @AutoConfigureMockMvc
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

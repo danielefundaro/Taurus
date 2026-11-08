@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.scoreplayback;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.domain.Instruments;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.SheetsMusic;
@@ -189,7 +189,7 @@ public class ScorePlaybackSupport {
     public ScoreChecks checks(ScoreVersion version) {
         try {
             return objectMapper.readValue(version.getChecksJson(), ScoreChecks.class);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Stored checks of score version " + version.getId() + " are not readable", exception);
         }
     }
@@ -199,7 +199,7 @@ public class ScorePlaybackSupport {
         if (version.getLayoutJson() == null) return null;
         try {
             return List.of(objectMapper.readValue(version.getLayoutJson(), MeasureBoxDTO[].class));
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Stored layout of score version " + version.getId() + " is not readable", exception);
         }
     }
@@ -207,7 +207,7 @@ public class ScorePlaybackSupport {
     public String checksJson(ScoreChecks checks) {
         try {
             return objectMapper.writeValueAsString(checks);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to serialize score checks", exception);
         }
     }

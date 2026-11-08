@@ -21,8 +21,10 @@ spring:
   liquibase:
     contexts: test
   jackson:
-    serialization:
-      write-durations-as-timestamps: false
+    use-jackson2-defaults: true
+    datatype:
+      datetime:
+        write-durations-as-timestamps: false
   mail:
     host: localhost
   main:

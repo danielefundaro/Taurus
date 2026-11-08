@@ -1,9 +1,5 @@
 package com.fundaro.zodiac.taurus.service.signature;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanHolderRole;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSheet;
@@ -41,6 +37,11 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Signatures of the acts of a loan sheet confirmed by a code: acceptance and approval of the clauses by the holder,
@@ -53,7 +54,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class LoanSheetSigning {
 
-    private static final ObjectMapper CANONICAL = new ObjectMapper().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+    private static final ObjectMapper CANONICAL = JsonMapper.builderWithJackson2Defaults().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).build();
 
     private final LoanSheetSignatureService signatureService;
     private final LoanSheetActCompletion completion;
@@ -327,7 +328,7 @@ public class LoanSheetSigning {
     private static String json(List<Item> items) {
         try {
             return CANONICAL.writeValueAsString(items);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to serialize the signature items", exception);
         }
     }
@@ -335,7 +336,7 @@ public class LoanSheetSigning {
     private static List<Item> items(String json) {
         try {
             return CANONICAL.readValue(json, new TypeReference<>() {});
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to read the signature items", exception);
         }
     }

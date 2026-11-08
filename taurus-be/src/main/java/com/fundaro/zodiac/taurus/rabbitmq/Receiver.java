@@ -1,7 +1,8 @@
 package com.fundaro.zodiac.taurus.rabbitmq;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.fundaro.zodiac.taurus.config.RabbitMQConfig;
 import com.fundaro.zodiac.taurus.domain.enumeration.UploadFileStatusEnum;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
@@ -66,7 +67,7 @@ public class Receiver {
         this.imageTransformationService = imageTransformationService;
         this.metrics = metrics;
         this.instrumentsOutcome = instrumentsOutcome;
-        this.objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.objectMapper = JsonMapper.builderWithJackson2Defaults().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
     }
 
     @RabbitHandler

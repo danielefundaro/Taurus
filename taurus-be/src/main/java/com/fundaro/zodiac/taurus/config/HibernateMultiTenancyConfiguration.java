@@ -3,7 +3,7 @@ package com.fundaro.zodiac.taurus.config;
 import com.fundaro.zodiac.taurus.multitenancy.SchemaMultiTenantConnectionProvider;
 import com.fundaro.zodiac.taurus.multitenancy.TenantIdentifierResolver;
 import org.hibernate.cfg.MultiTenancySettings;
-import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
+import org.springframework.boot.hibernate.autoconfigure.HibernatePropertiesCustomizer;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;

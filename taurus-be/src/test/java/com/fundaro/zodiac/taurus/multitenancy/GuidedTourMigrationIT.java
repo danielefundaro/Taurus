@@ -7,7 +7,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
+import org.springframework.boot.liquibase.autoconfigure.LiquibaseProperties;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import javax.sql.DataSource;

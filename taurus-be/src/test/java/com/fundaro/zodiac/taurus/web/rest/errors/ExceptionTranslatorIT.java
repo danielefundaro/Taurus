@@ -3,7 +3,7 @@ package com.fundaro.zodiac.taurus.web.rest.errors;
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
@@ -143,7 +143,7 @@ class ExceptionTranslatorIT {
         expectMinimalProblem(restMockMvc.perform(get("/api/exception-translator-test/request-alert").with(csrf())))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(jsonPath("$.type").value("about:blank"))
-            .andExpect(jsonPath("$.title").value("Unprocessable Entity"))
+            .andExpect(jsonPath("$.title").value("Unprocessable Content"))
             .andExpect(jsonPath("$.message").value("error.test.invalid"))
             .andExpect(jsonPath("$.args.minimum").value("2026-11-10"))
             .andExpect(jsonPath("$.args.maximum").value(3))

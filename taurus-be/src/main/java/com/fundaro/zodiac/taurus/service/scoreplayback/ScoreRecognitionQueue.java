@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.scoreplayback;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.RabbitMQConfig;
 import com.fundaro.zodiac.taurus.config.ScoreRecognitionQueueConfiguration;
 import org.slf4j.Logger;
@@ -60,7 +60,7 @@ public class ScoreRecognitionQueue {
                 .setContentType(MessageProperties.CONTENT_TYPE_JSON)
                 .build();
             rabbitTemplate.send(RabbitMQConfig.topicExchangeName, ScoreRecognitionQueueConfiguration.QUEUE, message);
-        } catch (AmqpException | JsonProcessingException exception) {
+        } catch (AmqpException | JacksonException exception) {
             log.warn("Recognition job {} of tenant {} not published, it will be retried: {}", jobId, tenant, exception.getMessage());
         }
     }

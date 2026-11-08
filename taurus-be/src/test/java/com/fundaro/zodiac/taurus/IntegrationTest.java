@@ -2,7 +2,6 @@ package com.fundaro.zodiac.taurus;
 
 import com.fundaro.zodiac.taurus.config.AsyncSyncConfiguration;
 import com.fundaro.zodiac.taurus.config.EmbeddedSQL;
-import com.fundaro.zodiac.taurus.config.JacksonConfiguration;
 import com.fundaro.zodiac.taurus.config.TestSecurityConfiguration;
 
 import java.lang.annotation.ElementType;
@@ -17,7 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@SpringBootTest(classes = {TaurusApp.class, JacksonConfiguration.class, AsyncSyncConfiguration.class, TestSecurityConfiguration.class})
+@SpringBootTest(classes = {TaurusApp.class, AsyncSyncConfiguration.class, TestSecurityConfiguration.class})
 @EmbeddedSQL
 public @interface IntegrationTest {
     String DEFAULT_TIMEOUT = "PT5S";

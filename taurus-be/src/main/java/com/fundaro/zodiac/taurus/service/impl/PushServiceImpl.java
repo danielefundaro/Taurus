@@ -1,6 +1,7 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.PushSubscription;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
@@ -31,7 +32,7 @@ public class PushServiceImpl implements PushService {
     private nl.martijndwars.webpush.PushService pushService;
 
     private final PushSubscriptionRepository subscriptionRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builderWithJackson2Defaults().build();
 
     public PushServiceImpl(PushSubscriptionRepository subscriptionRepository, ApplicationProperties applicationProperties) {
         this.subscriptionRepository = subscriptionRepository;

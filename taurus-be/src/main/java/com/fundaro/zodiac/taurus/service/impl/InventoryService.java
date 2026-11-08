@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignment;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentDecision;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentRevision;
@@ -1027,7 +1027,7 @@ public class InventoryService {
         root.put("photos", photos);
         try {
             return objectMapper.writeValueAsString(root);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw error(HttpStatus.INTERNAL_SERVER_ERROR, "Impossibile creare la revisione inventario", "inventory.revision.createFailed");
         }
     }

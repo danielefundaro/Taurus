@@ -110,6 +110,10 @@ spring:
         #- tls
   jmx:
     enabled: false
+  jackson:
+    # Jackson 3 con i default usati da Spring Boot per Jackson 2: il JSON delle API resta quello di prima,
+    # con lo stesso ordine dei campi e lo stesso formato delle date.
+    use-jackson2-defaults: true
   messages:
     basename: i18n/messages
   rabbitmq:

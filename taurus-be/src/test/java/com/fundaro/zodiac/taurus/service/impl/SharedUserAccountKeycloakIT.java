@@ -1,8 +1,8 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.TenantUserMembership;
 import com.fundaro.zodiac.taurus.domain.UserIdentity;
@@ -107,7 +107,7 @@ class SharedUserAccountKeycloakIT {
             HttpResponse.BodyHandlers.ofString()
         );
         assertThat(tokenResponse.statusCode()).isEqualTo(200);
-        String token = mapper.readTree(tokenResponse.body()).path("access_token").asText();
+        String token = mapper.readTree(tokenResponse.body()).path("access_token").asString();
 
         HttpResponse<String> currentProfile = http.send(
             HttpRequest.newBuilder(URI.create(baseUrl + "/admin/realms/master/users/profile")).header("Authorization", "Bearer " + token).GET().build(),
@@ -132,7 +132,7 @@ class SharedUserAccountKeycloakIT {
         JsonNode client = mapper.readTree(clients.body()).get(0);
         for (RoleEnum role : List.of(RoleEnum.ROLE_USER, RoleEnum.ROLE_ARCHIVIST)) {
             HttpResponse<String> roleResponse = http.send(
-                HttpRequest.newBuilder(URI.create(baseUrl + "/admin/realms/master/clients/" + client.path("id").asText() + "/roles"))
+                HttpRequest.newBuilder(URI.create(baseUrl + "/admin/realms/master/clients/" + client.path("id").asString() + "/roles"))
                     .header("Authorization", "Bearer " + token)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString("{\"name\":\"" + role.name() + "\"}"))

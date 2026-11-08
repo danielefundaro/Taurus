@@ -1,9 +1,10 @@
 package com.fundaro.zodiac.taurus.service.signature;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryAssignmentDecision;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryDecisionType;
@@ -37,7 +38,7 @@ import org.springframework.stereotype.Component;
 public class AssignmentDecisionSignatureHandler implements SignaturePurposeHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(AssignmentDecisionSignatureHandler.class);
-    private static final ObjectMapper CANONICAL = new ObjectMapper().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+    private static final ObjectMapper CANONICAL = JsonMapper.builderWithJackson2Defaults().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).build();
 
     private final InventoryService inventoryService;
     private final InventoryAssignmentDecisionRepository decisionRepository;
@@ -185,7 +186,7 @@ public class AssignmentDecisionSignatureHandler implements SignaturePurposeHandl
     private static String json(List<Item> items) {
         try {
             return CANONICAL.writeValueAsString(items);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to serialize the acknowledgment items", exception);
         }
     }
@@ -193,7 +194,7 @@ public class AssignmentDecisionSignatureHandler implements SignaturePurposeHandl
     private static List<Item> items(String json) {
         try {
             return CANONICAL.readValue(json, new TypeReference<>() {});
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to read the acknowledgment items", exception);
         }
     }

@@ -10,8 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.enumeration.TenantFeature;
 import com.fundaro.zodiac.taurus.multitenancy.TenantContext;
@@ -42,6 +40,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class OperationalDashboardServiceTest {
@@ -110,7 +109,7 @@ class OperationalDashboardServiceTest {
         OperationalDashboardService service = service(List.of(failing(DashboardDomain.FINANCE)));
 
         try (TenantContext.Scope ignored = TenantContext.use("tenant-a")) {
-            String json = new ObjectMapper().registerModule(new JavaTimeModule()).writeValueAsString(service.getOperations(authentication("tenant-a")));
+            String json = new ObjectMapper().writeValueAsString(service.getOperations(authentication("tenant-a")));
 
             assertThat(json).contains("\"PARTIAL\"", "\"FINANCE\"");
             assertThat(json).doesNotContain("database unavailable", "IllegalStateException", "Exception", "at com.");

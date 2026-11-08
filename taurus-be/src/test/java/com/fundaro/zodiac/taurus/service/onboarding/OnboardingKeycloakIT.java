@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.onboarding;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingIdentityOperation;
 import com.fundaro.zodiac.taurus.domain.onboarding.OnboardingImportJob;
@@ -80,7 +80,7 @@ class OnboardingKeycloakIT {
         );
         assertThat(tokenResponse.statusCode()).isEqualTo(200);
         ObjectMapper mapper = new ObjectMapper();
-        String token = mapper.readTree(tokenResponse.body()).path("access_token").asText();
+        String token = mapper.readTree(tokenResponse.body()).path("access_token").asString();
         HttpResponse<String> currentProfile = http.send(
             HttpRequest.newBuilder(URI.create(baseUrl + "/admin/realms/master/users/profile"))
                 .header("Authorization", "Bearer " + token)

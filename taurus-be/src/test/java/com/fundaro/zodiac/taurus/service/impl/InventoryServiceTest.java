@@ -1,6 +1,6 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.aop.notices.NoticesAspect;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.enumeration.MediaAssetStatus;

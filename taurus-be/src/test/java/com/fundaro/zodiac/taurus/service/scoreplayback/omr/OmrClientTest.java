@@ -1,6 +1,6 @@
 package com.fundaro.zodiac.taurus.service.scoreplayback.omr;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.PageImage;
 import com.fundaro.zodiac.taurus.service.scoreplayback.FakeOmrServer;

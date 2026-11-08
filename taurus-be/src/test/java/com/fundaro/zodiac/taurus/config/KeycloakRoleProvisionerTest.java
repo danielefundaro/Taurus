@@ -7,8 +7,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.utils.keycloak.service.KeycloakService;
 import java.io.IOException;
@@ -17,6 +15,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 class KeycloakRoleProvisionerTest {
 
@@ -50,7 +50,7 @@ class KeycloakRoleProvisionerTest {
     void declaresEveryRoleInTheDevelopmentRealm() throws IOException {
         JsonNode realm = new ObjectMapper().readTree(Path.of("src/main/docker/realm-config/taurus-realm.json").toFile());
         Map<String, String> descriptions = new HashMap<>();
-        realm.path("roles").path("client").path("web_app").forEach(role -> descriptions.put(role.path("name").asText(), role.path("description").asText()));
+        realm.path("roles").path("client").path("web_app").forEach(role -> descriptions.put(role.path("name").asString(), role.path("description").asString()));
 
         assertThat(descriptions).containsExactlyInAnyOrderEntriesOf(KeycloakRoleProvisioner.roleDescriptions());
     }
