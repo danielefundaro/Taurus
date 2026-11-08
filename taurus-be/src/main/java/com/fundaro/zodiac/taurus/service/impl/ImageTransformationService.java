@@ -152,17 +152,17 @@ public class ImageTransformationService implements PageImageTransformer {
             if (!ImageIO.write(image, "png", output)) throw new IOException("PNG writer is not available");
             byte[] bytes = output.toByteArray();
             if (bytes.length > MAX_BYTES)
-                throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Resulting image is too large", "trackPageImage", "image.output.tooLarge").with("maxMegabytes", MAX_BYTES / (1024 * 1024));
+                throw new RequestAlertException(HttpStatus.CONTENT_TOO_LARGE, "Resulting image is too large", "trackPageImage", "image.output.tooLarge").with("maxMegabytes", MAX_BYTES / (1024 * 1024));
             return bytes;
         } catch (IOException exception) {
-            throw new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Unable to encode image", "trackPageImage", "image.encode");
+            throw new RequestAlertException(HttpStatus.UNPROCESSABLE_CONTENT, "Unable to encode image", "trackPageImage", "image.encode");
         }
     }
 
     private BufferedImage decode(byte[] content) {
         if (content == null || content.length == 0) throw badRequest("Image is empty", "image.empty");
         if (content.length > MAX_BYTES)
-            throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Image is too large", "trackPageImage", "image.tooLarge").with("maxMegabytes", MAX_BYTES / (1024 * 1024));
+            throw new RequestAlertException(HttpStatus.CONTENT_TOO_LARGE, "Image is too large", "trackPageImage", "image.tooLarge").with("maxMegabytes", MAX_BYTES / (1024 * 1024));
         try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(content))) {
             Iterator<ImageReader> readers = input == null ? Collections.emptyIterator() : ImageIO.getImageReaders(input);
             if (!readers.hasNext())
@@ -174,14 +174,14 @@ public class ImageTransformationService implements PageImageTransformer {
                 int width = reader.getWidth(0);
                 int height = reader.getHeight(0);
                 if (width > MAX_SIDE || height > MAX_SIDE || (long) width * height > MAX_PIXELS) {
-                    throw new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Decoded image is too large", "trackPageImage", "image.dimensions.tooLarge").with("maxSide", MAX_SIDE).with("maxMegapixels", (int) (MAX_PIXELS / 1_000_000));
+                    throw new RequestAlertException(HttpStatus.CONTENT_TOO_LARGE, "Decoded image is too large", "trackPageImage", "image.dimensions.tooLarge").with("maxSide", MAX_SIDE).with("maxMegapixels", (int) (MAX_PIXELS / 1_000_000));
                 }
                 return reader.read(0);
             } finally {
                 reader.dispose();
             }
         } catch (IOException exception) {
-            throw new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Unable to decode image", "trackPageImage", "image.decode");
+            throw new RequestAlertException(HttpStatus.UNPROCESSABLE_CONTENT, "Unable to decode image", "trackPageImage", "image.decode");
         }
     }
 

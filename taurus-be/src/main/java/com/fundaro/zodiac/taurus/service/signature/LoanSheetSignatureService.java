@@ -239,13 +239,13 @@ public class LoanSheetSignatureService {
     @Transactional(readOnly = true)
     public AssociationSigner checkIssue(InventoryLoanHolderRole role, String holderUserId, String holderEmail, String associationSignerId, String template) {
         if (!enabled()) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "Electronic signature is disabled in the tenant", "inventory.loanSheet.signatureDisabled");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "Electronic signature is disabled in the tenant", "inventory.loanSheet.signatureDisabled");
         }
         if (holderEmail == null || holderEmail.isBlank()) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The holder has no e-mail address", "inventory.loanSheet.holderEmailRequired");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The holder has no e-mail address", "inventory.loanSheet.holderEmailRequired");
         }
         if (!LoanSheetActs.signable(template)) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The template in use has no valid signature markers", "inventory.loanSheet.templateNotSignable");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The template in use has no valid signature markers", "inventory.loanSheet.templateNotSignable");
         }
         return associationSigner(associationSignerId, holderUserId);
     }
@@ -305,7 +305,7 @@ public class LoanSheetSignatureService {
         // The date of birth of the member comes from the user profile, as name and surname: the documents need it.
         LocalDate birthDate = memberBirthDate(sheet);
         if (birthDate == null) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The date of birth of the member is missing in the user profile", "signature.holderData.birthDateMissing")
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The date of birth of the member is missing in the user profile", "signature.holderData.birthDateMissing")
                 .with("holderRole", sheet.getHolderRole().name());
         }
         requireNoPendingAcknowledgments(sheet.getId());
@@ -965,13 +965,13 @@ public class LoanSheetSignatureService {
 
     private AssociationSigner associationSigner(String userId, String holderUserId) {
         RequestAlertException notAdmin = SignatureSupport.error(
-            HttpStatus.UNPROCESSABLE_ENTITY,
+            HttpStatus.UNPROCESSABLE_CONTENT,
             "The signer for the association is not an active administrator or board member",
             "signature.associationSigner.notAdmin"
         );
         if (userId == null || userId.isBlank()) throw notAdmin;
         if (userId.equals(holderUserId)) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The holder cannot sign for the association", "signature.associationSigner.sameAsHolder");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The holder cannot sign for the association", "signature.associationSigner.sameAsHolder");
         }
         if (!activeAssociationSigner(userId)) throw notAdmin;
         Users user = usersRepository.findByKeycloakIdAndDeletedFalse(userId).orElseThrow(() -> notAdmin);
@@ -991,7 +991,7 @@ public class LoanSheetSignatureService {
             .flatMap(issue -> signer(issue, SignerRole.ASSOCIATION))
             .map(signer -> new AssociationSigner(signer.getUserKeycloakId(), signer.getDisplayName()))
             .orElseThrow(() -> SignatureSupport.error(
-                HttpStatus.UNPROCESSABLE_ENTITY,
+                HttpStatus.UNPROCESSABLE_CONTENT,
                 "No administrator can sign for the association",
                 "signature.associationSigner.notAdmin"
             ));
@@ -1198,7 +1198,7 @@ public class LoanSheetSignatureService {
         if (issuedOn == null || issuedOn.isAfter(LocalDate.now())) invalid.add("documentIssuedOn");
         String minorBirthPlace = guardian ? required(request.minorBirthPlace(), "minorBirthPlace", invalid) : null;
         if (!invalid.isEmpty()) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid holder data", "signature.holderData.invalid").with("fields", List.copyOf(new LinkedHashSet<>(invalid)));
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid holder data", "signature.holderData.invalid").with("fields", List.copyOf(new LinkedHashSet<>(invalid)));
         }
         return new HolderData(
             birthPlace,

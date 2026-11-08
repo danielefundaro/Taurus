@@ -215,11 +215,11 @@ final class CieSignPdfInspector {
     }
 
     private static RuntimeException documentMismatch(String message) {
-        return SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, message, "signature.cieSign.documentMismatch");
+        return SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, message, "signature.cieSign.documentMismatch");
     }
 
     private static RuntimeException invalidSignature(String message) {
-        return SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, message, "signature.cieSign.invalidSignature");
+        return SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, message, "signature.cieSign.invalidSignature");
     }
 
     /**

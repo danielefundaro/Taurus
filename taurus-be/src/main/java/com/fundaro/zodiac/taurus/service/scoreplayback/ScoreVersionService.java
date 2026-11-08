@@ -179,7 +179,7 @@ public class ScoreVersionService {
         long maxBytes = properties.getScorePlayback().getMaxUploadBytes();
         if (content.length > maxBytes) {
             throw rejectedCorrection(
-                new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Score file too large", ScorePlaybackSupport.ENTITY, "scorePlayback.upload.tooLarge")
+                new RequestAlertException(HttpStatus.CONTENT_TOO_LARGE, "Score file too large", ScorePlaybackSupport.ENTITY, "scorePlayback.upload.tooLarge")
                     .with("maxMegabytes", (int) (maxBytes / (1024 * 1024)))
             );
         }
@@ -305,7 +305,7 @@ public class ScoreVersionService {
         if (file.getSize() > maxBytes) {
             throw rejectedUpload(
                 origin,
-                new RequestAlertException(HttpStatus.PAYLOAD_TOO_LARGE, "Score file too large", ScorePlaybackSupport.ENTITY, "scorePlayback.upload.tooLarge")
+                new RequestAlertException(HttpStatus.CONTENT_TOO_LARGE, "Score file too large", ScorePlaybackSupport.ENTITY, "scorePlayback.upload.tooLarge")
                     .with("maxMegabytes", (int) (maxBytes / (1024 * 1024)))
             );
         }
@@ -343,12 +343,12 @@ public class ScoreVersionService {
     private static PartInfo selectPart(List<PartInfo> parts, String partId) {
         if (partId == null || partId.isBlank()) {
             if (parts.size() == 1) return parts.get(0);
-            throw new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "The file contains several parts", ScorePlaybackSupport.ENTITY, "scorePlayback.upload.partRequired");
+            throw new RequestAlertException(HttpStatus.UNPROCESSABLE_CONTENT, "The file contains several parts", ScorePlaybackSupport.ENTITY, "scorePlayback.upload.partRequired");
         }
         return parts.stream()
             .filter(part -> part.id().equals(partId))
             .findFirst()
-            .orElseThrow(() -> new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Part not found in the file", ScorePlaybackSupport.ENTITY, "scorePlayback.upload.partNotFound"));
+            .orElseThrow(() -> new RequestAlertException(HttpStatus.UNPROCESSABLE_CONTENT, "Part not found in the file", ScorePlaybackSupport.ENTITY, "scorePlayback.upload.partNotFound"));
     }
 
     private ScoreVersion requireVersion(SheetsMusic part, Long versionId) {
@@ -390,12 +390,12 @@ public class ScoreVersionService {
     }
 
     private static RequestAlertException invalidUpload(String reason) {
-        return new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid MusicXML file", ScorePlaybackSupport.ENTITY, "scorePlayback.upload.invalid")
+        return new RequestAlertException(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid MusicXML file", ScorePlaybackSupport.ENTITY, "scorePlayback.upload.invalid")
             .with("reason", reason);
     }
 
     private static RequestAlertException invalidCorrection(String reason) {
-        return new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid correction", ScorePlaybackSupport.ENTITY, "scorePlayback.correction.invalid")
+        return new RequestAlertException(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid correction", ScorePlaybackSupport.ENTITY, "scorePlayback.correction.invalid")
             .with("reason", reason);
     }
 

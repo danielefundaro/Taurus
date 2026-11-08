@@ -100,7 +100,7 @@ public class ScoreErrorReportService {
         String message = request == null || request.message() == null ? "" : request.message().strip();
         String measure = request == null || request.measureNumber() == null ? "" : request.measureNumber().strip();
         if (message.isEmpty() || message.length() > MAX_MESSAGE_LENGTH || measure.length() > MAX_MEASURE_LENGTH) {
-            throw new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid error report", ScorePlaybackSupport.ENTITY, "scorePlayback.report.invalid");
+            throw new RequestAlertException(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid error report", ScorePlaybackSupport.ENTITY, "scorePlayback.report.invalid");
         }
         String actor = SecurityUtils.getUserIdFromAuthentication(token);
         if (actor == null || actor.isBlank()) {

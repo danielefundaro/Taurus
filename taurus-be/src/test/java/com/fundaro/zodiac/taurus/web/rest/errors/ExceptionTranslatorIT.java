@@ -141,7 +141,7 @@ class ExceptionTranslatorIT {
     @Test
     void sendsTheKeyAndTheParametersOfApplicationErrorsButNotTheirDescription() throws Exception {
         expectMinimalProblem(restMockMvc.perform(get("/api/exception-translator-test/request-alert").with(csrf())))
-            .andExpect(status().isUnprocessableEntity())
+            .andExpect(status().isUnprocessableContent())
             .andExpect(jsonPath("$.type").value("about:blank"))
             .andExpect(jsonPath("$.title").value("Unprocessable Content"))
             .andExpect(jsonPath("$.message").value("error.test.invalid"))

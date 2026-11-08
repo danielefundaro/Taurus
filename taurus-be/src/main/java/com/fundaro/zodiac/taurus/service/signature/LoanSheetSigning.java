@@ -102,7 +102,7 @@ public class LoanSheetSigning {
         }
         boolean batch = canonical.size() > 1;
         if (batch && (purpose == SignaturePurpose.CLAUSE_APPROVAL || canonical.stream().anyMatch(item -> item.actType() != SignatureActType.LOAN_SHEET_VARIATION))) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "Only variations can be signed together", "signature.act.batchNotAllowed");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "Only variations can be signed together", "signature.act.batchNotAllowed");
         }
         return describe(purpose, canonical, json(canonical));
     }
@@ -133,7 +133,7 @@ public class LoanSheetSigning {
         Checked checked = check(cieSignPurpose(role), actId, null, signer, false);
         InventoryLoanSheet sheet = sheetRepository.findById(checked.act().getSheetId()).orElseThrow(LoanSheetSignatureService::actNotFound);
         if (sheet.getHolderTaxCode() == null) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The holder has no Italian tax code", "signature.cieSign.notAvailable");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The holder has no Italian tax code", "signature.cieSign.notAvailable");
         }
         if (checked.document().getFrozenMediaAssetId() == null) throw LoanSheetSignatureService.purged();
         String name = sheet.getHolderRole() == InventoryLoanHolderRole.GUARDIAN
@@ -263,7 +263,7 @@ public class LoanSheetSigning {
         if (role == SignerRole.HOLDER) signatureService.requireNoPendingAcknowledgments(act.getSheetId());
         if (role == SignerRole.ASSOCIATION && !signatureService.activeAssociationSigner(who.userId())) {
             throw SignatureSupport.error(
-                HttpStatus.UNPROCESSABLE_ENTITY,
+                HttpStatus.UNPROCESSABLE_CONTENT,
                 "The signer for the association is no longer an active administrator",
                 "signature.associationSigner.notAdmin"
             );

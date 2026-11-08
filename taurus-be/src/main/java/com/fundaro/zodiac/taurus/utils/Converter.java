@@ -10,7 +10,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.tools.imageio.ImageIOUtil;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;

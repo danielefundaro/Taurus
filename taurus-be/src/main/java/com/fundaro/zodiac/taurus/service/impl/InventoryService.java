@@ -1128,7 +1128,7 @@ public class InventoryService {
                 throw error(HttpStatus.INTERNAL_SERVER_ERROR, "Impossibile normalizzare l'immagine", "inventory.photo.processingFailed");
             }
             if (out.size() > MAX_PHOTO_SIZE) {
-                throw error(HttpStatus.PAYLOAD_TOO_LARGE, "La fotografia normalizzata supera 10 MB", "inventory.photo.tooLarge").with("maxMegabytes", (int) (MAX_PHOTO_SIZE / (1024 * 1024)));
+                throw error(HttpStatus.CONTENT_TOO_LARGE, "La fotografia normalizzata supera 10 MB", "inventory.photo.tooLarge").with("maxMegabytes", (int) (MAX_PHOTO_SIZE / (1024 * 1024)));
             }
             return out.toByteArray();
         }
@@ -1136,7 +1136,7 @@ public class InventoryService {
 
     private static void validatePhoto(MultipartFile file) {
         if (file == null || file.isEmpty() || file.getSize() > MAX_PHOTO_SIZE) {
-            throw error(HttpStatus.PAYLOAD_TOO_LARGE, "Ogni fotografia deve avere dimensione massima di 10 MB", "inventory.photo.tooLarge").with("maxMegabytes", (int) (MAX_PHOTO_SIZE / (1024 * 1024)));
+            throw error(HttpStatus.CONTENT_TOO_LARGE, "Ogni fotografia deve avere dimensione massima di 10 MB", "inventory.photo.tooLarge").with("maxMegabytes", (int) (MAX_PHOTO_SIZE / (1024 * 1024)));
         }
         String type = Objects.requireNonNullElse(file.getContentType(), "").toLowerCase(Locale.ROOT);
         if (!type.equals("image/jpeg") && !type.equals("image/png")) {

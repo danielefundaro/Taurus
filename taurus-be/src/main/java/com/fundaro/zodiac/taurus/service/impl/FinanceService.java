@@ -543,7 +543,7 @@ public class FinanceService {
     public AttachmentDTO addAttachment(long movementId, MultipartFile file, String description, AbstractAuthenticationToken token) throws IOException {
         tenant(token);
         if (file == null || file.isEmpty() || file.getSize() > MAX_ATTACHMENT_SIZE) {
-            throw rejected(FailureReason.ATTACHMENT_TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE, "Ogni allegato deve avere dimensione massima di 10 MB", "finance.attachment.tooLarge").with("maxMegabytes", (int) (MAX_ATTACHMENT_SIZE / (1024 * 1024)));
+            throw rejected(FailureReason.ATTACHMENT_TOO_LARGE, HttpStatus.CONTENT_TOO_LARGE, "Ogni allegato deve avere dimensione massima di 10 MB", "finance.attachment.tooLarge").with("maxMegabytes", (int) (MAX_ATTACHMENT_SIZE / (1024 * 1024)));
         }
         if (attachmentRepository.countByMovement_IdAndDeletedFalseAndActiveTrue(movementId) >= MAX_ATTACHMENTS) {
             throw rejected(FailureReason.TOO_MANY_ATTACHMENTS, HttpStatus.CONFLICT, "Sono consentiti al massimo 20 allegati per movimento", "finance.attachment.limit").with("maximum", MAX_ATTACHMENTS);

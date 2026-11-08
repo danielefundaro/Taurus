@@ -71,7 +71,7 @@ public class ScoreRecognitionService {
         List<SheetsMusic> parts = scoreId == null ? track.getScores() : List.of(support.requirePart(track, scoreId));
         List<SheetsMusic> withPages = parts.stream().filter(part -> !part.getMedia().isEmpty()).toList();
         if (withPages.isEmpty()) {
-            throw new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "No pages to recognize", ScorePlaybackSupport.ENTITY, "scorePlayback.recognition.noPages");
+            throw new RequestAlertException(HttpStatus.UNPROCESSABLE_CONTENT, "No pages to recognize", ScorePlaybackSupport.ENTITY, "scorePlayback.recognition.noPages");
         }
         List<SheetsMusic> idle = withPages.stream().filter(part -> !jobRepository.existsBySheetMusicIdAndStatusInAndDeletedFalse(part.getId(), ACTIVE)).toList();
         if (idle.isEmpty()) throw alreadyRunning();

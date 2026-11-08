@@ -87,7 +87,7 @@ public class InventoryLoanTemplateService {
         if (durations.maxMonths() > durations.totalMaxMonths()) problems.add("maxAboveTotal");
         if (durations.renewalMaxMonths() > durations.totalMaxMonths()) problems.add("renewalAboveTotal");
         if (!problems.isEmpty()) {
-            throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Inconsistent loan durations: " + String.join(", ", problems), "inventory.loanSettings.invalid")
+            throw error(HttpStatus.UNPROCESSABLE_CONTENT, "Inconsistent loan durations: " + String.join(", ", problems), "inventory.loanSettings.invalid")
                 .with("problems", problems);
         }
         settings.setMinMonths(durations.minMonths());
@@ -116,7 +116,7 @@ public class InventoryLoanTemplateService {
         if (enabled && !settings.isElectronicSignatureEnabled()) {
             SignatureDtos.Requirements requirements = signatureRequirements.requirements();
             if (!requirements.satisfied()) {
-                throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Electronic signature requirements are missing", "signature.settings.requirementsMissing")
+                throw error(HttpStatus.UNPROCESSABLE_CONTENT, "Electronic signature requirements are missing", "signature.settings.requirementsMissing")
                     .with("missing", requirements.missing());
             }
         }
@@ -290,7 +290,7 @@ public class InventoryLoanTemplateService {
 
     private Verification verify(TemplateFile file, AbstractAuthenticationToken token) {
         if (file.content().getBytes(StandardCharsets.UTF_8).length > MAX_FILE_BYTES) {
-            throw error(HttpStatus.PAYLOAD_TOO_LARGE, "Il modello supera 2 MB", "inventory.loanTemplate.tooLarge").with("maxMegabytes", (int) (MAX_FILE_BYTES / (1024 * 1024)));
+            throw error(HttpStatus.CONTENT_TOO_LARGE, "Il modello supera 2 MB", "inventory.loanTemplate.tooLarge").with("maxMegabytes", (int) (MAX_FILE_BYTES / (1024 * 1024)));
         }
         List<Issue> issues = new ArrayList<>(LoanTemplateValidator.validate(file.content(), renderer));
         // The markers of the electronic signature matter only to the tenants that use it, and never block the template.
@@ -331,7 +331,7 @@ public class InventoryLoanTemplateService {
             .map(issue -> new ErrorArgs().with("code", issue.code()).with("line", issue.line()).with("args", issue.args()))
             .toList();
         String codes = blocking.stream().map(issue -> String.valueOf(issue.values().get("code"))).collect(Collectors.joining(", "));
-        throw error(HttpStatus.UNPROCESSABLE_ENTITY, prefix + ": " + codes, "inventory.loanTemplate.invalid").with("issues", blocking);
+        throw error(HttpStatus.UNPROCESSABLE_CONTENT, prefix + ": " + codes, "inventory.loanTemplate.invalid").with("issues", blocking);
     }
 
     private InventoryLoanTemplate requiredVersion(long id) {

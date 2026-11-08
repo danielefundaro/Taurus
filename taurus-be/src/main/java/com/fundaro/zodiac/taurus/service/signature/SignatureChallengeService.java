@@ -189,7 +189,7 @@ public class SignatureChallengeService {
         Created created = Objects.requireNonNull(transactions.execute(status -> {
             Signer signer = signers.get();
             if (email && signer.email() == null) {
-                throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The signer has no e-mail address", "signature.mail.addressMissing");
+                throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The signer has no e-mail address", "signature.mail.addressMissing");
             }
             ZonedDateTime now = ZonedDateTime.now();
             requireHourlyLimit(owner, now);
@@ -345,7 +345,7 @@ public class SignatureChallengeService {
         return new Verification(
             challenge.getMethod(),
             "invalid",
-            SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "Wrong confirmation code", "signature.challenge.invalidCode").with("remainingAttempts", remaining)
+            SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "Wrong confirmation code", "signature.challenge.invalidCode").with("remainingAttempts", remaining)
         );
     }
 
@@ -426,7 +426,7 @@ public class SignatureChallengeService {
     private void requireTotp(String userId) {
         KeycloakOtpClient.Status status = otpClient.configured() ? otpClient.status(userId) : KeycloakOtpClient.Status.NOT_CONFIGURED;
         if (status == KeycloakOtpClient.Status.NOT_CONFIGURED) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The authentication app is not configured", "signature.method.totpNotConfigured");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The authentication app is not configured", "signature.method.totpNotConfigured");
         }
         if (status == KeycloakOtpClient.Status.UNAVAILABLE) {
             metrics.challenge(SignatureMethod.TOTP, "unavailable");
@@ -455,7 +455,7 @@ public class SignatureChallengeService {
     private void requireRequirements() {
         Requirements requirements = requirementsService.requirements();
         if (!requirements.satisfied()) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "Electronic signature requirements are missing", "signature.settings.requirementsMissing")
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "Electronic signature requirements are missing", "signature.settings.requirementsMissing")
                 .with("missing", requirements.missing());
         }
     }

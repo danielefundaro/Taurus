@@ -99,7 +99,7 @@ public class CieSignService {
      */
     public static byte[] content(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The signed file is empty", "signature.cieSign.invalidSignature");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The signed file is empty", "signature.cieSign.invalidSignature");
         }
         if (file.getSize() > MAX_BYTES) throw tooLarge();
         try {
@@ -113,7 +113,7 @@ public class CieSignService {
      * Error of a file larger than {@link #MAX_BYTES}.
      */
     public static RequestAlertException tooLarge() {
-        return SignatureSupport.error(HttpStatus.PAYLOAD_TOO_LARGE, "The signed file exceeds 25 MB", "signature.cieSign.tooLarge")
+        return SignatureSupport.error(HttpStatus.CONTENT_TOO_LARGE, "The signed file exceeds 25 MB", "signature.cieSign.tooLarge")
             .with("maxMegabytes", (int) (MAX_BYTES / (1024 * 1024)));
     }
 
@@ -122,7 +122,7 @@ public class CieSignService {
             if (!verifier.available()) throw CieSignVerifier.notConfigured();
             byte[] file = upload.get();
             if (file == null || file.length == 0) {
-                throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The signed file is empty", "signature.cieSign.invalidSignature");
+                throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The signed file is empty", "signature.cieSign.invalidSignature");
             }
             if (file.length > MAX_BYTES) throw tooLarge();
             requireRequirements();
@@ -148,7 +148,7 @@ public class CieSignService {
     private void requireRequirements() {
         Requirements requirements = requirementsService.requirements();
         if (!requirements.satisfied()) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "Electronic signature requirements are missing", "signature.settings.requirementsMissing")
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "Electronic signature requirements are missing", "signature.settings.requirementsMissing")
                 .with("missing", requirements.missing());
         }
     }

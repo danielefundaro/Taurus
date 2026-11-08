@@ -153,7 +153,7 @@ public class CieSignVerifier {
         X500Name subject = X500Name.getInstance(certificate.getSubjectX500Principal().getEncoded());
         String taxCode = taxCode(subject);
         if (!sameName(expected.name(), subject) || taxCode == null || !taxCode.equals(ItalianTaxCode.normalize(expected.taxCode()))) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The certificate belongs to another person", "signature.cieSign.signerMismatch");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The certificate belongs to another person", "signature.cieSign.signerMismatch");
         }
         String revocation = revocationChecker.check(certificate, issuer);
         if (CieRevocationChecker.REVOKED.equals(revocation)) throw untrusted("The certificate is revoked");
@@ -209,7 +209,7 @@ public class CieSignVerifier {
     }
 
     private static SignerData fail(String message) {
-        throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, message, "signature.cieSign.invalidSignature");
+        throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, message, "signature.cieSign.invalidSignature");
     }
 
     /**
@@ -296,11 +296,11 @@ public class CieSignVerifier {
     }
 
     private static RequestAlertException untrusted(String message) {
-        return SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, message, "signature.cieSign.untrustedCertificate");
+        return SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, message, "signature.cieSign.untrustedCertificate");
     }
 
     static RequestAlertException notConfigured() {
-        return SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The certificates of the CIE are not configured", "signature.cieSign.notConfigured");
+        return SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The certificates of the CIE are not configured", "signature.cieSign.notConfigured");
     }
 
     /**

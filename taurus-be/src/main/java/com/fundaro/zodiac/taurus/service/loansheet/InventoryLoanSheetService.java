@@ -233,7 +233,7 @@ public class InventoryLoanSheetService {
         LocalDate birthDate = localDate(user.getBirthDate(), zone);
         InventoryLoanHolderRole role = request.holderRole() != null ? request.holderRole() : suggestedRole(birthDate, request.issuedOn());
         if (role == null) {
-            throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Indicare se l'Affidatario è il socio maggiorenne o il genitore o tutore", "inventory.loanSheet.roleRequired");
+            throw error(HttpStatus.UNPROCESSABLE_CONTENT, "Indicare se l'Affidatario è il socio maggiorenne o il genitore o tutore", "inventory.loanSheet.roleRequired");
         }
         List<InventoryAssignment> assignments = requestedAssignments(userIndex, request.assignmentIds(), true);
         InventoryLoanSettings settings = templateService.settings(actor);
@@ -256,7 +256,7 @@ public class InventoryLoanSheetService {
             ));
         }
         if (!problems.isEmpty()) {
-            throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Loan sheet issue blocked by duration rules", "inventory.loanSheet.validation")
+            throw error(HttpStatus.UNPROCESSABLE_CONTENT, "Loan sheet issue blocked by duration rules", "inventory.loanSheet.validation")
                 .with("issues", problems);
         }
 
@@ -330,13 +330,13 @@ public class InventoryLoanSheetService {
         InventoryLoanSheet sheet = requiredIssuedSheetForUpdate(sheetId);
         InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId).orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         if (!sheet.getUserIndex().equals(assignment.getUserIndex())) {
-            throw error(HttpStatus.UNPROCESSABLE_ENTITY, "L'assegnazione appartiene a un altro socio", "inventory.loanSheet.otherMember");
+            throw error(HttpStatus.UNPROCESSABLE_CONTENT, "L'assegnazione appartiene a un altro socio", "inventory.loanSheet.otherMember");
         }
         if (assignment.getLoanSheetId() != null) {
             throw error(HttpStatus.CONFLICT, "L'assegnazione è già collegata a un foglio di affidamento", "inventory.loanSheet.alreadyLinked").with("itemName", assignment.getItem().getName());
         }
         if (assignment.getOutstandingQuantity() < 1) {
-            throw error(HttpStatus.UNPROCESSABLE_ENTITY, "L'assegnazione non ha materiale in carico", "inventory.loanSheet.nothingOutstanding").with("itemName", assignment.getItem().getName());
+            throw error(HttpStatus.UNPROCESSABLE_CONTENT, "L'assegnazione non ha materiale in carico", "inventory.loanSheet.nothingOutstanding").with("itemName", assignment.getItem().getName());
         }
         policy.checkDelivery(sheet, assignment.getItem().getLoanType(), localDate(assignment.getAssignedAt(), tenantTimeZoneService.currentZoneId()), assignment.getExpirationDate());
         assignment.setLoanSheetId(sheet.getId());
@@ -352,7 +352,7 @@ public class InventoryLoanSheetService {
         InventoryAssignment assignment = assignmentRepository.findForUpdate(assignmentId).orElseThrow(() -> notFound("Assegnazione non trovata", "inventory.assignment.notFound"));
         InventoryLoanSheet sheet = issuedSheetOf(assignment, "Il rinnovo è disponibile per i beni di un foglio di affidamento emesso");
         if (assignment.getItem().getLoanType() != InventoryLoanType.FIXED_TERM) {
-            throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Si rinnova soltanto un comodato con scadenza", "inventory.renewal.notFixedTerm");
+            throw error(HttpStatus.UNPROCESSABLE_CONTENT, "Si rinnova soltanto un comodato con scadenza", "inventory.renewal.notFixedTerm");
         }
         if (assignment.getOutstandingQuantity() < 1) {
             throw error(HttpStatus.CONFLICT, "Il bene è già stato riconsegnato", "inventory.renewal.nothingOutstanding");
@@ -368,7 +368,7 @@ public class InventoryLoanSheetService {
             firstDelivery(sheet, assignment, zone),
             InventoryLoanTemplateService.durations(sheet)
         ).ifPresent(violation -> {
-            throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Renewal breaks the duration rules", "inventory.renewal." + violation.code())
+            throw error(HttpStatus.UNPROCESSABLE_CONTENT, "Renewal breaks the duration rules", "inventory.renewal." + violation.code())
                 .with(violation.args());
         });
         InventoryAssignmentDTO renewed = inventoryService.applyRenewal(assignmentId, request.newExpirationDate(), token);
@@ -407,7 +407,7 @@ public class InventoryLoanSheetService {
         }
         boolean charges = request.outcome() == InventoryLoanReturnOutcome.CHARGES;
         if (charges && (request.chargeAmount() == null || request.chargeAmount().signum() <= 0 || request.chargeDueDate() == null)) {
-            throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Con addebito occorre indicare importo e termine di pagamento", "inventory.loanSheet.chargesRequired");
+            throw error(HttpStatus.UNPROCESSABLE_CONTENT, "Con addebito occorre indicare importo e termine di pagamento", "inventory.loanSheet.chargesRequired");
         }
         String receivedBy = trimToNull(request.receivedByName());
         if (receivedBy == null) {
@@ -529,7 +529,7 @@ public class InventoryLoanSheetService {
             ? renderer.renderWithWatermark(template, model, LoanSheetPdfRenderer.COPY_WATERMARK)
             : renderer.render(template, model, false);
         if (bytes.length > LoanSheetPdfRenderer.MAX_PDF_BYTES) {
-            throw error(HttpStatus.PAYLOAD_TOO_LARGE, "Il foglio di affidamento generato supera 20 MB", "inventory.loanSheet.tooLarge").with("maxMegabytes", (int) (LoanSheetPdfRenderer.MAX_PDF_BYTES / (1024 * 1024)));
+            throw error(HttpStatus.CONTENT_TOO_LARGE, "Il foglio di affidamento generato supera 20 MB", "inventory.loanSheet.tooLarge").with("maxMegabytes", (int) (LoanSheetPdfRenderer.MAX_PDF_BYTES / (1024 * 1024)));
         }
         String fileName = "foglio-affidamento-" + sheet.getSheetNumber().replace('/', '-') + ".pdf";
         MediaDTO media = mediaService.store(bytes, fileName, "application/pdf", MEDIA_CATEGORY, token);
@@ -587,17 +587,17 @@ public class InventoryLoanSheetService {
             : assignmentRepository.findAllById(ids).stream().filter(assignment -> !assignment.isDeleted())
                 .sorted(Comparator.comparing(InventoryAssignment::getAssignedAt).thenComparing(InventoryAssignment::getId)).toList();
         if (assignments.size() != ids.size()) {
-            throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Una o più assegnazioni non sono disponibili", "inventory.loanSheet.assignmentNotFound");
+            throw error(HttpStatus.UNPROCESSABLE_CONTENT, "Una o più assegnazioni non sono disponibili", "inventory.loanSheet.assignmentNotFound");
         }
         for (InventoryAssignment assignment : assignments) {
             if (!userIndex.equals(assignment.getUserIndex())) {
-                throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Le assegnazioni devono appartenere al socio del foglio", "inventory.loanSheet.otherMember");
+                throw error(HttpStatus.UNPROCESSABLE_CONTENT, "Le assegnazioni devono appartenere al socio del foglio", "inventory.loanSheet.otherMember");
             }
             if (assignment.getLoanSheetId() != null) {
                 throw error(HttpStatus.CONFLICT, "L'oggetto " + assignment.getItem().getName() + " è già in un foglio di affidamento", "inventory.loanSheet.alreadyLinked").with("itemName", assignment.getItem().getName());
             }
             if (assignment.getOutstandingQuantity() < 1) {
-                throw error(HttpStatus.UNPROCESSABLE_ENTITY, "L'oggetto " + assignment.getItem().getName() + " non è più in carico al socio", "inventory.loanSheet.nothingOutstanding").with("itemName", assignment.getItem().getName());
+                throw error(HttpStatus.UNPROCESSABLE_CONTENT, "L'oggetto " + assignment.getItem().getName() + " non è più in carico al socio", "inventory.loanSheet.nothingOutstanding").with("itemName", assignment.getItem().getName());
             }
         }
         return assignments;

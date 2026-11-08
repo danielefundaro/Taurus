@@ -109,7 +109,7 @@ public class OnboardingImportService {
         if (file == null || file.isEmpty())
             throw problem(HttpStatus.BAD_REQUEST, "Il file è obbligatorio", "onboarding.file.required");
         if (file.getSize() > properties.getMaxFileSize().toBytes())
-            throw problem(HttpStatus.PAYLOAD_TOO_LARGE, "File troppo grande", "onboarding.file.tooLarge").with("maxMegabytes", properties.getMaxFileSize().toMegabytes());
+            throw problem(HttpStatus.CONTENT_TOO_LARGE, "File troppo grande", "onboarding.file.tooLarge").with("maxMegabytes", properties.getMaxFileSize().toMegabytes());
         if (format == OnboardingImportFormat.CSV && csvSection == null)
             throw problem(HttpStatus.BAD_REQUEST, "La sezione CSV è obbligatoria", "onboarding.csvSection.required");
         if (format == OnboardingImportFormat.XLSX && (selectedSections == null || selectedSections.isEmpty()))

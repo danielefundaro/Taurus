@@ -100,7 +100,7 @@ public class LoanSheetActDocuments {
         if (act.getActType() == SignatureActType.LOAN_SHEET_ISSUE) {
             String clauses = LoanSheetActs.clausesText(renderer.html(template, model));
             if (clauses == null) {
-                throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The template has no block of clauses", "inventory.loanSheet.templateNotSignable");
+                throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The template has no block of clauses", "inventory.loanSheet.templateNotSignable");
             }
             Map<String, Object> clausesModel = new LinkedHashMap<>();
             clausesModel.put("tenant", Map.of("name", text(content.tenant().name())));
@@ -228,7 +228,7 @@ public class LoanSheetActDocuments {
         String actor
     ) {
         if (pdf.length > LoanSheetPdfRenderer.MAX_PDF_BYTES) {
-            throw SignatureSupport.error(HttpStatus.PAYLOAD_TOO_LARGE, "The document of the act exceeds 20 MB", "inventory.loanSheet.tooLarge")
+            throw SignatureSupport.error(HttpStatus.CONTENT_TOO_LARGE, "The document of the act exceeds 20 MB", "inventory.loanSheet.tooLarge")
                 .with("maxMegabytes", (int) (LoanSheetPdfRenderer.MAX_PDF_BYTES / (1024 * 1024)));
         }
         MediaDTO media = mediaService.store(pdf, fileName, PDF, MEDIA_CATEGORY, tenantCode, actor);

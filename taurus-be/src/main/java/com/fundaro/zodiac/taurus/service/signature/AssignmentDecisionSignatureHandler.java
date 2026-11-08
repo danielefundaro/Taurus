@@ -77,7 +77,7 @@ public class AssignmentDecisionSignatureHandler implements SignaturePurposeHandl
     @Override
     public Prepared prepare(List<ChallengeItem> items, Signer signer) {
         if (!inventoryService.electronicSignatureEnabled()) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "Electronic signature is disabled in the tenant", "signature.disabled");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "Electronic signature is disabled in the tenant", "signature.disabled");
         }
         if (items == null || items.isEmpty() || items.size() > maxItems) {
             throw invalid("The acknowledgment needs from 1 to " + maxItems + " assignments");

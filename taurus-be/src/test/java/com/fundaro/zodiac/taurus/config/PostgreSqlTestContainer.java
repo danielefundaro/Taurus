@@ -3,7 +3,7 @@ package com.fundaro.zodiac.taurus.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.JdbcDatabaseContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import java.util.Map;
@@ -12,7 +12,7 @@ public class PostgreSqlTestContainer implements SqlTestContainer {
 
     private static final Logger LOG = LoggerFactory.getLogger(PostgreSqlTestContainer.class);
 
-    private PostgreSQLContainer<?> postgreSQLContainer;
+    private PostgreSQLContainer postgreSQLContainer;
 
     @Override
     public void destroy() {
@@ -24,7 +24,7 @@ public class PostgreSqlTestContainer implements SqlTestContainer {
     @Override
     public void afterPropertiesSet() {
         if (null == postgreSQLContainer) {
-            postgreSQLContainer = new PostgreSQLContainer<>("postgres:17.0")
+            postgreSQLContainer = new PostgreSQLContainer("postgres:17.0")
                 .withDatabaseName("taurus")
                 .withTmpFs(Map.of("/testtmpfs", "rw"))
                 // Spring tiene in cache un contesto per ogni configurazione di test, fino a 8
