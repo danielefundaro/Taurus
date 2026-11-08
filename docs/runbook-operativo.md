@@ -42,7 +42,7 @@ Finché questi campi non sono valorizzati e approvati, il runbook è utilizzabil
 
 | Componente | Tecnologia | Responsabilità | Porta locale | Stato persistente |
 | --- | --- | --- | --- | --- |
-| `taurus-fe` | Angular 19, Nginx | SPA utente/amministrazione, PWA e Web Push; nel container serve anche da ingresso unico, inoltrando `/api` e `/auth` | `4200` in sviluppo, `80` nel container | Nessuno; configurazione letta all'avvio del container (§4.2) |
+| `taurus-fe` | Angular 21, Nginx | SPA utente/amministrazione, PWA e Web Push; nel container serve anche da ingresso unico, inoltrando `/api` e `/auth` | `4200` in sviluppo, `80` nel container | Nessuno; configurazione letta all'avvio del container (§4.2) |
 | `taurus-be` | Java 25, Spring Boot 4.1, JHipster | API, processi asincroni, scheduler, migrazioni e accesso ai dati | `8080` | Media su filesystem; dati in PostgreSQL |
 | PostgreSQL | PostgreSQL 17 nel compose locale | Schema globale `public`, schemi tenant e database Keycloak | `5432` | Critico |
 | Keycloak | Keycloak 26.8.2 nel compose locale | OIDC, utenti, ruoli, tenant claim, login e-mail e temi | `9080`, `9443` locali | Database `taurus_keycloak` e provider custom |
@@ -88,7 +88,7 @@ L'ordine di arresto è inverso. Durante un arresto pianificato, fermare prima l'
 
 - Git;
 - un JDK 25: il backend si compila per Java 25, il provider Keycloak per Java 21, la JVM dell'immagine di Keycloak;
-- Node.js 22 e npm;
+- Node.js 26 e npm per `taurus-fe`, Node.js 22 per `taurus-info`;
 - pnpm 11 per `taurus-info`;
 - Docker Engine con Docker Compose, con almeno 4 CPU e 8 GB di memoria assegnati: il servizio OMR del compose è limitato a 4 CPU e 6 GB;
 - Chrome/Chromium per i test Karma;

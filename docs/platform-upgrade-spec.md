@@ -47,10 +47,10 @@ Inventario del 02/11/2026. «Salto» indica il tipo di aggiornamento: patch e mi
 | --- | --- | --- | --- | --- |
 | Java (backend) | 17 | 25 LTS | maggiore | supporto fino al 2031 |
 | Java (provider Keycloak) | 17 | quella del runtime di Keycloak | — | decisione 3 |
-| Node.js | 22 | 26 LTS | maggiore | LTS dal 28/10/2026; Angular 22 e Astro 7 lo supportano |
+| Node.js | 22 | 26 LTS | maggiore | LTS dal 28/10/2026; Angular 21 e Astro 7 lo accettano |
 | pnpm | 11.16 | 12.x | maggiore | sito informativo |
 | Python (OMR) | 3.12 | 3.12 | — | eccezione: decisione 9 |
-| TypeScript | 5.6 (FE), 5.9 (info) | 6.0 | maggiore | eccezione: la 7 non è supportata da Angular |
+| TypeScript | 5.6 (FE), 5.9 (info) | 5.9 (FE), 6.0 (info) | minor (FE), maggiore (info) | eccezione: Angular 21 non accetta la 6 (decisione 5), `@astrojs/check` non supporta la 7 |
 | Maven | 3.9.6 (immagine), wrapper | 3.10.x | minor | |
 
 ### Backend (`taurus-be`)
@@ -78,12 +78,12 @@ Inventario del 02/11/2026. «Salto» indica il tipo di aggiornamento: patch e mi
 
 | Componente | Attuale | Obiettivo | Salto | Note |
 | --- | --- | --- | --- | --- |
-| Angular (core, CLI, CDK) | 19.0.5 | 22.2.x | tre maggiori | 22 CVE, alcune corrette solo dalla 20 |
+| Angular (core, CLI, CDK) | 19.0.5 | 21.2.x | due maggiori | 22 CVE, alcune corrette solo dalla 20; la 22 è rimandata: decisione 5 |
 | Builder | `@angular-devkit/build-angular` | `@angular/build` | — | migrazione di `ng update` |
-| PrimeNG | 19.0.10 | 22.x | tre maggiori | supporta Angular 22 |
-| Temi PrimeNG | `@primeng/themes` 19 | `@primeuix/themes` 3.x | pacchetto nuovo | il vecchio pacchetto è deprecato |
-| PrimeIcons | 7.0.0 | 8.x | maggiore | |
-| keycloak-angular / keycloak-js | 19.0.2 / 26.2.2 | 22.x / 26.2.x | maggiore / patch | |
+| PrimeNG | 19.0.10 | 21.1.x | due maggiori | dalla 22 PrimeUI License: decisione 5 |
+| Temi PrimeNG | `@primeng/themes` 19 | `@primeuix/themes` 2.x | pacchetto nuovo | il vecchio pacchetto è deprecato; la 3 ha la PrimeUI License |
+| PrimeIcons | 7.0.0 | 7.0.0 | — | la 8 ha la PrimeUI License: decisione 5 |
+| keycloak-angular / keycloak-js | 19.0.2 / 26.2.2 | 21.x / 26.2.x | maggiore / patch | |
 | ngx-extended-pdf-viewer | 28.1.2 | 31.x | maggiore | la 28 include un pdf.js vulnerabile |
 | Tailwind CSS e tailwindcss-primeui | 3.4 / 0.5 | 4.3 / 0.6 | maggiore | configurazione CSS al posto di `tailwind.config.js` |
 | zone.js, rxjs, tslib | 0.15, 7.8.1 | 0.16, 7.8.x | minor | zone.js resta: [Fuori scope](#fuori-scope) |
@@ -180,9 +180,33 @@ JHipster framework 9.4 è costruito su Spring Boot 4.1: le due versioni salgono 
 - Testcontainers 2 nei 10 file di test che lo usano.
 - La rimozione del BOM di Spring Cloud, importato ma non usato da nessuna classe.
 
-### 5. Angular 22 con PrimeNG 22 e TypeScript 6.0
+### 5. Angular e PrimeNG alla 21, con TypeScript 5.9
 
-Angular 22 richiede TypeScript 6.0. PrimeNG 22 è la prima versione che dichiara il supporto ad Angular 22. Il tema passa a `@primeuix/themes`. `docs/llms-full.md` va rigenerato dalla documentazione di PrimeNG 22, che `AGENTS.md` indica come riferimento. Tailwind passa alla 4 nello stesso passo, perché `tailwindcss-primeui` 0.6 accompagna i temi nuovi. L'impatto riguarda 129 file che importano PrimeNG, 81 dei quali per `DynamicDialog`.
+Approvata il 06/11/2026 come passo ad Angular 22 con PrimeNG 22 e TypeScript 6.0, rivista il 2026-11-08: per la licenza di PrimeNG 22, la fase 5 si chiude alla linea 21. Restano Angular 21 con TypeScript 5.9, PrimeNG 21, `@primeuix/themes` 2 e PrimeIcons 7, tutti MIT. PrimeNG 21 chiede Angular 21, e PrimeNG 22 è la prima versione che dichiara il supporto ad Angular 22: le due librerie salgono insieme. Il tema passa comunque a `@primeuix/themes`, che sostituisce `@primeng/themes`, deprecato. `docs/llms-full.md`, che `AGENTS.md` indica come riferimento, descrive la 22 e va rigenerato per la 21. Tailwind passa alla 4, perché `tailwindcss-primeui` 0.6 accompagna i temi nuovi. L'impatto riguarda 129 file che importano PrimeNG, 81 dei quali per `DynamicDialog`.
+
+**Licenza di PrimeNG 22.** Dalla 22 PrimeNG, `@primeuix/themes` e `@primeuix/styles` 3 e PrimeIcons 8 non sono più MIT: si usano con la PrimeUI License. La sua Community License è gratuita per le organizzazioni con meno di un milione di dollari di ricavi annui e meno di cinque sviluppatori, per i singoli, per gli enti senza scopo di lucro e per i progetti open source non commerciali. Si rinnova ogni anno e chiede una chiave di licenza. Le versioni fino alla 21 restano MIT.
+
+Taurus è GPLv3, che non permette di distribuire il programma combinato con una libreria sotto una licenza più restrittiva. Il 2026-11-08 è stata valutata la salita a PrimeNG 22 con un permesso aggiuntivo della sezione 7 della GPLv3, nella forma che la FAQ della GPL propone per le librerie incompatibili: Taurus resterebbe GPLv3, e chi lo distribuisce potrebbe combinarlo con le librerie PrimeUI. Per ora non si applica. Il testo proposto, da aggiungere in fondo a `LICENSE` e da citare nel README:
+
+> Additional permission under GNU GPL version 3 section 7
+>
+> If you modify this Program, or any covered work, by linking or combining it with PrimeNG, PrimeIcons, @primeuix/themes or @primeuix/styles (or a modified version of those libraries), containing parts covered by the terms of the PrimeUI License, the licensors of this Program grant you additional permission to convey the resulting work.
+
+Il testo non chiede di includere il codice delle librerie PrimeUI nel sorgente corrispondente: i termini PrimeUI vietano di ridistribuirle perché altri ci sviluppino, salvo con una licenza OEM. Il repository di Taurus non le contiene, le scarica `npm ci`.
+
+- **Chiave.** La chiave è personale e non entra nel repository né nell'immagine pubblicata. Il frontend la legge all'avvio da `TAURUS_PRIMEUI_LICENSE`, che `docker-entrypoint.d/40-taurus-runtime-config.sh` scrive in `assets/config.json` come gli indirizzi dell'API e di Keycloak, e la passa a `providePrimeNG({ license })`. Nel browser la chiave resta leggibile, come in ogni applicazione PrimeNG: la configurazione a runtime evita solo di pubblicarla. Senza una chiave valida PrimeNG scrive un avviso in console e mostra un banner rosso.
+- **Note di terze parti.** Un nuovo `taurus-fe/THIRD_PARTY_NOTICES.md` annota la PrimeUI License e viene copiato nell'immagine del frontend, come quello del backend per Liquibase.
+
+**Scadenza della linea 21.** Angular 21 è in LTS dal 2026-06-03 e riceve solo correzioni critiche e di sicurezza fino a giugno 2027. Dopo la 21.1.10 del 2026-09-09 non sono uscite altre versioni gratuite di PrimeNG 21, mentre la 22 è arrivata alla 22.1.4; per le maggiori precedenti il `LICENSE.md` di PrimeNG prevede versioni `-lts` con licenza commerciale.
+
+**Evolutiva successiva.** L'aggiornamento di PrimeNG, e di conseguenza di tutto ciò che questa decisione non permette di aggiornare, sarà oggetto di una successiva evolutiva. Comprende:
+
+- PrimeNG 22, `@primeuix/themes` 3 e PrimeIcons 8, con le modifiche ai componenti descritte in [Passo ad Angular e PrimeNG 22](#passo-ad-angular-e-primeng-22);
+- Angular, CLI e CDK 22 e keycloak-angular 22, che seguono PrimeNG;
+- TypeScript 6.0 nel frontend, che Angular 21 non accetta;
+- le 18 vulnerabilità moderate di `npm audit` nella catena della CLI di Angular, corrette nella CLI 22.1.
+
+L'evolutiva sceglie fra PrimeNG 22 o successive con la PrimeUI License, un'altra libreria di componenti e un fork di PrimeNG 21, prima che Angular 21 esca dal supporto a giugno 2027.
 
 ### 6. Karma e Jasmine restano per ora
 
@@ -226,7 +250,9 @@ Le voci di `.trivyignore.yaml` vengono tolte dalla fase che risolve la vulnerabi
 
 | Componente | Versione scelta | Più recente | Motivo |
 | --- | --- | --- | --- |
-| TypeScript | 6.0 | 7.0 | Angular 22 richiede `>=6.0 <6.1`; `@astrojs/check` supporta fino alla 6 |
+| TypeScript | 5.9 nel frontend, 6.0 nel sito | 7.0 | Angular 21 richiede `>=5.9 <6.0`: nel frontend la 6.0 arriva con l'evolutiva successiva della decisione 5; `@astrojs/check` supporta fino alla 6 |
+| Angular, CLI e CDK; keycloak-angular | 21.2; 21.0 | 22.2; 22.0 | PrimeNG 21 chiede Angular 21. Angular 21 è in LTS fino a giugno 2027. Si aggiornano nell'evolutiva successiva della decisione 5 |
+| PrimeNG, `@primeuix/themes`, PrimeIcons | 21.1.10, 2.0.3, 7.0.0 | 22.1.4, 3.1.0, 8.0.2 | dalla 22 PrimeUI License. Dopo la 21.1.10 non sono uscite versioni gratuite di PrimeNG 21. Si aggiornano nell'evolutiva successiva della decisione 5 |
 | Python e Ubuntu del servizio OMR | 3.12 / 24.04 | 3.15 / 26.04 | Audiveris non ha pacchetti per Ubuntu 26.04 |
 | Pillow del servizio OMR | 12.3.0 | 13.0.0 | homr 0.7.0, ultima versione, richiede `Pillow<13`; le 28 CVE corrette solo dalla 13 restano in `.trivyignore.yaml` finché homr non accetta la 13 |
 | opencv-python-headless del servizio OMR | 4.14.0.94 | 5.0.0.93 | homr 0.7.0 richiede `<5`: decisione 9 |
@@ -234,6 +260,7 @@ Le voci di `.trivyignore.yaml` vengono tolte dalla fase che risolve la vulnerabi
 | Java del provider Keycloak | 21, quella dell'immagine di Keycloak 26.8.2 | 25 | il provider gira nella JVM di Keycloak |
 | Prometheus | 3.13 LTS | 3.15 | la 3.15 esce dal supporto il 06/11/2026; la LTS è supportata fino a luglio 2027 |
 | Karma | 6.4 | — | deprecato senza successore diretto: decisione 6 |
+| Jasmine nei test del frontend | 4.6.1 durante i test; 6.3 nel `package.json` | 7.0 | karma-jasmine 5.1.0, ultima versione, dipende da `jasmine-core` ^4.1 e carica la propria copia, la 4.6.1; quella del `package.json` serve a `karma-jasmine-html-reporter`. Forzando la versione con `overrides`, Jasmine 7 non parte con la patch di zone.js (`Cannot assign to read only property 'describe'`) e Jasmine 6 ferma la suite dopo 112 test, su una promise rifiutata senza gestione. Si risolve con la migrazione a Vitest della decisione 6 |
 
 ## Fasi
 
@@ -247,7 +274,7 @@ Ogni fase è una pull request separata, di un solo modulo, come chiede `AGENTS.m
 | 3 | Provider e immagine Keycloak 26.8 | `keycloak-authenticator`, compose | 3, emerse nella fase 1 |
 | 4a | Backend: Java 25, Spring Boot 3.5, JHipster 8.12, librerie e plugin, API deprecate | `taurus-be` | 72 delle 73 voci del backend in `.trivyignore.yaml` |
 | 4b | Backend: Spring Boot 4.0 → 4.1, JHipster 9.4, Jackson 3, Hibernate 7, Testcontainers 2, Liquibase 5, springdoc-openapi 3 | `taurus-be` | le 2 di spring-webmvc |
-| 5 | Frontend: Node 26, Angular e PrimeNG 20 → 21 → 22, Tailwind 4, librerie | `taurus-fe` | 38 |
+| 5 | Frontend: Node 26, Angular e PrimeNG 20 → 21, Tailwind 4, librerie; la 22 in un'evolutiva successiva (decisione 5) | `taurus-fe` | 38 |
 | 6 | Sito informativo: Node 26, pnpm 12, Astro 6 → 7 | `taurus-info` | 14 |
 | 7 | Servizi: PostgreSQL 18, RabbitMQ 4.4, nginx senza root, monitoraggio | compose, `deploy/`, Dockerfile | 4 configurazioni |
 | 8 | Documentazione e chiusura: runbook, `AGENTS.md`, README, `.trivyignore.yaml` vuoto | repository | — |
@@ -401,6 +428,56 @@ Applicata e verificata il 2026-11-08 sul ramo `upgrade-phase-4b`, che parte da `
 - **Test e copertura.** `./mvnw verify -Dtaurus.test.requireDocker=true` con Java 25 su Spring Boot 4.1.2 supera 1225 test unitari e 279 di integrazione in 30 minuti. La copertura unita è del 77,27% delle linee e del 61,68% dei branch, contro il 77,28% e il 61,70% della fase 4a. Resta sopra le soglie, che non cambiano: 0,77 e 0,61.
   - Una prima esecuzione si era fermata su `staysWithinTheTimeBudgetOnAnA4PageAt300Dpi`: 5,3 secondi contro un limite di 5, mentre sulla stessa macchina giravano Trivy e la prova delle metriche. Senza quel carico il test passa.
 
+### Avanzamento della fase 5
+
+In corso dal 2026-11-08 sul ramo `upgrade-phase-5`, che parte da `078141a`. Sono fatti i passi ad Angular 20 e 21, Tailwind 4, le librerie e Node 26. Lo stesso giorno si è deciso di chiudere la fase alla linea 21: il passo ad Angular e PrimeNG 22 è rimandato a un'evolutiva successiva (decisione 5), e il suo piano resta in [Passo ad Angular e PrimeNG 22](#passo-ad-angular-e-primeng-22). Le versioni sono le ultime pubblicate da almeno sette giorni, come chiede la decisione 7: il lockfile è rigenerato con `npm install --before=2026-11-01T23:59:59Z`. In `angular.json` il builder è `@angular/build`, al posto di `@angular-devkit/build-angular`.
+
+- **Angular 20.** `ng update` porta Angular 20.3.34, la CLI 20.3.42, PrimeNG 20.4.0 e TypeScript 5.9.3.
+  - Le migrazioni di `ng update` cambiano solo i valori predefiniti di generazione in `angular.json`. La migrazione facoltativa al control flow a blocchi converte gli ultimi cinque template con `*ngIf` e `*ngFor`: configuratore, spinner di caricamento, menu, voce di menu e barra superiore.
+  - PrimeNG 20 toglie `primeng/dropdown`, ancora importato da `ImportsModule`. `DialogService.open` può restituire `null`: le 41 sottoscrizioni a `onClose` passano a `?.onClose`. Il tipo dei componenti del preset accessibile, `AccessibleComponents`, passa da `interface` a `type` per restare assegnabile ai token di design di PrimeNG 20.
+  - A questo passo un solo test falliva, quello di `aria-disabled` della direttiva dei ToggleButton, poi riscritta al passo 21.
+- **Angular 21.** `ng update` porta Angular 21.2.25, `@angular/build` e la CLI 21.2.29, il CDK 21.2.14, PrimeNG 21.1.10 e keycloak-angular 21.0.0. TypeScript resta alla 5.9.3. I temi passano da `@primeng/themes`, deprecato, a `@primeuix/themes` 2.0.3.
+  - Le migrazioni spostano le opzioni di avvio fra i provider in `main.ts` e rendono un segnale `Router.lastSuccessfulNavigation` nell'anteprima.
+  - Tolte le API che Angular 21 depreca: `ChangeDetectionStrategy.Default` diventa `Eager` in 11 componenti, `TestBed.flushEffects` diventa `TestBed.tick`, `router.isActive` la funzione `isActive`, e non si usano più `statusText` di `HttpErrorResponse` né `returnValue` dell'evento `beforeunload`.
+  - `@angular/animations` è deprecato dalla 20.2 e PrimeNG 21 usa animazioni CSS: `provideAnimationsAsync` è tolto, e il sottomenu laterale si chiude con la classe `layout-submenu-collapsed` di `_menu.scss` al posto dell'animazione di Angular.
+- **Deprecazioni di PrimeNG.** Al passo 21 sono tolte le API deprecate dalla 20 che la 22 rimuove:
+  - `icon` e `label` di `pButton` diventano gli elementi `pButtonIcon` e `pButtonLabel`, in 12 pulsanti di sei template;
+  - `styleClass` diventa `class` sui componenti che applicano la classe all'host: InputIcon, DatePicker, Skeleton, Table e Image;
+  - `responsiveLayout="scroll"` è tolto da 10 tabelle, perché è già il comportamento predefinito, e `p-checkBox` diventa `p-checkbox`;
+  - `pTemplate` diventa un `ng-template` con il nome come variabile di riferimento, in quattro template. Nel dettaglio dell'inventario e nel dialogo di sostituzione `#item` nascondeva la proprietà `item` del componente: le proprietà diventano `inventoryItem` e `substituteItem`.
+
+  Restano 16 selettori in camel case della tabella, che la 22 toglie: `p-sortIcon`, `p-tableHeaderCheckbox` e `p-tableCheckbox`, in cinque template.
+- **Tailwind 4.** Tailwind CSS 4.3.3 con tailwindcss-primeui 0.6.1, migrato con lo strumento ufficiale `@tailwindcss/upgrade`.
+  - Lo strumento non legge la configurazione con il plugin di tailwindcss-primeui, che importa `tailwindcss/plugin`: il plugin passa a `@import 'tailwindcss-primeui'`. Nei file SCSS lo strumento aveva riscritto la proprietà `flex-shrink` come se fosse una utility: le due modifiche sono tolte.
+  - La configurazione passa da `tailwind.config.js`, tolto, a `src/tailwind.css`: punti di rottura nel blocco `@theme`, variante scura sulla classe `app-dark`, sorgenti con `@source`. PostCSS usa `@tailwindcss/postcss` da `.postcssrc.json`, e `autoprefixer` non serve più. `src/tailwind.css` è una voce a sé degli stili in `angular.json`, prima di `styles.scss`.
+  - Le utility rinominate cambiano nei template: per esempio `!p-0` diventa `p-0!` in otto pagine e `break-words` diventa `wrap-break-word`. Tre regole di `@layer base` mantengono i valori di Tailwind 3 che la 4 cambia: il colore dei bordi, il cursore dei pulsanti e il colore dei placeholder.
+  - In Tailwind 4 le utility stanno nel cascade layer `utilities`. Gli stili di PrimeNG e le regole globali dell'applicazione non hanno layer e vincono su qualunque regola di un layer, a prescindere dalla specificità: dove una utility e una regola globale toccano la stessa proprietà, il risultato può cambiare. La verifica visiva lo deve controllare.
+- **Librerie.** ngx-extended-pdf-viewer 31.0.1, senza modifiche al codice; chart.js 4.6.1, verovio 6.4.0, spessasynth_lib 4.4.2, zone.js 0.16.3, rxjs 7.8.2, tslib 2.9.1 e keycloak-js 26.2.5. Fra gli strumenti: ESLint 10.14 con eslint-config-prettier 10.1.8 e eslint-plugin-prettier 5.5.7, Prettier 3.9.10, axe-core per Playwright 4.14.0, karma-jasmine-html-reporter 2.3.0, `jasmine-core` 6.3 e `@types/jasmine` 6.0, postcss 8.5.32. `eslint-plugin-import` ed `eslint-plugin-prefer-arrow` sono tolti, perché `eslint.config.js` non li usa; nessuno script e nessun job della CI esegue ESLint. Jasmine resta alla 4.6.1 durante i test: vedi [Eccezioni](#eccezioni-alla-versione-più-recente).
+  - Playwright scende dalla 1.65.0 del lockfile della fase 0 alla 1.64.1: la 1.65.0 è del 2026-11-05, dentro i sette giorni. La 1.64.1 usa Chromium 1248, da installare prima della suite end to end.
+- **Direttiva dei ToggleButton.** PrimeNG 21 dà di nuovo a ToggleButton il ruolo di pulsante e il nome da `ariaLabel`, ma lo stato disabilitato resta solo in `data-p-disabled` e nel `tabindex`. `ToggleButtonRoleDirective` diventa `ToggleButtonDisabledDirective`, in `toggle-button-disabled.directive.ts`: aggiunge solo `aria-disabled`, sui ToggleButton e sulle opzioni di SelectButton, e i suoi quattro test controllano anche il ruolo e il nome dati da PrimeNG.
+- **Node 26.** Angular 21 accetta Node 20.19, 22.12 e dalla 24 in su. Il `Dockerfile` del frontend usa `node:26-alpine` per la build, e il job `frontend` di `verify.yml` Node 26; gli altri job restano su Node 22 fino alla fase 6. README, README del frontend e Runbook operativo lo indicano.
+- **Vulnerabilità.** Senza `.trivyignore.yaml`, Trivy 0.76.2 come nella CI non trova vulnerabilità nel lockfile del frontend: escono da `.trivyignore.yaml` le sue nove voci. Resta DS-0002 del `Dockerfile`, nginx come root, della fase 7. `npm audit` segnala 18 vulnerabilità moderate, tutte in dipendenze di sviluppo della catena della CLI di Angular, corrette nella CLI 22.1: con la fase chiusa alla 21 restano aperte.
+- **Dependabot.** `.github/dependabot.yml` ignora anche le maggiori di `@primeuix/themes` e PrimeIcons, che dalla 3 e dalla 8 hanno la PrimeUI License: le maggiori di PrimeNG erano già escluse.
+- **Test e build.** `npm run test:coverage` supera 751 test su 751, con copertura sopra la baseline: statements 64,57%, branches 54,40%, lines 66,63%. `npm run build` riesce con i due avvisi di budget CSS già presenti.
+- **Non ancora fatto.** La suite end to end e la verifica visiva sul risultato del passo 21, con il controllo dei cascade layer di Tailwind 4 e dell'esclusione su `p-stepper` annotata per PrimeNG 19 nel [README della suite](../taurus-fe/e2e/README.md); `docs/llms-full.md`, che descrive la 22, rigenerato per la 21.
+
+#### Passo ad Angular e PrimeNG 22
+
+Programmato e rimandato il 2026-11-08: la fase 5 si chiude alla linea 21 (decisione 5). Il piano resta come riferimento per l'evolutiva successiva che porterà il frontend oltre Angular 21, se sceglierà PrimeNG 22, in un ramo e una pull request nuovi.
+
+1. **Angular 22.** `ng update` di Angular, CLI e CDK alla 22.2.x, con TypeScript 6.0 (vedi [Eccezioni](#eccezioni-alla-versione-più-recente)), keycloak-angular 22 e la linea di zone.js che Angular 22 chiede. Si tolgono le API che Angular 22 depreca, come ai passi 20 e 21.
+2. **PrimeNG 22.** PrimeNG 22, `@primeuix/themes` 3 e PrimeIcons 8.
+   - L'applicazione ha il font di base a 14 pixel (`src/assets/layout/_core.scss`), mentre i preset della 22 lo assumono a 16. Il preset accessibile parte da `@primeuix/themes/aura-compat`, la variante calibrata su 14 pixel, mantenuta fino a giugno 2027. Il passaggio a 16 pixel e al preset standard è un lavoro a parte, da fare prima di quella data.
+   - I 16 selettori della tabella passano al kebab case, e la direttiva dei ToggleButton perde i selettori in camel case che la 22 non riconosce più.
+   - Le icone `pi` usate dall'applicazione si confrontano con PrimeIcons 8, e le misure di contrasto di `accessible-theme.spec.ts` si ripetono sui token nuovi.
+   - Se PrimeNG 22 scrive `aria-disabled` sui ToggleButton, `ToggleButtonDisabledDirective` si toglie.
+3. **Chiave di licenza.** `TAURUS_PRIMEUI_LICENSE` in `40-taurus-runtime-config.sh`, nel tipo `RuntimeConfig` con i suoi test, in `providePrimeNG({ license })`, nel compose e in `.env.example` di `deploy/` e nella tabella delle variabili del Runbook operativo, con il rinnovo annuale. In sviluppo la chiave non va nel `src/assets/config.json` versionato. Si verifica cosa vede chi installa l'immagine senza chiave.
+4. **Note di terze parti.** `taurus-fe/THIRD_PARTY_NOTICES.md` con la PrimeUI License, copiato dal `Dockerfile` nell'immagine.
+5. **Permesso aggiuntivo.** Il testo della decisione 5 in fondo a `LICENSE` e una nota nel README, in un commit del repository separato da quelli del frontend.
+6. **Documentazione di PrimeNG.** `docs/llms-full.md`, generato il 2026-06-28, descrive già la 22: si rigenera per la versione installata, come chiede `AGENTS.md`.
+7. **Verifiche.** `npm run build`, `npm run test:coverage`, Trivy come nella CI e `npm audit`; la suite end to end, ricontrollando l'esclusione su `p-stepper` annotata per PrimeNG 19 nel [README della suite](../taurus-fe/e2e/README.md) e nel [Runbook di test](runbook-test.md); la verifica visiva delle pagine del [Taurus Layout Standard](taurus-layout-standard.md) in chiaro e scuro, desktop e mobile, con il controllo dei cascade layer di Tailwind 4. Il banner di PrimeNG non deve comparire con la chiave valida.
+8. **Riferimenti.** `AGENTS.md`, README e runbook passano ad Angular 22 e PrimeNG 22.
+
 ### Stato dei lavori
 
 Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che parte da `84ae3b8`. I commit sono sei, uno per modulo e due per il backend:
@@ -462,6 +539,17 @@ Fase 4b verificata il 2026-11-08 sul ramo `upgrade-phase-4b`, che parte da `36a4
 - `Replace APIs deprecated by Spring Boot 4`: codici HTTP, annotazioni di JSpecify, container di Testcontainers 2, marker di `CRLFLogConverter` e LiveReload nei profili;
 - `Add third-party notices to the backend image`: `THIRD_PARTY_NOTICES.md`, `Dockerfile`, `.dockerignore` e README del backend;
 - `Record phase 4b of the platform upgrade`: `.trivyignore.yaml`, il Runbook operativo, questa specifica e il catalogo.
+
+La pull request è la [#162](https://github.com/danielefundaro/Taurus/pull/162), unita su `main` il 2026-11-08 con il merge `078141a`. La fase 4b è chiusa.
+
+Fase 5 in corso dal 2026-11-08 sul ramo `upgrade-phase-5`, che parte da `078141a` (vedi [Avanzamento della fase 5](#avanzamento-della-fase-5)). Lo stesso giorno si è deciso di chiudere la fase alla linea 21: il passo ad Angular e PrimeNG 22 sarà oggetto di un'evolutiva successiva (decisione 5). I commit sono quattro:
+
+- `Update the frontend to Angular 21, PrimeNG 21 and Tailwind 4`: `package.json`, lockfile, `angular.json`, configurazione di Tailwind e PostCSS, codice, test e `Dockerfile` del frontend;
+- `Build the frontend with Node 26 in CI`: il job `frontend` di `verify.yml`;
+- `Exclude PrimeUI-licensed majors from Dependabot`: `.github/dependabot.yml`;
+- `Record phase 5 of the platform upgrade`: `.trivyignore.yaml`, `AGENTS.md`, `README.md`, il README del frontend, il Runbook operativo, questa specifica e il catalogo.
+
+Prima della pull request restano la suite end to end, la verifica visiva e `docs/llms-full.md`.
 
 #### Verifiche eseguite
 
@@ -551,6 +639,13 @@ Fase 4b verificata il 2026-11-08 sul ramo `upgrade-phase-4b`, che parte da `36a4
 | Repository | Trivy 0.76.2 come nella CI sul backend, con i POM del repository Maven locale | senza `.trivyignore.yaml` nessuna vulnerabilità nel `pom.xml`, con 212 pacchetti risolti fra cui spring-webmvc 7.0.10, e DS-0002 del dev container; con il file nessuna segnalazione |
 | Backend | `docker build` del `Dockerfile` e Trivy 0.76.2 sull'immagine, `HIGH` e `CRITICAL` corrette | build riuscita, `THIRD_PARTY_NOTICES.md` accanto ad `app.jar`, processo con l'utente `taurus`; nel JAR nessuna vulnerabilità, nell'immagine base Ubuntu 26.04 CVE-2026-109518 di `apt` e `libapt-pkg` |
 | Repository | i controlli del job `documentation` con la fase 4b | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento |
+| Frontend | `npm run build` e `npm run test:coverage` su Angular 20.3.34 e PrimeNG 20.4.0 | build riuscita; 751 test superati e 1 fallito, quello di `aria-disabled` della direttiva dei ToggleButton |
+| Frontend | `npm run build` su Angular 21.2.25, PrimeNG 21.1.10 e Tailwind 4.3.3, Node 26.13.0 | riuscita, con i due avvisi di budget CSS già presenti: `pdf-manipulator-dialog.component.scss` 7,72 kB e `preview.component.scss` 7,95 kB |
+| Frontend | `npm run test:coverage` sullo stesso stato | 751 test su 751; copertura sopra la baseline (statements 64,57%, branches 54,40%, lines 66,63%) |
+| Frontend | `npm ls --all` con il lockfile rigenerato | nessun errore |
+| Frontend | `npm run test:coverage` con `jasmine-core` 7 e 6 forzati con `overrides` | con la 7 nessun test parte; con la 6 la suite si ferma dopo 112 test: vedi [Eccezioni](#eccezioni-alla-versione-più-recente) |
+| Repository | Trivy 0.76.2 come nella CI sul frontend | senza `.trivyignore.yaml` nessuna vulnerabilità nel lockfile e DS-0002 del `Dockerfile`; con il file nessuna segnalazione |
+| Frontend | `npm audit` | 18 vulnerabilità moderate, tutte in dipendenze di sviluppo della CLI di Angular |
 
 Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta. Dopo il merge di `fix-a11y-defects` non sono stati ripetuti né axe né la suite end to end: le due correzioni sono state verificate con axe sul loro ramo, con PrimeNG 19.0.10, e sul ramo unito le coprono i test unitari.
 
@@ -584,8 +679,8 @@ Risolto il 2026-11-06.
 #### Note sull'ambiente locale
 
 - Fino alla fase 3 il backend è stato verificato con Java 21.0.2, e la CI usava Java 17. Dalla fase 4a entrambi usano Java 25: in locale Temurin 25.0.5, scelto solo con `JAVA_HOME`. Con i servizi di sviluppo avviati, `SPRING_RABBITMQ_PORT=5679` punta i test su una porta chiusa, come in CI dove nessun broker ascolta su `localhost:5672`.
-- Il frontend è stato verificato con Node 22.11.0, come la CI che usa Node 22. pnpm 11.16 non parte su Node 22.11.0 e il corepack di quella versione rifiuta le chiavi di firma di pnpm: per il sito è stato usato Node 24.21.0.
-- Il lockfile del frontend è stato rigenerato così: `npm audit fix`, minimi del `package.json` alzati a mano, poi rimozione dal lock delle sole voci con nome esatto (`@angular/*`, `@angular-devkit/*`, `@ngtools/*`, `@schematics/angular`, `primeng`, `postcss`) e `npm install`. Una rimozione per prefisso toglie anche `postcss-modules-*`, che npm non ripristina: la build passa, ma Karma non trova `postcss-modules-values`. `npm ls --all` deve uscire senza errori.
+- Fino alla fase 4b il frontend è stato verificato con Node 22.11.0, come la CI che usava Node 22. Dalla fase 5 usa Node 26.13.0, come il job `frontend` della CI. pnpm 11.16 non parte su Node 22.11.0 e il corepack di quella versione rifiuta le chiavi di firma di pnpm: per il sito è stato usato Node 24.21.0.
+- Il lockfile del frontend è stato rigenerato così: `npm audit fix`, minimi del `package.json` alzati a mano, poi rimozione dal lock delle sole voci con nome esatto (`@angular/*`, `@angular-devkit/*`, `@ngtools/*`, `@schematics/angular`, `primeng`, `postcss`) e `npm install`. Una rimozione per prefisso toglie anche `postcss-modules-*`, che npm non ripristina: la build passa, ma Karma non trova `postcss-modules-values`. `npm ls --all` deve uscire senza errori. Nella fase 5 il lockfile è rigenerato da `npm install --before=2026-11-01T23:59:59Z`, che sceglie solo versioni pubblicate da almeno sette giorni.
 - Il `node_modules` del sito era collegato allo store pnpm `D:\Daniele\Zodiac\Taurus\.pnpm-store`, che non esisteva più. Lo store è stato ricreato per l'aggiornamento e poi cancellato: se pnpm segnala uno store inatteso, `pnpm install` ricollega le dipendenze.
 - La coda `upload.files` del RabbitMQ locale è precedente alla dead-letter exchange introdotta il 2026-10-31 con `ad15f670`: all'avvio il backend registra `PRECONDITION_FAILED - inequivalent arg 'x-dead-letter-exchange'`. Non dipende dalla fase 0: cancellata la coda dalla console di RabbitMQ, il backend la dichiara di nuovo.
 - L'enforcer del backend segnala due divergenze di dipendenze, solo come avvisi: amqp-client, 5.21.0 da `spring-rabbit` contro quella dichiarata, già presente con la 5.25.0, e `checker-qual`, 3.55.1 da pgjdbc 42.7.14 contro 3.37.0 da Caffeine, nuova. Dalla fase 4a gli avvisi riguardano jaxb-api, amqp-client, bcpkix, nimbus-jose-jwt, commons-text e jose4j, dove vince la 0.9.7 dichiarata; quello su `checker-qual` non c'è più. La regola resta non bloccante.
@@ -595,10 +690,10 @@ Risolto il 2026-11-06.
 ### Repository
 
 - `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA come già dalla fase 0; Trivy con `version` esplicita e le dipendenze Maven risolte prima della scansione; gitleaks e semgrep aggiornati. Fatto nella fase 1. Java 25 nei job `backend` e `security` è arrivato con la fase 4a; Node 26 arriva con le fasi 5 e 6.
-- `.github/dependabot.yml`: nuovo (decisione 7), nella fase 1.
+- `.github/dependabot.yml`: nuovo (decisione 7), nella fase 1. Nella fase 5 ignora anche le maggiori di `@primeuix/themes` e PrimeIcons (decisione 5).
 - `.gitleaks.toml`: due test del backend nell'allowlist, falsi positivi di gitleaks 8.30 (fase 1).
 - `.trivyignore.yaml`: nuovo nella fase 0, vuoto alla fine della fase 8.
-- `AGENTS.md` e `README.md`: Java 25, Node.js 26, pnpm 12, Angular 22.
+- `AGENTS.md` e `README.md`: Java 25, Node.js 26, pnpm 12, Angular 21.
 
 ### Backend
 
@@ -611,10 +706,11 @@ Risolto il 2026-11-06.
 ### Frontend
 
 - `package.json` e lockfile dopo ogni `ng update`; builder `@angular/build`; `@primeuix/themes`; Tailwind 4 con lo strumento di migrazione ufficiale.
-- Componenti: le modifiche richieste da PrimeNG 20–22, verificate pagina per pagina sulle schermate del [Taurus Layout Standard](taurus-layout-standard.md).
-- `ToggleButtonRoleDirective`, aggiunta nella fase 0: da togliere se PrimeNG 22 dà a ToggleButton il ruolo di pulsante, verificandolo con la suite di accessibilità.
+- Componenti: le modifiche richieste da PrimeNG 20 e 21, verificate pagina per pagina sulle schermate del [Taurus Layout Standard](taurus-layout-standard.md).
+- `ToggleButtonRoleDirective`, aggiunta nella fase 0: con PrimeNG 21 diventa `ToggleButtonDisabledDirective` e aggiunge solo `aria-disabled`; da togliere quando PrimeNG lo scriverà da sé, verificandolo con la suite di accessibilità.
 - `Dockerfile`: `node:26-alpine` e nginx senza root sulla porta 8080.
-- `docs/llms-full.md` rigenerato per PrimeNG 22.
+- `docs/llms-full.md` rigenerato per PrimeNG 21.
+- Fatto finora nella fase 5: Angular 21 e PrimeNG 21, le API deprecate, Tailwind 4, le librerie, la direttiva dei ToggleButton e Node 26 nel `Dockerfile` e nella CI (vedi [Avanzamento della fase 5](#avanzamento-della-fase-5)).
 
 ### Sito informativo
 
@@ -649,6 +745,7 @@ Nessun cambio di regole. Il passaggio a Spring Security 7 e a Hibernate 7 tocca 
 | Componente | Licenza | Nota |
 | --- | --- | --- |
 | Liquibase 5 Community | Functional Source License 1.1, con licenza futura Apache-2.0 (`FSL-1.1-ALv2`) | dalla 5 non è più Apache-2.0: l'uso interno è gratuito. Accettata il 2026-11-07 per la fase 4b, che la annota in un nuovo `taurus-be/THIRD_PARTY_NOTICES.md`, copiato anche nell'immagine come chiede la licenza a chi ridistribuisce. L'alternativa era restare sull'ultima 4.x, fuori supporto dal 30/09/2025 |
+| PrimeNG 22, `@primeuix/themes` e `@primeuix/styles` 3, PrimeIcons 8 | PrimeUI License, Community gratuita con chiave e rinnovo annuale | fino alla 21 erano MIT. Valutata il 2026-11-08, con un permesso aggiuntivo della sezione 7 della GPLv3 per Taurus e la chiave letta a runtime, e per ora non adottata: la fase 5 resta su PrimeNG 21 (decisione 5) |
 | Tutti gli altri componenti | invariata | da ricontrollare a ogni maggiore in `THIRD_PARTY_NOTICES.md` |
 
 ## Strategia di test
@@ -683,16 +780,17 @@ Ogni fase esegue le verifiche complete del suo modulo, come in `AGENTS.md`:
 
 - Ogni fase si rilascia da sola. Per la fase 7 le installazioni esistenti devono seguire la procedura del runbook: PostgreSQL non si aggiorna cambiando solo il tag dell'immagine.
 - Backend e frontend non cambiano API fra loro: possono essere rilasciati in fasi diverse.
-- Il frontend aggiornato richiede browser recenti: Angular 22 supporta le ultime due versioni dei browser principali.
+- Il frontend aggiornato richiede browser recenti: Angular 21 supporta le ultime due versioni dei browser principali.
 - Le variabili d'ambiente del compose restano le stesse. Cambiano solo i valori predefiniti delle versioni (`TAURUS_POSTGRES_VERSION`, `TAURUS_KEYCLOAK_VERSION`, `TAURUS_RABBITMQ_VERSION`). Chi le ha fissate nel proprio `.env` le aggiorna seguendo il runbook.
 - Nessuna migrazione Liquibase prevista. Se Hibernate 7 cambia il DDL atteso, la differenza si corregge con una nuova migrazione e non modificando quelle esistenti.
 
 ## Rischi
 
-- **Volume del lavoro nel frontend.** Tre maggiori di Angular e PrimeNG su 117 componenti. Mitigazione: un passo alla volta con `ng update`, test a ogni passo e verifica visiva con la suite end-to-end.
+- **Volume del lavoro nel frontend.** Due maggiori di Angular e PrimeNG su 117 componenti. Mitigazione: un passo alla volta con `ng update`, test a ogni passo e verifica visiva con la suite end-to-end.
 - **Jackson 3 nel backend.** Serializzazione di date, enum e valori nulli può cambiare in modo silenzioso. Mitigazione: test delle API REST e controllo delle risposte JSON prima e dopo.
 - **Hibernate 7 e schema per tenant.** Il cambio di schema dipende da API interne di Hibernate. Mitigazione: test di isolamento tenant e prova con più tenant reali.
 - **Dati di PostgreSQL.** Un errore nella migrazione dei dati è il rischio più grave. Mitigazione: backup verificato prima, prova su una copia, procedura di ritorno indietro.
 - **Licenza di Liquibase 5.** Mitigazione: verifica prima della fase 4, con l'ultima 4.x come ripiego.
+- **Fine del supporto della linea 21.** Angular 21 riceve solo correzioni critiche e di sicurezza fino a giugno 2027, e dopo la 21.1.10 non sono uscite versioni gratuite di PrimeNG 21: un difetto o una vulnerabilità di PrimeNG va aggirato nell'applicazione, come con la direttiva dei ToggleButton, o corretto con una patch propria, che la licenza MIT permette. Mitigazione: l'evolutiva successiva della decisione 5, da fare prima di giugno 2027.
 - **Eccezioni che diventano permanenti.** Mitigazione: scadenza obbligatoria in `.trivyignore.yaml`.
 - **Modifiche in corso su altri rami.** Una fase lunga entra in conflitto con le funzionalità sviluppate nel frattempo. Mitigazione: fasi piccole, rilasciate appena pronte, e Dependabot per non accumulare di nuovo ritardo.
