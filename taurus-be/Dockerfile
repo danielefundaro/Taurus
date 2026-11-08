@@ -1,7 +1,7 @@
 # =========================
 # BUILD STAGE
 # =========================
-FROM maven:3.9.6-eclipse-temurin-17 AS builder
+FROM maven:3.10.0-eclipse-temurin-25 AS builder
 
 WORKDIR /build
 
@@ -23,7 +23,7 @@ RUN mvn -Pprod clean package -DskipTests
 # =========================
 # RUNTIME STAGE
 # =========================
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:25-jre
 
 WORKDIR /app
 

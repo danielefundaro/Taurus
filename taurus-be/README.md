@@ -1,6 +1,6 @@
 # Taurus backend
 
-API Java 17 e Spring Boot di Taurus, generata in origine con JHipster 8.7.3. Persiste i dati su PostgreSQL con uno schema per tenant, autentica gli utenti con Keycloak (realm `taurus`) e usa RabbitMQ per le elaborazioni asincrone, come i PDF delle tracce e il riconoscimento delle parti.
+API Java 25 e Spring Boot di Taurus, generata in origine con JHipster 8.7.3. Persiste i dati su PostgreSQL con uno schema per tenant, autentica gli utenti con Keycloak (realm `taurus`) e usa RabbitMQ per le elaborazioni asincrone, come i PDF delle tracce e il riconoscimento delle parti.
 
 ## Struttura
 

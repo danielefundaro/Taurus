@@ -8,14 +8,19 @@
 <body>
 <th:block th:fragment="content">
   <p th:replace="~{parts :: greeting}"></p>
-  <p th:replace="~{parts :: paragraph('L\'associazione ti chiede di firmare elettronicamente un atto del foglio di affidamento, come genitore o tutore del socio minorenne.')}"></p>
+  <!--/* Thymeleaf 3.1.5 non analizza più un apostrofo nei parametri di un frammento: il testo passa da th:with. */-->
+  <th:block th:with="text=|L'associazione ti chiede di firmare elettronicamente un atto del foglio di affidamento, come genitore o tutore del socio minorenne.|">
+    <p th:replace="~{parts :: paragraph(${text})}"></p>
+  </th:block>
   <table th:replace="~{parts :: details(${details})}"></table>
   <table th:replace="~{parts :: button(${url}, 'Leggi e firma')}"></table>
   <table th:replace="~{parts :: notes(~{signature-link :: notes})}"></table>
 </th:block>
 <th:block th:fragment="notes">
   <p th:replace="~{parts :: note(|Il collegamento vale fino alle ${expiresTime} del ${expiresDate} e solo per questo atto. Per firmare riceverai a questo indirizzo un codice di conferma.|)}"></p>
-  <p th:replace="~{parts :: note('Non inoltrare il messaggio: chi ha il collegamento può leggere i documenti dell\'atto. Se non ti aspettavi questa richiesta, ignorala e avvisa l\'associazione.')}"></p>
+  <th:block th:with="text=|Non inoltrare il messaggio: chi ha il collegamento può leggere i documenti dell'atto. Se non ti aspettavi questa richiesta, ignorala e avvisa l'associazione.|">
+    <p th:replace="~{parts :: note(${text})}"></p>
+  </th:block>
   <p th:replace="~{parts :: fallbackLink(${url})}"></p>
 </th:block>
 </body>

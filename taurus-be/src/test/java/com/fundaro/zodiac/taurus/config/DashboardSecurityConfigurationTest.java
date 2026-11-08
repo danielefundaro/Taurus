@@ -17,7 +17,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -52,25 +52,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({SecurityConfiguration.class, SecurityProblemSupport.class, OperationalDashboardResource.class})
 @EnableConfigurationProperties(JHipsterProperties.class)
 @TestPropertySource(properties = "spring.security.oauth2.client.provider.oidc.issuer-uri=https://issuer.example")
-@SuppressWarnings("removal")
 class DashboardSecurityConfigurationTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private OperationalDashboardService service;
 
-    @MockBean
+    @MockitoBean
     private ClientRegistrationRepository clientRegistrationRepository;
 
-    @MockBean
+    @MockitoBean
     private JwtDecoder jwtDecoder;
 
-    @MockBean
+    @MockitoBean
     private TenantFeatureService tenantFeatureService;
 
-    @MockBean
+    @MockitoBean
     private TenantProvisioningStatus tenantProvisioningStatus;
 
     @BeforeEach

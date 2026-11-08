@@ -26,7 +26,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -72,9 +72,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 )
 class TrackInstrumentSuggestionIT {
 
-    @MockBean
+    @MockitoBean
     ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean
+    @MockitoBean
     JwtDecoder jwtDecoder;
 
     @Autowired

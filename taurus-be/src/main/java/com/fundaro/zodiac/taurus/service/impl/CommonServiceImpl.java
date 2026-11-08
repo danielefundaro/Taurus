@@ -61,7 +61,7 @@ public class CommonServiceImpl<E extends CommonFields, D extends CommonFieldsDTO
         log.debug("Request to save {} : {}", entityName, dto);
 
         if (dto.getId() != null) {
-            throw new RequestAlertException(HttpStatus.BAD_REQUEST, String.format("A new %s cannot have an existing ID", entityName), entityName, "id.exists");
+            throw new RequestAlertException(HttpStatus.BAD_REQUEST, "A new %s cannot have an existing ID".formatted(entityName), entityName, "id.exists");
         }
 
         if (dto.getUserId() == null) {

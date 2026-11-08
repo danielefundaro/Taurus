@@ -17,7 +17,7 @@ Le scelte sono fissate in [Decisioni prese](#decisioni-prese).
 
 - `PdfProcessingService` chiama Tesseract con tess4j quando il PDF non contiene testo selezionabile, per leggere il nome dello strumento sulla prima pagina di ogni parte.
 - tess4j carica `libtesseract` dal sistema. In locale va installato Tesseract con i dati `ita` ed `eng` e indicato il loro percorso in `application.tesseract.data-path`, che per default punta a `C:\Program Files\Tesseract-OCR\tessdata`.
-- L'immagine Docker del backend (`eclipse-temurin:17-jre`) non installa Tesseract. Attivando l'OCR in produzione la libreria non viene trovata, l'errore finisce nel log e la parte resta senza suggerimenti: l'OCR è spento di default e di fatto inutilizzabile in produzione.
+- L'immagine Docker del backend (`eclipse-temurin:25-jre`) non installa Tesseract. Attivando l'OCR in produzione la libreria non viene trovata, l'errore finisce nel log e la parte resta senza suggerimenti: l'OCR è spento di default e di fatto inutilizzabile in produzione.
 - L'immagine `taurus-omr` contiene già i dati Tesseract, usati da Audiveris, e RapidOCR con i modelli PP-OCR verificati in `models.sha256`, usato da homr per il titolo. Installare Tesseract anche nel backend significherebbe mantenere due motori OCR in due immagini.
 
 ## Obiettivo

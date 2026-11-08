@@ -60,7 +60,7 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -127,11 +127,11 @@ class OperationalDashboardIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(OperationalDashboardIT.class);
 
-    @MockBean
+    @MockitoBean
     ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean
+    @MockitoBean
     JwtDecoder jwtDecoder;
-    @MockBean
+    @MockitoBean
     TenantFeatureService tenantFeatureService;
 
     @Autowired

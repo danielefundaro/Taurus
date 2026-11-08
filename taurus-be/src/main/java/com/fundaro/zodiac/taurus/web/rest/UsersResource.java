@@ -56,7 +56,7 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
         getLog().debug("REST request to get calendar events for user {}", id);
         Page<CalendarEventsDTO> page = getService().getUserCalendarEvents(id, criteria, pageable, abstractAuthenticationToken);
         return ResponseEntity.ok()
-            .headers(PaginationUtil.generatePaginationHttpHeaders(UriComponentsBuilder.fromHttpUrl(request.getRequestURL().toString()), page))
+            .headers(PaginationUtil.generatePaginationHttpHeaders(UriComponentsBuilder.fromUriString(request.getRequestURL().toString()), page))
             .body(page);
     }
 
@@ -126,7 +126,7 @@ public class UsersResource extends CommonOpenSearchResource<Users, UsersDTO, Use
         getLog().debug("REST request to get calendar events for the current user");
         Page<CalendarEventsDTO> page = getService().getCurrentUserCalendarEvents(criteria, pageable, abstractAuthenticationToken);
         return ResponseEntity.ok()
-            .headers(PaginationUtil.generatePaginationHttpHeaders(UriComponentsBuilder.fromHttpUrl(request.getRequestURL().toString()), page))
+            .headers(PaginationUtil.generatePaginationHttpHeaders(UriComponentsBuilder.fromUriString(request.getRequestURL().toString()), page))
             .body(page);
     }
 }

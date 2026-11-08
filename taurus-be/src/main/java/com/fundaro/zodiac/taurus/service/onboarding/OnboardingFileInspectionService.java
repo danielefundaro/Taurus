@@ -111,7 +111,7 @@ public class OnboardingFileInspectionService {
         String first = text.lines().findFirst().orElse("");
         char delimiter = count(first, ';') > count(first, ',') ? ';' : ',';
         try (CSVParser parser = CSVFormat.DEFAULT.builder().setDelimiter(delimiter).setHeader().setSkipHeaderRecord(true)
-            .setIgnoreEmptyLines(true).setTrim(true).build().parse(new StringReader(text))) {
+            .setIgnoreEmptyLines(true).setTrim(true).get().parse(Reader.of(text))) {
             validateHeaders(section, parser.getHeaderNames());
             List<ParsedRow> rows = new ArrayList<>();
             for (CSVRecord record : parser) {

@@ -245,11 +245,14 @@ Ogni fase è una pull request separata, di un solo modulo, come chiede `AGENTS.m
 | 1 | Azioni GitHub alle nuove versioni maggiori, già fissate per SHA dalla fase 0; Trivy, gitleaks e semgrep aggiornati, Dependabot | repository | — |
 | 2 | Servizio OMR: librerie Python | `taurus-omr` | 29 |
 | 3 | Provider e immagine Keycloak 26.8 | `keycloak-authenticator`, compose | 3, emerse nella fase 1 |
-| 4 | Backend: Java 25, Spring Boot 3.5 → 4.0 → 4.1, JHipster 9, librerie e plugin | `taurus-be` | 9, più 75 emerse nella fase 1 |
+| 4a | Backend: Java 25, Spring Boot 3.5, JHipster 8.12, librerie e plugin, API deprecate | `taurus-be` | 72 delle 73 voci del backend in `.trivyignore.yaml` |
+| 4b | Backend: Spring Boot 4.0 → 4.1, JHipster 9.4, Jackson 3, Hibernate 7, Testcontainers 2, Liquibase 5, springdoc-openapi 3 | `taurus-be` | le 2 di spring-webmvc |
 | 5 | Frontend: Node 26, Angular e PrimeNG 20 → 21 → 22, Tailwind 4, librerie | `taurus-fe` | 38 |
 | 6 | Sito informativo: Node 26, pnpm 12, Astro 6 → 7 | `taurus-info` | 14 |
 | 7 | Servizi: PostgreSQL 18, RabbitMQ 4.4, nginx senza root, monitoraggio | compose, `deploy/`, Dockerfile | 4 configurazioni |
 | 8 | Documentazione e chiusura: runbook, `AGENTS.md`, README, `.trivyignore.yaml` vuoto | repository | — |
+
+La fase 4 è divisa in due pull request, scelte il 2026-11-07. La 4a fa il primo passo della decisione 2: Spring Boot 3.5 senza API deprecate, insieme a Java 25. La 4b fa i due passi successivi, a Spring Boot 4.0 e 4.1, con le migrazioni della decisione 4.
 
 ### Esito della fase 0
 
@@ -303,6 +306,55 @@ Applicata e verificata il 2026-11-07 sul ramo `upgrade-phase-3`, che parte da `b
 - **Difetti già presenti, corretti.** La prova a mano li ha trovati, ma i modelli e i messaggi coinvolti sono identici in 26.6.4: non sono regressioni. Nella configurazione dell'app di autenticazione i nomi delle app comparivano come chiavi, `totpAppGoogleName` e le altre, perché `login-config-totp.ftl` stampava `${app}` dove il tema base usa `${msg(app)}`. Nella stessa pagina «Non riesci a scansionare il codice QR?» compariva due volte, come testo e come link, e senza script il link riapriva la pagina del codice QR. Ora compare una volta e porta a `totp.manualUrl`: la stessa pagina in modo manuale, con il codice da inserire già in vista e il modo conservato nel form. Nel recupero della password il ritorno all'accesso si leggeva «← « Torna al Login», perché il tema aggiungeva una freccia al messaggio, che ha già «: la freccia del tema è tolta. Le pagine che vengono da `base` e `keycloak.v2`, cioè conferma dell'uscita, informazione, errore, pagina scaduta, aggiornamento del profilo, verifica dell'e-mail e registrazione, usano classi di PatternFly 5 che `login.css` non definiva: campi e pulsanti avevano lo stile predefinito del browser e il titolo era testo semplice. Ora `login.css` dà a titolo, testi, campi, messaggi di errore e pulsanti di quelle pagine la forma delle pagine Taurus, senza caricare PatternFly; il pulsante per mostrare la password delle pagine `keycloak.v2`, che dipende da uno script che il tema non carica, è nascosto. Nei messaggi italiani del tema tornano gli accenti di «È necessario» e «non è valido». Due contrasti, visti nella stessa prova, restavano sotto il 4,5:1 di WCAG 2.1 AA: il testo degli avvisi gialli, 3,1:1 sul loro fondo, e il rosso dei messaggi di errore e degli asterischi, 3,8:1 sul bianco. Passano a 4,8:1 entrambi, e il testo degli avvisi di errore da 4,4:1 a 5,9:1. Resta com'è il recupero della password che toglie anche l'app di autenticazione, da configurare di nuovo al primo accesso: il flow di reimpostazione del realm ha `reset-otp` senza configurazione, come quello predefinito di Keycloak.
 - **Runbook.** Il [Runbook operativo](runbook-operativo.md) descrive l'aggiornamento di Keycloak e il ritorno indietro (§8.5): la versione nuova aggiorna lo schema di `taurus_keycloak` all'avvio e non si torna indietro senza il backup preso prima. Il [README del deploy](../deploy/README.md) ci rimanda. Anche il Keycloak di sviluppo aggiorna il proprio database al primo avvio con `keycloak.yml`, quindi il JAR in `realm-config` va ricompilato e copiato insieme.
 
+### Esito della fase 4a
+
+Applicata e verificata il 2026-11-08 sul ramo `upgrade-phase-4a`, che parte da `b7abeca`.
+
+- **Versioni.** Spring Boot 3.5.16, l'ultima 3.5, porta Spring Framework 6.2.19 e Spring Security 6.5.11. JHipster framework passa alla 8.12.0, l'ultima 8.x, e springdoc-openapi alla 2.10.0: sono le versioni della [#157](https://github.com/danielefundaro/Taurus/pull/157) di Dependabot.
+  - Librerie: ArchUnit 1.5.1, MapStruct 1.6.3, ical4j 4.4.0, PDFBox e pdfbox-tools 3.0.8, openhtmltopdf 1.1.105 (costruito su PDFBox 3.0.8), ZXing 3.5.4, Apache POI 6.0.0, commons-csv 1.14.1, commons-compress 1.28.0, jbig2-imageio 3.0.5 e web-push 5.1.2.
+  - Plugin: compiler 3.16.0, surefire e failsafe 3.6.1, enforcer 3.7.0, jar 3.5.1, javadoc 3.12.0, resources 3.5.0, clean 3.5.0, site 3.22.0, war 3.5.1, properties 1.3.1, JaCoCo 0.8.16, Checkstyle 14.4.0, Spotless 3.10.4, Jib 3.5.2, git-commit-id 10.0.1, modernizer 3.5.0 e Sonar 5.8.0.7211.
+  - Il wrapper Maven passa alla 3.10.0.
+
+  Tutte le versioni sono pubblicate da almeno sette giorni, come chiede la decisione 7. Il BOM di Spring Cloud è tolto, perché nessuna classe lo usava. Testcontainers resta alla 1.21.4, che ora gestisce Spring Boot.
+- **Patch sopra Spring Boot.** Spring Boot 3.5.16 è del 2026-06-25 e gestisce Tomcat 10.1.55, Netty 4.1.135 e Jackson 2.21.4. Le loro vulnerabilità sono corrette da Tomcat 10.1.58, Netty 4.1.137 e Jackson 2.21.7.
+  - Il `pom.xml` alza le proprietà di Spring Boot alle ultime patch delle stesse linee: Tomcat 10.1.61, Netty 4.1.139 e Jackson 2.21.8.
+  - Fa lo stesso con il driver PostgreSQL 42.7.14, già dalla fase 0.
+  - Le quattro proprietà si tolgono nella fase 4b, con Spring Boot 4.1.
+- **Web Push.** web-push 5.1.2 è ancora l'ultima versione e dichiara le sue dipendenze solo a runtime. Porta async-http-client 2.12.4 e jose4j 0.7.9, entrambe vulnerabili.
+  - `PushServiceImpl` usa `PushService`, che invia con Apache HttpAsyncClient. async-http-client serve solo a `PushAsyncService` ed è escluso.
+  - Il codice usa `HttpResponse` di httpcore 4 e `JoseException` di jose4j, che con lo scope runtime non si compilano più. Diventano dipendenze dirette: httpcore 4.4.16 nella versione gestita e jose4j alla 0.9.7.
+  - Nessun test copre l'invio. Una prova con il classpath del backend e Java 25 ha inviato a un server HTTP locale una notifica come quelle di `PushServiceImpl`. Il server ha risposto 201 e ha ricevuto il payload cifrato (`aesgcm`), con un JWT VAPID che jose4j 0.9.7 verifica con la chiave pubblica.
+- **Apache POI 6.** POI 6.0.0 chiede commons-io 2.22.0 e commons-collections4 4.6.0. Le due versioni sono fissate in `dependencyManagement`: senza, Maven sceglierebbe le versioni più vecchie, che arrivano prima nell'albero con Liquibase.
+- **Thymeleaf 3.1.5.** Rifiuta gli apostrofi nei parametri delle espressioni di frammento, sia scritti `\'` sia nei letterali `|...|`.
+  - Quattro testi di `signature-link.html` e `signature-signed.html`, come «L'associazione ti chiede di firmare…», fermavano le e-mail di firma con `TemplateProcessingException`.
+  - Ora il testo arriva al frammento da una variabile di `th:with`, che gli apostrofi li accetta. Il commento che lo spiega è un commento di Thymeleaf (`<!--/* */-->`), quindi non finisce nelle e-mail.
+  - `SignatureMailServiceTest` controlla i quattro testi nelle e-mail generate.
+- **Liquibase.** Da Spring Boot 3.5 `LiquibaseProperties` restituisce contesti ed etichette come liste. `LiquibaseConfiguration` e `TenantSchemaProvisioningService` le uniscono con le virgole. Liquibase resta alla 4.31.1 gestita da Spring Boot fino alla fase 4b.
+- **API deprecate.** Prima del passo a Spring Boot 4 sono tolte le API che Spring Boot 3.5 e le librerie nuove deprecano (decisione 2):
+  - `@MockitoBean` e `@MockitoSpyBean` al posto di `@MockBean` e `@SpyBean`, in 37 file di test;
+  - in `SecurityConfiguration`, `PathPatternRequestMatcher` al posto di `AntPathRequestMatcher` e `permissionsPolicyHeader` al posto di `permissionsPolicy`;
+  - `UriComponentsBuilder.fromUriString` al posto di `fromHttpUrl`, in quattro risorse REST;
+  - `useFastMode()` di openhtmltopdf tolto dal PDF del foglio di affidamento: è deprecato e non fa più niente, perché la modalità veloce è quella predefinita;
+  - `management.endpoint.jhimetrics.access: unrestricted` al posto di `enabled: true`.
+
+  Negli 11 test `*SecurityConfigurationTest` cambiano solo le annotazioni dei mock, e `@SuppressWarnings("removal")` non serve più. La compilazione con Java 25 non dà avvisi di deprecazione.
+- **Prometheus.** Spring Boot 3.5 non configura più `micrometer-registry-prometheus-simpleclient`, deprecato dalla 3.3: senza modifiche `/management/prometheus` sparirebbe.
+  - Il backend passa a `micrometer-registry-prometheus`, con il client Prometheus 1.x.
+  - La prova ha usato i binder delle metriche JVM, di sistema e di Logback e un timer `http.server.requests`: i due registri espongono gli stessi 31 nomi. La dashboard `JVM.json` di Grafana non risente del cambio.
+  - Una parte dei suoi pannelli usa però nomi che nessuno dei due registri espone. Per esempio `jvm_classes_loaded` e `jvm_threads_live` al posto di `jvm_classes_loaded_classes` e `jvm_threads_live_threads`, o le metriche di memoria del processo di una libreria che il backend non ha. È un difetto già presente, che resta al monitoraggio della fase 7.
+- **Java 25.** Con `java.version` 25 il compilatore usa `release` 25, e l'enforcer accetta solo un JDK 25.
+  - Immagini: Jib usa `eclipse-temurin:25-jre` al posto di `17-jre-focal`. Il `Dockerfile` usa `maven:3.10.0-eclipse-temurin-25` per la build e `eclipse-temurin:25-jre` per l'esecuzione, come proponeva per l'immagine finale la [#123](https://github.com/danielefundaro/Taurus/pull/123) di Dependabot.
+  - CI: i job `backend` e `security` di `verify.yml` installano Java 25.
+  - modernizer 3.5.0 usa la versione di Java del progetto, chiede le API più recenti e ferma la build alla fase `package`. 54 punti del codice passano a `String.formatted`, `Path.of`, `Reader.of`, `List.of`, `Set.of` e `Map.of`.
+  - Il dev container resta su Java 17: la sua immagine con utente non root è nella fase 7, come la voce DS-0002 di `.trivyignore.yaml`.
+- **Vulnerabilità.** Senza `.trivyignore.yaml`, Trivy 0.76.2 come nella CI trova nel backend solo due vulnerabilità critiche di spring-webmvc 6.2.19.
+  - CVE-2026-47884 era già fra le voci della fase 1.
+  - CVE-2026-47890 riguarda solo le linee 6.2 e 7.0 ed è comparsa con il passaggio da Spring Framework 6.1 a 6.2.
+  - Per entrambe la correzione pubblica è solo nella 7.0.9, che arriva con Spring Boot 4 nella fase 4b.
+
+  Le voci del backend in `.trivyignore.yaml` erano 73: la CVE di Actuator della fase 0 e le 72 della fase 1. Ne escono 72. Restano CVE-2026-47884 e la nuova CVE-2026-47890, con scadenza 2027-01-06 e 2027-01-07. Con il file Trivy non trova niente nel backend.
+- **Test e copertura.** `./mvnw verify` con Java 25 supera gli stessi 1225 test unitari e 279 di integrazione delle fasi precedenti. La copertura unita sale dal 75,59% al 77,28% delle linee e dal 60,53% al 61,70% dei branch senza prove nuove. Come chiede `AGENTS.md`, le soglie del `pom.xml` salgono a 0,77 e 0,61, appena sotto il misurato, e il [Runbook di test](runbook-test.md) lo annota.
+
 ### Stato dei lavori
 
 Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che parte da `84ae3b8`. I commit sono sei, uno per modulo e due per il backend:
@@ -347,7 +399,16 @@ Fase 3 verificata il 2026-11-07 sul ramo `upgrade-phase-3`, che parte da `bb1c2f
 - `Use Keycloak 26.8.2 in the deployment manifest`: `compose.yml`, `.env.example` e README del deploy;
 - `Record phase 3 of the platform upgrade`: `.trivyignore.yaml`, `AGENTS.md`, `README.md`, i runbook, lo standard delle e-mail, questa specifica e il catalogo.
 
-Con il merge, Dependabot dovrebbe chiudere da solo la [#129](https://github.com/danielefundaro/Taurus/pull/129), che la fase contiene con Keycloak 26.8.2 al posto della 26.8.1.
+La pull request è la [#159](https://github.com/danielefundaro/Taurus/pull/159), unita su `main` il 2026-11-07 con il merge `b7abeca`. La CI di `main` è passata in tutti gli otto job. Dependabot ha chiuso da solo la [#129](https://github.com/danielefundaro/Taurus/pull/129), che la fase conteneva con Keycloak 26.8.2 al posto della 26.8.1. La fase 3 è chiusa.
+
+Fase 4a verificata il 2026-11-08 sul ramo `upgrade-phase-4a`, che parte da `b7abeca` (vedi [Esito della fase 4a](#esito-della-fase-4a)). I commit sono quattro:
+
+- `Update the backend to Spring Boot 3.5.16 and Java 25`: `pom.xml`, con le soglie di copertura nuove, wrapper Maven e `Dockerfile` del backend, con il codice e i modelli delle e-mail che le versioni nuove chiedono;
+- `Replace deprecated APIs in the backend`: mock dei test, `SecurityConfiguration`, `UriComponentsBuilder`, openhtmltopdf e l'endpoint `jhimetrics` in `application.yml`;
+- `Build the backend with Java 25 in CI`: i job `backend` e `security` di `verify.yml` e il commento sull'immagine `maven` in `.github/dependabot.yml`;
+- `Record phase 4a of the platform upgrade`: `.trivyignore.yaml`, `AGENTS.md`, `README.md`, il README del backend, i runbook, la specifica del riconoscimento del testo, questa specifica e il catalogo.
+
+Con il merge, Dependabot dovrebbe chiudere da solo la [#157](https://github.com/danielefundaro/Taurus/pull/157) e la [#123](https://github.com/danielefundaro/Taurus/pull/123), che la fase contiene.
 
 #### Verifiche eseguite
 
@@ -419,6 +480,15 @@ Con il merge, Dependabot dovrebbe chiudere da solo la [#129](https://github.com/
 | Provider Keycloak | `./mvnw clean verify` con JDK 21 dopo la correzione del tema | superata: 32 test unitari e 13 di integrazione, cioè `TenantRoleFlowIT` 9, con le tre prove nuove sulle pagine del tema, `TaurusOtpResourceIT` 3 ed `EmailDeliveryIT` 1 |
 | Provider Keycloak | prova a mano del tema corretto su Keycloak 26.8.2 usa e getta, con il JAR della build, il realm di Taurus e Mailpit, nel browser integrato a 375×812 | in stile Taurus conferma dell'uscita, errore, aggiornamento del profilo con l'errore su un campo vuoto, verifica dell'e-mail, informazione dell'invito, account aggiornato e pagina scaduta; app di autenticazione con i nomi delle app, un solo link al codice manuale, codice in vista con lo script, aprendo il link e dopo un codice sbagliato, configurazione conclusa; ritorno all'accesso con una sola «; «È necessario selezionare un tenant» con l'accento; nessun errore dei modelli nel log |
 | Repository | i controlli del job `documentation` dopo la correzione del tema | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento |
+| Backend | compilazione con JDK 25.0.5 e `release` 25 | riuscita; gli unici avvisi sono le proprietà non mappate di MapStruct, già presenti, e nessuno di deprecazione |
+| Backend | `./mvnw clean package -DskipTests` con JDK 25 dopo le correzioni chieste da modernizer | riuscita: modernizer 3.5.0 senza violazioni, contro le 54 della prima prova |
+| Backend | Checkstyle 14.4.0 con nohttp 0.0.11 | 0 violazioni |
+| Backend | `./mvnw verify -Dtaurus.test.requireDocker=true` con JDK 25 e RabbitMQ irraggiungibile come in CI | superata in 27 minuti: 1225 test unitari e 279 di integrazione; copertura unita 77,28% delle linee e 61,70% dei branch, sopra le soglie di allora, 0,75 e 0,60; con le soglie nuove, 0,77 e 0,61, `jacoco:check` sugli stessi dati passa |
+| Backend | invio di una notifica Web Push, con il classpath del backend e Java 25, a un server HTTP locale | risposta 201, payload `aesgcm`, JWT VAPID valido per jose4j 0.9.7: vedi [Esito della fase 4a](#esito-della-fase-4a) |
+| Backend | nomi delle metriche con `micrometer-registry-prometheus` 1.15.12 e con `micrometer-registry-prometheus-simpleclient` 1.15.12, con gli stessi binder | gli stessi 31 nomi |
+| Provider Keycloak | `./mvnw -DskipTests package` con JDK 25 | riuscita: lo stesso JDK compila il backend per Java 25 e il provider per Java 21 |
+| Repository | Trivy 0.76.2 come nella CI sul backend, con i POM del repository Maven locale | senza `.trivyignore.yaml` CVE-2026-47884 e CVE-2026-47890 di spring-webmvc 6.2.19 e DS-0002 del dev container; con il file nessuna segnalazione |
+| Repository | i controlli del job `documentation` con la fase 4a | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento |
 
 Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta. Dopo il merge di `fix-a11y-defects` non sono stati ripetuti né axe né la suite end to end: le due correzioni sono state verificate con axe sul loro ramo, con PrimeNG 19.0.10, e sul ramo unito le coprono i test unitari.
 
@@ -451,18 +521,18 @@ Risolto il 2026-11-06.
 
 #### Note sull'ambiente locale
 
-- Il backend è stato verificato con Java 21.0.2; la CI usa Java 17. Con i servizi di sviluppo avviati, `SPRING_RABBITMQ_PORT=5679` punta i test su una porta chiusa, come in CI dove nessun broker ascolta su `localhost:5672`.
+- Fino alla fase 3 il backend è stato verificato con Java 21.0.2, e la CI usava Java 17. Dalla fase 4a entrambi usano Java 25: in locale Temurin 25.0.5, scelto solo con `JAVA_HOME`. Con i servizi di sviluppo avviati, `SPRING_RABBITMQ_PORT=5679` punta i test su una porta chiusa, come in CI dove nessun broker ascolta su `localhost:5672`.
 - Il frontend è stato verificato con Node 22.11.0, come la CI che usa Node 22. pnpm 11.16 non parte su Node 22.11.0 e il corepack di quella versione rifiuta le chiavi di firma di pnpm: per il sito è stato usato Node 24.21.0.
 - Il lockfile del frontend è stato rigenerato così: `npm audit fix`, minimi del `package.json` alzati a mano, poi rimozione dal lock delle sole voci con nome esatto (`@angular/*`, `@angular-devkit/*`, `@ngtools/*`, `@schematics/angular`, `primeng`, `postcss`) e `npm install`. Una rimozione per prefisso toglie anche `postcss-modules-*`, che npm non ripristina: la build passa, ma Karma non trova `postcss-modules-values`. `npm ls --all` deve uscire senza errori.
 - Il `node_modules` del sito era collegato allo store pnpm `D:\Daniele\Zodiac\Taurus\.pnpm-store`, che non esisteva più. Lo store è stato ricreato per l'aggiornamento e poi cancellato: se pnpm segnala uno store inatteso, `pnpm install` ricollega le dipendenze.
 - La coda `upload.files` del RabbitMQ locale è precedente alla dead-letter exchange introdotta il 2026-10-31 con `ad15f670`: all'avvio il backend registra `PRECONDITION_FAILED - inequivalent arg 'x-dead-letter-exchange'`. Non dipende dalla fase 0: cancellata la coda dalla console di RabbitMQ, il backend la dichiara di nuovo.
-- L'enforcer del backend segnala due divergenze di dipendenze, solo come avvisi: amqp-client, 5.21.0 da `spring-rabbit` contro quella dichiarata, già presente con la 5.25.0, e `checker-qual`, 3.55.1 da pgjdbc 42.7.14 contro 3.37.0 da Caffeine, nuova.
+- L'enforcer del backend segnala due divergenze di dipendenze, solo come avvisi: amqp-client, 5.21.0 da `spring-rabbit` contro quella dichiarata, già presente con la 5.25.0, e `checker-qual`, 3.55.1 da pgjdbc 42.7.14 contro 3.37.0 da Caffeine, nuova. Dalla fase 4a gli avvisi riguardano jaxb-api, amqp-client, bcpkix, nimbus-jose-jwt, commons-text e jose4j, dove vince la 0.9.7 dichiarata; quello su `checker-qual` non c'è più. La regola resta non bloccante.
 
 ## Modifiche per modulo
 
 ### Repository
 
-- `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA come già dalla fase 0; Trivy con `version` esplicita e le dipendenze Maven risolte prima della scansione; gitleaks e semgrep aggiornati. Fatto nella fase 1. Node 26 e Java 25 nei job arrivano con le fasi 4–6.
+- `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA come già dalla fase 0; Trivy con `version` esplicita e le dipendenze Maven risolte prima della scansione; gitleaks e semgrep aggiornati. Fatto nella fase 1. Java 25 nei job `backend` e `security` è arrivato con la fase 4a; Node 26 arriva con le fasi 5 e 6.
 - `.github/dependabot.yml`: nuovo (decisione 7), nella fase 1.
 - `.gitleaks.toml`: due test del backend nell'allowlist, falsi positivi di gitleaks 8.30 (fase 1).
 - `.trivyignore.yaml`: nuovo nella fase 0, vuoto alla fine della fase 8.
@@ -474,6 +544,7 @@ Risolto il 2026-11-06.
 - Codice: Jackson 3, Hibernate 7, Spring Security 7, Testcontainers 2 e le API rimosse in Spring Boot 4, guidate dalle note di migrazione ufficiali e da OpenRewrite dove disponibile.
 - `Dockerfile`: immagini Temurin 25 e `--no-install-recommends`.
 - Configurazione: proprietà rinominate da Spring Boot 4, segnalate all'avvio da `spring-boot-properties-migrator`, che si toglie a fine fase.
+- Fatto nella fase 4a: Spring Boot 3.5.16, JHipster 8.12, librerie e plugin, `java.version` 25, rimozione di Spring Cloud, immagini Temurin 25 di Jib e del `Dockerfile`, API deprecate. Restano alla fase 4b Spring Boot 4.0 e 4.1 con il codice e la configurazione, Undertow, gli starter rinominati e `liquibase-hibernate7`.
 
 ### Frontend
 
@@ -506,8 +577,8 @@ Nessun cambio di regole. Il passaggio a Spring Security 7 e a Hibernate 7 tocca 
 
 ## Osservabilità e sicurezza
 
-- Actuator: la correzione di CVE-2026-22733 arriva con Spring Boot 4.1. Gli endpoint esposti si ricontrollano con la configurazione di produzione.
-- Le metriche Prometheus e i nomi esposti da Micrometer possono cambiare con Spring Boot 4: i pannelli Grafana di `taurus-be/src/main/docker/grafana` si verificano.
+- Actuator: la correzione di CVE-2026-22733 è arrivata con Spring Boot 3.5.16, nella fase 4a. Gli endpoint esposti si ricontrollano con la configurazione di produzione.
+- Le metriche Prometheus e i nomi esposti da Micrometer possono cambiare con Spring Boot 4: i pannelli Grafana di `taurus-be/src/main/docker/grafana` si verificano. Nella fase 4a il registro passa al client Prometheus 1.x con gli stessi nomi (vedi [Esito della fase 4a](#esito-della-fase-4a)).
 - Il job `security` resta bloccante per vulnerabilità `HIGH` e `CRITICAL` corrette, configurazioni e segreti.
 - Ogni immagine Docker pubblicata viene ricontrollata con Trivy dopo la fase che la cambia.
 
@@ -515,7 +586,7 @@ Nessun cambio di regole. Il passaggio a Spring Security 7 e a Hibernate 7 tocca 
 
 | Componente | Licenza | Nota |
 | --- | --- | --- |
-| Liquibase 5 Community | Functional Source License | dalla 5 non è più Apache-2.0: l'uso interno è gratuito, ma va verificato con il vincolo di costo zero e annotato in `THIRD_PARTY_NOTICES.md`. Se non è accettabile, si resta sull'ultima 4.x, fuori supporto dal 30/09/2025 |
+| Liquibase 5 Community | Functional Source License 1.1, con licenza futura Apache-2.0 (`FSL-1.1-ALv2`) | dalla 5 non è più Apache-2.0: l'uso interno è gratuito. Accettata il 2026-11-07 per la fase 4b, che la annota in un nuovo `taurus-be/THIRD_PARTY_NOTICES.md`. L'alternativa era restare sull'ultima 4.x, fuori supporto dal 30/09/2025 |
 | Tutti gli altri componenti | invariata | da ricontrollare a ogni maggiore in `THIRD_PARTY_NOTICES.md` |
 
 ## Strategia di test

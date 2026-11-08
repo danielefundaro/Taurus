@@ -42,7 +42,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -104,13 +104,13 @@ class NotificationConcurrencyIT {
     private static final String SUBJECT = "concurrency-user-1";
     private static final int WORKERS = 6;
 
-    @MockBean
+    @MockitoBean
     ClientRegistrationRepository clientRegistrationRepository;
-    @MockBean
+    @MockitoBean
     JwtDecoder jwtDecoder;
-    @MockBean
+    @MockitoBean
     TenantFeatureService tenantFeatureService;
-    @MockBean
+    @MockitoBean
     PushService pushService;
     @Autowired
     TenantSchemaProvisioningService provisioningService;

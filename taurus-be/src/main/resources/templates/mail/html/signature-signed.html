@@ -8,13 +8,18 @@
 <body>
 <th:block th:fragment="content">
   <p th:replace="~{parts :: greeting}"></p>
-  <p th:replace="~{parts :: paragraph('Tutte le parti hanno firmato l\'atto. I documenti firmati e l\'attestazione si scaricano dalla pagina dell\'atto.')}"></p>
+  <!--/* Thymeleaf 3.1.5 non analizza più un apostrofo nei parametri di un frammento: il testo passa da th:with. */-->
+  <th:block th:with="text=|Tutte le parti hanno firmato l'atto. I documenti firmati e l'attestazione si scaricano dalla pagina dell'atto.|">
+    <p th:replace="~{parts :: paragraph(${text})}"></p>
+  </th:block>
   <table th:replace="~{parts :: details(${details})}"></table>
   <table th:replace="~{parts :: button(${url}, 'Scarica i documenti')}"></table>
   <table th:replace="~{parts :: notes(~{signature-signed :: notes})}"></table>
 </th:block>
 <th:block th:fragment="notes">
-  <p th:replace="~{parts :: note(|Il collegamento vale fino alle ${expiresTime} del ${expiresDate}: conserva una copia dei documenti. Dopo questa data puoi chiederli all'associazione.|)}"></p>
+  <th:block th:with="text=|Il collegamento vale fino alle ${expiresTime} del ${expiresDate}: conserva una copia dei documenti. Dopo questa data puoi chiederli all'associazione.|">
+    <p th:replace="~{parts :: note(${text})}"></p>
+  </th:block>
   <p th:replace="~{parts :: fallbackLink(${url})}"></p>
 </th:block>
 </body>

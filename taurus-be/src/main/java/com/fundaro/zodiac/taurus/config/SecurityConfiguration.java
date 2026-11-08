@@ -36,7 +36,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.client.RestClient;
 import tech.jhipster.config.JHipsterProperties;
@@ -87,7 +87,7 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         // API errors of the filter chain get the same body as the other errors; pages keep the login redirect.
-        RequestMatcher api = AntPathRequestMatcher.antMatcher("/api/**");
+        RequestMatcher api = PathPatternRequestMatcher.withDefaults().matcher("/api/**");
         http
             .cors(withDefaults())
             .csrf(csrf -> csrf.disable())
@@ -98,7 +98,7 @@ public class SecurityConfiguration {
                     .referrerPolicy(referrer ->
                         referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                     )
-                    .permissionsPolicy(permissions ->
+                    .permissionsPolicyHeader(permissions ->
                         permissions.policy(
                             "camera=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), sync-xhr=()"
                         )

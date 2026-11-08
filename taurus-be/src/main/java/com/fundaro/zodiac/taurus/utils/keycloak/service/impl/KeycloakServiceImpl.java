@@ -59,7 +59,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public List<User> getUsers() {
-        String url = String.format("%s/users", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
+        String url = "%s/users".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri());
         ParameterizedTypeReference<List<User>> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<List<User>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
@@ -74,7 +74,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public User getUser(String id) {
-        String url = String.format("%s/users/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
+        String url = "%s/users/%s".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
         ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<User> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
@@ -89,14 +89,14 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public String getUserIdByUsernameOrEmail(String username, String email) {
-        String url = String.format("%s/users?username=%s&email=%s&exact=true", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), username, email);
+        String url = "%s/users?username=%s&email=%s&exact=true".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), username, email);
         ParameterizedTypeReference<List<User>> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<List<User>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
             log.error("Error getting user with username or email from Keycloak: {}, {}", username, email);
-            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting user with username or email from Keycloak: %s, %s", username, email), User.class.getSimpleName(), "keycloak.user.readFailed");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error getting user with username or email from Keycloak: %s, %s".formatted(username, email), User.class.getSimpleName(), "keycloak.user.readFailed");
         }
 
         return response.getBody().get(0).getId();
@@ -104,7 +104,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void saveUser(User user) {
-        String url = String.format("%s/users", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
+        String url = "%s/users".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri());
         ParameterizedTypeReference<User> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<User> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), user, typeRef);
@@ -117,7 +117,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void updateUser(User user) {
-        String url = String.format("%s/users/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), user.getId());
+        String url = "%s/users/%s".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), user.getId());
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), user, typeRef);
@@ -130,7 +130,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void updateUserGroup(String userId, String groupId) {
-        String url = String.format("%s/users/%s/groups/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, groupId);
+        String url = "%s/users/%s/groups/%s".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, groupId);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), null, typeRef);
@@ -143,7 +143,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void deleteUser(String userId) {
-        String url = String.format("%s/users/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        String url = "%s/users/%s".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.DELETE, getAdminHttpHeaders(), null, typeRef);
@@ -156,7 +156,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public boolean logoutUser(String userId) {
-        String url = String.format("%s/users/%s/logout", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        String url = "%s/users/%s/logout".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
         };
         try {
@@ -172,7 +172,7 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public List<Role> getUserRoles(String userId) {
         String id = getIdByClientId();
-        String url = String.format("%s/users/%s/role-mappings/clients/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, id);
+        String url = "%s/users/%s/role-mappings/clients/%s".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, id);
         ParameterizedTypeReference<List<Role>> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<List<Role>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
@@ -201,7 +201,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void sendResetPasswordEmail(String userId) {
-        String url = String.format("%s/users/%s/reset-password-email", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        String url = "%s/users/%s/reset-password-email".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), null, typeRef);
@@ -214,7 +214,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void sendVerifyEmail(String userId) {
-        String url = String.format("%s/users/%s/send-verify-email", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        String url = "%s/users/%s/send-verify-email".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), null, typeRef);
@@ -227,7 +227,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void sendExecuteActionsEmail(String userId, List<String> actions) {
-        String url = String.format("%s/users/%s/execute-actions-email", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        String url = "%s/users/%s/execute-actions-email".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.PUT, getAdminHttpHeaders(), actions, typeRef);
@@ -240,7 +240,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void saveGroup(Group group) {
-        String url = String.format("%s/groups", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
+        String url = "%s/groups".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri());
         ParameterizedTypeReference<Group> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<Group> response = responseEntity(url, HttpMethod.POST, getAdminHttpHeaders(), group, typeRef);
@@ -254,7 +254,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void deleteUserGroup(String userId, String groupId) {
-        String url = String.format("%s/users/%s/groups/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, groupId);
+        String url = "%s/users/%s/groups/%s".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, groupId);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.DELETE, getAdminHttpHeaders(), null, typeRef);
@@ -267,7 +267,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public List<Group> getUserGroups(String userId) {
-        String url = String.format("%s/users/%s/groups", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
+        String url = "%s/users/%s/groups".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId);
         ParameterizedTypeReference<List<Group>> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<List<Group>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
@@ -280,7 +280,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public void deleteGroup(String groupId) {
-        String url = String.format("%s/groups/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), groupId);
+        String url = "%s/groups/%s".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), groupId);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<Void> response = responseEntity(url, HttpMethod.DELETE, getAdminHttpHeaders(), null, typeRef);
@@ -293,20 +293,20 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public String getGroupIdByName(String name) {
-        String url = String.format("%s/groups", applicationProperties.getKeycloak().getAdmin().getIssuerUri());
+        String url = "%s/groups".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri());
         ParameterizedTypeReference<List<Group>> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<List<Group>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
             log.error("Error getting group with name from Keycloak: {}", name);
-            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting group with name from Keycloak: %s", name), Group.class.getSimpleName(), "keycloak.group.readFailed");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error getting group with name from Keycloak: %s".formatted(name), Group.class.getSimpleName(), "keycloak.group.readFailed");
         }
 
         Group group = response.getBody().stream().filter(g -> g.getName().equals(name)).findFirst().orElse(null);
 
         if (group == null) {
-            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting group with name from Keycloak: %s", name), Group.class.getSimpleName(), "keycloak.group.readFailed");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error getting group with name from Keycloak: %s".formatted(name), Group.class.getSimpleName(), "keycloak.group.readFailed");
         }
 
         return group.getId();
@@ -315,14 +315,14 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     @Override
     public String getIdByClientId() {
-        String url = String.format("%s/clients?clientId=%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), clientId);
+        String url = "%s/clients?clientId=%s".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), clientId);
         ParameterizedTypeReference<List<Client>> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<List<Client>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
             log.error("Error getting client with clientId from Keycloak: {}", clientId);
-            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting client with clientId from Keycloak: %s", clientId), Client.class.getSimpleName(), "keycloak.configuration.incomplete");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error getting client with clientId from Keycloak: %s".formatted(clientId), Client.class.getSimpleName(), "keycloak.configuration.incomplete");
         }
 
         return response.getBody().get(0).getId();
@@ -331,14 +331,14 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public List<Role> getClientRoles() {
         String id = getIdByClientId();
-        String url = String.format("%s/clients/%s/roles", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
+        String url = "%s/clients/%s/roles".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
         ParameterizedTypeReference<List<Role>> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<List<Role>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null || response.getBody().isEmpty()) {
             log.error("Error getting roles of client with clientId from Keycloak: {}", clientId);
-            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting roles of client with clientId from Keycloak: %s", clientId), Client.class.getSimpleName(), "keycloak.configuration.incomplete");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error getting roles of client with clientId from Keycloak: %s".formatted(clientId), Client.class.getSimpleName(), "keycloak.configuration.incomplete");
         }
 
         return response.getBody();
@@ -347,7 +347,7 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public List<String> ensureClientRoles(Map<String, String> descriptions) {
         String id = getIdByClientId();
-        String url = String.format("%s/clients/%s/roles", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
+        String url = "%s/clients/%s/roles".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id);
         ParameterizedTypeReference<List<Role>> listType = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<List<Role>> existing = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, listType);
@@ -379,14 +379,14 @@ public class KeycloakServiceImpl implements KeycloakService {
     @Override
     public List<User> getUsersByClientRoles(RoleEnum roleEnum) {
         String id = getIdByClientId();
-        String url = String.format("%s/clients/%s/roles/%s/users", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id, roleEnum.toString());
+        String url = "%s/clients/%s/roles/%s/users".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), id, roleEnum.toString());
         ParameterizedTypeReference<List<User>> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<List<User>> response = responseEntity(url, HttpMethod.GET, getAdminHttpHeaders(), null, typeRef);
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             log.error("Error getting users by client role from Keycloak: {}", roleEnum);
-            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, String.format("Error getting users by client role from Keycloak: %s", roleEnum), Client.class.getSimpleName(), "keycloak.roleUsers.readFailed");
+            throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Error getting users by client role from Keycloak: %s".formatted(roleEnum), Client.class.getSimpleName(), "keycloak.roleUsers.readFailed");
         }
 
         return response.getBody();
@@ -397,7 +397,7 @@ public class KeycloakServiceImpl implements KeycloakService {
      */
     private boolean updateUserRoles(String userId, List<Role> roles, HttpMethod httpMethod) {
         String id = getIdByClientId();
-        String url = String.format("%s/users/%s/role-mappings/clients/%s", applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, id);
+        String url = "%s/users/%s/role-mappings/clients/%s".formatted(applicationProperties.getKeycloak().getAdmin().getIssuerUri(), userId, id);
         ParameterizedTypeReference<Void> typeRef = new ParameterizedTypeReference<>() {
         };
         ResponseEntity<Void> response = responseEntity(url, httpMethod, getAdminHttpHeaders(), roles, typeRef);
@@ -411,7 +411,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     private HttpHeaders getAdminHttpHeaders() {
         ApplicationProperties.Keycloak keycloakProperties = applicationProperties.getKeycloak();
-        String url = String.format("%s/protocol/openid-connect/token", keycloakProperties.getMasterUri());
+        String url = "%s/protocol/openid-connect/token".formatted(keycloakProperties.getMasterUri());
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
 
         form.add("client_id", "admin-cli");

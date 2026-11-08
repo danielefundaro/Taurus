@@ -86,9 +86,9 @@ public class OllamaHttpClient {
         String s = "";
 
         if (protocol.equalsIgnoreCase("http") && port != 80 || protocol.equalsIgnoreCase("https") && port != 443) {
-            s = String.format(":%s", port);
+            s = ":%s".formatted(port);
         }
 
-        return String.format("%s://%s%s", protocol, host, s);
+        return "%s://%s%s".formatted(protocol, host, s);
     }
 }

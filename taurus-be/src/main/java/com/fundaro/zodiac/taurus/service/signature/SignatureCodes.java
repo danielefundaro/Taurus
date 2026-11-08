@@ -34,7 +34,7 @@ public class SignatureCodes {
     }
 
     public String generate() {
-        return String.format("%06d", random.nextInt(1_000_000));
+        return "%06d".formatted(random.nextInt(1_000_000));
     }
 
     public String digest(Binding binding, String code) {

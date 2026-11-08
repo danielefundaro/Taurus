@@ -21,7 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -208,7 +208,7 @@ public final class MusicXmlDocuments {
             factory.setNamespaceAware(false);
             DocumentBuilder builder = factory.newDocumentBuilder();
             // MusicXML files declare the public DTD: it is never fetched.
-            builder.setEntityResolver((publicId, systemId) -> new InputSource(new StringReader("")));
+            builder.setEntityResolver((publicId, systemId) -> new InputSource(Reader.of("")));
             builder.setErrorHandler(null);
             return builder.parse(new ByteArrayInputStream(xml));
         } catch (SAXException | IOException exception) {
