@@ -30,8 +30,9 @@ WORKDIR /app
 # Install curl per healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
-# Copia il jar generato
+# Copia il jar generato, con le note sulle licenze delle librerie che contiene
 COPY --from=builder /build/target/*.jar app.jar
+COPY THIRD_PARTY_NOTICES.md .
 
 # Un utente senza privilegi e la radice dello storage dei media, che gli appartiene: un volume
 # montato lì dentro eredita questo proprietario, quindi il processo può scrivere senza essere root.
