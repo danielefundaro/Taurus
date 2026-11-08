@@ -1,6 +1,6 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.instrumentsuggestion.InstrumentSuggestionSource;
 import com.fundaro.zodiac.taurus.service.InstrumentsService;
@@ -340,11 +340,7 @@ class PdfProcessingServiceTest {
     }
 
     private static String json(Map<String, Object> line) {
-        try {
-            return new ObjectMapper().writeValueAsString(line);
-        } catch (IOException exception) {
-            throw new IllegalStateException(exception);
-        }
+        return new ObjectMapper().writeValueAsString(line);
     }
 
     private static boolean contains(byte[] body, byte[] part) {

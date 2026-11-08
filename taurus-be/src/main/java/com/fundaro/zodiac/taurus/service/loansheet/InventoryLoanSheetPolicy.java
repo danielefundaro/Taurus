@@ -95,7 +95,7 @@ public class InventoryLoanSheetPolicy {
         LoanDurationPolicy.checkDelivery(loanType, deliveredOn, expirationDate, InventoryLoanTemplateService.durations(sheet))
             .ifPresent(violation -> {
                 throw error(
-                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    HttpStatus.UNPROCESSABLE_CONTENT,
                     "Delivery breaks the duration rules of loan sheet " + sheet.getSheetNumber(),
                     "inventory.loanSheet." + violation.code()
                 ).with(violation.args()).with("sheetNumber", sheet.getSheetNumber());
@@ -175,7 +175,7 @@ public class InventoryLoanSheetPolicy {
         if (loanType != InventoryLoanType.FIXED_TERM) return;
         LoanDurationPolicy.checkDelivery(loanType, deliveredOn, expirationDate, durations)
             .ifPresent(violation -> {
-                throw error(HttpStatus.UNPROCESSABLE_ENTITY, "Delivery breaks the duration rules of the tenant", "inventory.loanDuration." + violation.code())
+                throw error(HttpStatus.UNPROCESSABLE_CONTENT, "Delivery breaks the duration rules of the tenant", "inventory.loanDuration." + violation.code())
                     .with(violation.args());
             });
     }

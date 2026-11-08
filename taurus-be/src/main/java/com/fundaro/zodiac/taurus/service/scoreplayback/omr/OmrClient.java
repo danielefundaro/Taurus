@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.scoreplayback.omr;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties.OmrProperties;
 import com.fundaro.zodiac.taurus.service.scoreplayback.omr.OmrDtos.PageImage;
@@ -156,7 +156,7 @@ public class OmrClient {
         String code = null;
         try {
             JsonNode body = objectMapper.readTree(response.getBody());
-            code = body.path("code").asText(null);
+            code = body.path("code").asString(null);
         } catch (IOException exception) {
             log.debug("OMR error without a readable body", exception);
         }

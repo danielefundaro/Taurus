@@ -50,6 +50,6 @@ public final class PlaybackSettingsValidator {
     }
 
     private static RequestAlertException invalid(String entityName) {
-        return new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid playback settings", entityName, INVALID);
+        return new RequestAlertException(HttpStatus.UNPROCESSABLE_CONTENT, "Invalid playback settings", entityName, INVALID);
     }
 }

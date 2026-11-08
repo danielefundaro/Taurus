@@ -1,10 +1,10 @@
 package com.fundaro.zodiac.taurus.web.rest.errors;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,9 +25,8 @@ public class ExceptionTranslator extends ResponseEntityExceptionHandler {
     }
 
     // Spring MVC exceptions (validation, type mismatch, unreadable body, unsupported method…) arrive here.
-    @Nullable
     @Override
-    protected ResponseEntity<Object> handleExceptionInternal(
+    protected @Nullable ResponseEntity<Object> handleExceptionInternal(
         Exception ex,
         @Nullable Object body,
         HttpHeaders headers,

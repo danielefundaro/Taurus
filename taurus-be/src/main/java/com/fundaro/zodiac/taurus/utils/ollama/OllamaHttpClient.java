@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.web.client.RestClient;
 
 import java.io.IOException;

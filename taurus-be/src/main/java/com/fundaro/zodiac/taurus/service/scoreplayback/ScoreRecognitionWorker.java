@@ -1,7 +1,7 @@
 package com.fundaro.zodiac.taurus.service.scoreplayback;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.domain.Instruments;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.SheetsMusic;
@@ -284,7 +284,7 @@ public class ScoreRecognitionWorker {
     private String json(List<EngineOutcomeDTO> outcomes) {
         try {
             return objectMapper.writeValueAsString(outcomes);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to serialize the engine outcomes", exception);
         }
     }

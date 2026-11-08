@@ -57,7 +57,7 @@ public class ExceptionTranslatorTestController {
 
     @GetMapping("/request-alert")
     public void requestAlert() {
-        throw new RequestAlertException(HttpStatus.UNPROCESSABLE_ENTITY, "Internal description", "testEntity", "test.invalid")
+        throw new RequestAlertException(HttpStatus.UNPROCESSABLE_CONTENT, "Internal description", "testEntity", "test.invalid")
             .with("minimum", LocalDate.of(2026, 11, 10))
             .with("maximum", 3);
     }

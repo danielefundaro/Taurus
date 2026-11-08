@@ -7,8 +7,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.springframework.boot.liquibase.autoconfigure.LiquibaseProperties;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import javax.sql.DataSource;
 import java.io.InputStream;
@@ -32,7 +32,7 @@ class GuidedTourMigrationIT {
     private static final String AUDIT = "false, now(), 'test', now(), 'test'";
 
     private static DataSource dataSource;
-    private static PostgreSQLContainer<?> postgres;
+    private static PostgreSQLContainer postgres;
     private static String schema;
 
     @BeforeAll
@@ -42,7 +42,7 @@ class GuidedTourMigrationIT {
         String password = System.getProperty("taurus.test.postgres.password", "password");
         if (jdbcUrl == null) {
             DockerRequirement.required();
-            postgres = new PostgreSQLContainer<>("postgres:17.0");
+            postgres = new PostgreSQLContainer("postgres:17.0");
             postgres.start();
             jdbcUrl = postgres.getJdbcUrl();
             username = postgres.getUsername();

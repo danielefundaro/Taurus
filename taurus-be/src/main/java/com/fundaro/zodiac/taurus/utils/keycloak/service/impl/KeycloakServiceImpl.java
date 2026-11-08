@@ -1,8 +1,9 @@
 package com.fundaro.zodiac.taurus.utils.keycloak.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.enumeration.RoleEnum;
 import com.fundaro.zodiac.taurus.utils.keycloak.domain.*;
@@ -54,7 +55,7 @@ public class KeycloakServiceImpl implements KeycloakService {
             .baseUrl("")
             .requestFactory(requestFactory)
             .build();
-        this.objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.objectMapper = JsonMapper.builderWithJackson2Defaults().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
     }
 
     @Override
@@ -438,7 +439,7 @@ public class KeycloakServiceImpl implements KeycloakService {
 
         try {
             return objectMapper.readValue(response.getBody(), AccessToken.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RequestAlertException(HttpStatus.BAD_GATEWAY, "Token not acquired", AccessToken.class.getSimpleName(), "keycloak.authorizationFailed");
         }
     }
@@ -472,7 +473,7 @@ public class KeycloakServiceImpl implements KeycloakService {
             requestBodySpec.headers(h -> {
                 h.setContentType(httpHeaders.getContentType());
 
-                if (httpHeaders.containsKey("Authorization") && Objects.nonNull(httpHeaders.getFirst("Authorization"))) {
+                if (httpHeaders.containsHeader("Authorization") && Objects.nonNull(httpHeaders.getFirst("Authorization"))) {
                     h.set("Authorization", Objects.requireNonNull(httpHeaders.getFirst("Authorization")));
                 }
             });

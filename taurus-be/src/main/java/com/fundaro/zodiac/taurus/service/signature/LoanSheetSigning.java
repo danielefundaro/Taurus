@@ -1,9 +1,5 @@
 package com.fundaro.zodiac.taurus.service.signature;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fundaro.zodiac.taurus.config.ApplicationProperties;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanHolderRole;
 import com.fundaro.zodiac.taurus.domain.inventory.InventoryLoanSheet;
@@ -41,6 +37,11 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Signatures of the acts of a loan sheet confirmed by a code: acceptance and approval of the clauses by the holder,
@@ -53,7 +54,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class LoanSheetSigning {
 
-    private static final ObjectMapper CANONICAL = new ObjectMapper().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+    private static final ObjectMapper CANONICAL = JsonMapper.builderWithJackson2Defaults().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).build();
 
     private final LoanSheetSignatureService signatureService;
     private final LoanSheetActCompletion completion;
@@ -101,7 +102,7 @@ public class LoanSheetSigning {
         }
         boolean batch = canonical.size() > 1;
         if (batch && (purpose == SignaturePurpose.CLAUSE_APPROVAL || canonical.stream().anyMatch(item -> item.actType() != SignatureActType.LOAN_SHEET_VARIATION))) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "Only variations can be signed together", "signature.act.batchNotAllowed");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "Only variations can be signed together", "signature.act.batchNotAllowed");
         }
         return describe(purpose, canonical, json(canonical));
     }
@@ -132,7 +133,7 @@ public class LoanSheetSigning {
         Checked checked = check(cieSignPurpose(role), actId, null, signer, false);
         InventoryLoanSheet sheet = sheetRepository.findById(checked.act().getSheetId()).orElseThrow(LoanSheetSignatureService::actNotFound);
         if (sheet.getHolderTaxCode() == null) {
-            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "The holder has no Italian tax code", "signature.cieSign.notAvailable");
+            throw SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "The holder has no Italian tax code", "signature.cieSign.notAvailable");
         }
         if (checked.document().getFrozenMediaAssetId() == null) throw LoanSheetSignatureService.purged();
         String name = sheet.getHolderRole() == InventoryLoanHolderRole.GUARDIAN
@@ -262,7 +263,7 @@ public class LoanSheetSigning {
         if (role == SignerRole.HOLDER) signatureService.requireNoPendingAcknowledgments(act.getSheetId());
         if (role == SignerRole.ASSOCIATION && !signatureService.activeAssociationSigner(who.userId())) {
             throw SignatureSupport.error(
-                HttpStatus.UNPROCESSABLE_ENTITY,
+                HttpStatus.UNPROCESSABLE_CONTENT,
                 "The signer for the association is no longer an active administrator",
                 "signature.associationSigner.notAdmin"
             );
@@ -327,7 +328,7 @@ public class LoanSheetSigning {
     private static String json(List<Item> items) {
         try {
             return CANONICAL.writeValueAsString(items);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to serialize the signature items", exception);
         }
     }
@@ -335,7 +336,7 @@ public class LoanSheetSigning {
     private static List<Item> items(String json) {
         try {
             return CANONICAL.readValue(json, new TypeReference<>() {});
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to read the signature items", exception);
         }
     }

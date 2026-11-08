@@ -38,4 +38,4 @@ I test di integrazione richiedono Docker, oppure un PostgreSQL temporaneo indica
 
 ## Immagine
 
-Il `Dockerfile` costruisce l'immagine del backend; il workflow `docker-publish.yml` la pubblica come `taurus-backend` a ogni tag `v*.*.*`, dopo la validazione del catalogo delle funzionalità.
+Il `Dockerfile` costruisce l'immagine del backend; il workflow `docker-publish.yml` la pubblica come `taurus-backend` a ogni tag `v*.*.*`, dopo la validazione del catalogo delle funzionalità. Accanto al JAR l'immagine contiene [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), con le librerie che hanno condizioni di licenza da rispettare, come Liquibase 5 con la FSL-1.1-ALv2.

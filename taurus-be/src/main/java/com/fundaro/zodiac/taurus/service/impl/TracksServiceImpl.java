@@ -25,8 +25,9 @@ import com.fundaro.zodiac.taurus.utils.Converter;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfAnnotations;
 import com.fundaro.zodiac.taurus.utils.pdf.PdfPageTransform;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -62,7 +63,7 @@ public class TracksServiceImpl extends CommonOpenSearchServiceImpl<Tracks, Track
     private final ImageTransformationService imageTransformationService;
     private final UploadJobMetrics uploadJobMetrics;
     private final SheetMusicInstrumentSuggestionRepository suggestionRepository;
-    private final ObjectMapper annotationsMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final ObjectMapper annotationsMapper = JsonMapper.builderWithJackson2Defaults().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
 
     public TracksServiceImpl(
         TracksRepository repository,

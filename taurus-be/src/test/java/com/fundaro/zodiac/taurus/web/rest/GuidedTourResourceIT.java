@@ -1,6 +1,6 @@
 package com.fundaro.zodiac.taurus.web.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.repository.guidedtour.GuidedTourProfileRepository;
 import com.fundaro.zodiac.taurus.repository.guidedtour.GuidedTourProgressRepository;
@@ -10,7 +10,7 @@ import com.fundaro.zodiac.taurus.test.util.WithMockTenantUser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;

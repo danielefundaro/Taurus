@@ -80,7 +80,7 @@ class CieSignServiceTest {
     @Test
     void recordsNothingForARejectedFile() {
         when(verifier.verify(any(), any(), any(), any()))
-            .thenThrow(SignatureSupport.error(HttpStatus.UNPROCESSABLE_ENTITY, "Another person", "signature.cieSign.signerMismatch"));
+            .thenThrow(SignatureSupport.error(HttpStatus.UNPROCESSABLE_CONTENT, "Another person", "signature.cieSign.signerMismatch"));
 
         assertRejected(() -> service.sign(5L, SignatureDocumentRole.MAIN, SIGNED, new MockHttpServletRequest(), token()), "signature.cieSign.signerMismatch");
         verify(signing, never()).recordCieSign(anyLong(), any(), any(), any(), any(), any());

@@ -13,16 +13,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
+import org.springframework.boot.liquibase.autoconfigure.LiquibaseProperties;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 class TenantSchemaProvisioningServiceIT {
 
     private static DataSource dataSource;
     private static TenantSchemaNameResolver schemaNameResolver;
     private static TenantSchemaProvisioningService provisioningService;
-    private static PostgreSQLContainer<?> postgres;
+    private static PostgreSQLContainer postgres;
 
     @BeforeAll
     static void setUpDatabase() throws Exception {
@@ -31,7 +31,7 @@ class TenantSchemaProvisioningServiceIT {
         String password = System.getProperty("taurus.test.postgres.password", "password");
         if (jdbcUrl == null) {
             DockerRequirement.required();
-            postgres = new PostgreSQLContainer<>("postgres:17.0");
+            postgres = new PostgreSQLContainer("postgres:17.0");
             postgres.start();
             jdbcUrl = postgres.getJdbcUrl();
             username = postgres.getUsername();

@@ -355,6 +355,52 @@ Applicata e verificata il 2026-11-08 sul ramo `upgrade-phase-4a`, che parte da `
   Le voci del backend in `.trivyignore.yaml` erano 73: la CVE di Actuator della fase 0 e le 72 della fase 1. Ne escono 72. Restano CVE-2026-47884 e la nuova CVE-2026-47890, con scadenza 2027-01-06 e 2027-01-07. Con il file Trivy non trova niente nel backend.
 - **Test e copertura.** `./mvnw verify` con Java 25 supera gli stessi 1225 test unitari e 279 di integrazione delle fasi precedenti. La copertura unita sale dal 75,59% al 77,28% delle linee e dal 60,53% al 61,70% dei branch senza prove nuove. Come chiede `AGENTS.md`, le soglie del `pom.xml` salgono a 0,77 e 0,61, appena sotto il misurato, e il [Runbook di test](runbook-test.md) lo annota.
 
+### Esito della fase 4b
+
+Applicata e verificata il 2026-11-08 sul ramo `upgrade-phase-4b`, che parte da `36a43ed`.
+
+- **Versioni.** Spring Boot 4.1.2 con JHipster framework 9.4.0 e springdoc-openapi 3.2.0, costruito su Spring Boot 4.1.2.
+  - Spring Boot porta Spring Framework 7.0.10, Spring Security 7.1.2, Spring Data 2026.0.2, Spring AMQP 4.1.2, Hibernate 7.4.13, Jackson 3.1.7, Tomcat 11.0.27, Netty 4.2.19, Liquibase 5.0.4, Testcontainers 2.0.5, JUnit 6.0.3 e Micrometer 1.17.2.
+  - Il plugin Maven di Liquibase usa `liquibase-hibernate7` 5.0.4.
+  - Tutte le versioni sono pubblicate da almeno sette giorni, come chiede la decisione 7.
+  - Come chiede la decisione 2, il passo intermedio è stato Spring Boot 4.0.9 con JHipster 9.1.0 e springdoc 3.0.3. Su quel passo compilazione, 1225 test unitari e 279 di integrazione sono passati prima di salire alla 4.1.
+- **Patch sopra Spring Boot.** Spring Boot 4.1.2 gestisce versioni corrette di Tomcat, Netty e Jackson e il driver PostgreSQL 42.7.14: le quattro proprietà della fase 4a sono tolte. Resta fissato amqp-client 5.37.1 della fase 0, perché Spring Boot 4.1.2 gestisce ancora la 5.30.0.
+- **Starter e dipendenze.**
+  - Starter rinominati: `spring-boot-starter-webmvc`, `-aspectj`, `-security-oauth2-client`, `-security-oauth2-resource-server` e `-liquibase` al posto di `liquibase-core`.
+  - Nei test, `-webmvc-test` e `-security-test` al posto di `spring-boot-starter-test`, `spring-boot-test` e `spring-security-test`.
+  - Gli artefatti di Testcontainers 2 hanno il prefisso `testcontainers-`.
+  - Sono tolti `jackson-datatype-jsr310`, perché Jackson 3 gestisce già le date di `java.time`, e quattro dipendenze che nessuna classe usava: `jackson-datatype-hppc`, `jackson-module-jaxb-annotations`, `spring-boot-loader-tools`, che Spring Boot 4 non gestisce più, e Undertow nel profilo `eclipse`.
+- **Jackson 3.**
+  - In 37 file i package `com.fasterxml.jackson.core` e `databind` diventano `tools.jackson`. `JsonProcessingException` diventa `JacksonException`, che non è più un'eccezione controllata: due `catch (IOException)` intorno a Jackson cambiano o spariscono. `asText()`, deprecato, diventa `asString()`.
+  - `JacksonConfiguration` è tolta: i moduli che registrava, `JavaTimeModule` e `Jdk8Module`, sono già dentro Jackson 3.
+  - In Jackson 3 gli `ObjectMapper` sono immutabili. Quelli creati a mano, per hash e firme, Keycloak, RabbitMQ, Web Push e annotazioni delle tracce, nascono con `JsonMapper.builderWithJackson2Defaults()`. Mantengono `ORDER_MAP_ENTRIES_BY_KEYS` e `FAIL_ON_UNKNOWN_PROPERTIES` dove li avevano.
+  - `spring.jackson.use-jackson2-defaults: true`, in `application.yml` e nella configurazione dei test, dà a Jackson 3 i default che Spring Boot usava con Jackson 2. Non è il modulo di compatibilità che la decisione 4 esclude: la libreria resta Jackson 3, cambiano solo i default. Senza, il JSON delle API cambierebbe: proprietà in ordine alfabetico, date `java.util.Date` con `Z` al posto di `+00:00`, classi vuote serializzate come `{}` invece di un errore.
+  - Nella configurazione dei test `write-durations-as-timestamps` passa da `spring.jackson.serialization` a `spring.jackson.datatype.datetime`: in Jackson 3 fa parte di `DateTimeFeature`. Con la chiave vecchia 11 test di configurazione della sicurezza non avviavano il contesto.
+  - Confronto prima e dopo, come chiede il rischio su Jackson 3. Un test temporaneo, non committato, ha serializzato con valori fissi 230 classi DTO con il mapper dell'applicazione, e con i mapper di hash e firme i loro record. Le esecuzioni sono tre: Jackson 2 su `36a43ed`, e Jackson 3 su Spring Boot 4.0.9 e 4.1.2. Il JSON delle API è identico in tutte le classi, rilettura compresa, e il JSON canonico di hash e firme è identico byte per byte. Cambia solo il record `Checked` di `LoanSheetSigning`, che Jackson 2 non sapeva serializzare per una data `ZonedDateTime` e Jackson 3 sì: il mapper canonico non lo serializza mai, scrive solo la lista di `Item`.
+- **Spring Boot 4.**
+  - `LiquibaseProperties`, `DataSourceProperties`, `HibernatePropertiesCustomizer`, `AutoConfigureMockMvc` e `WebMvcTest` sono passate nei package dei nuovi moduli.
+  - `HttpHeaders` non è più una `MultiValueMap`: `KeycloakServiceImpl` usa `containsHeader` al posto di `containsKey`.
+  - `IntegrationTest` e `OnboardingImportIT` non caricano più `JacksonConfiguration`.
+- **Problemi con codice 422.** Spring Framework 7 chiama il 422 come RFC 9110: il `title` dei problemi passa da «Unprocessable Entity» a «Unprocessable Content». Il frontend non legge `title` (`api-error.service.ts`), e `ExceptionTranslatorIT` si aspetta il testo nuovo.
+- **API deprecate.** Come nella fase 4a, sono tolte le API che Spring Boot 4.0 e 4.1 e le librerie nuove deprecano (decisione 2):
+  - `HttpStatus.UNPROCESSABLE_CONTENT` e `CONTENT_TOO_LARGE` al posto di `UNPROCESSABLE_ENTITY` e `PAYLOAD_TOO_LARGE`, in 67 punti, e `isUnprocessableContent()` nei test;
+  - `@NonNull` e `@Nullable` di JSpecify al posto di quelle di `org.springframework.lang`, in tre classi;
+  - `PostgreSQLContainer` e `RabbitMQContainer` dei package nuovi di Testcontainers 2, in sette test;
+  - slf4j 2.0.20 depreca i marker annidati: `CRLFLogConverter` cerca il marker `CRLF_SAFE` fra i marker dell'evento, senza `Marker.contains`;
+  - `spring.devtools.livereload.enabled` tolta dai profili `dev` e `prod`: Spring Boot 4.1 la depreca senza sostituto, e da Spring Boot 4.0 il valore predefinito è già `false`.
+
+  Restano solo le due `@Temporal(TemporalType.DATE)` di `Albums.date` e `Users.birthDate`, deprecate da Jakarta Persistence 3.2 insieme a `java.util.Date`. Il sostituto, `LocalDate`, cambia il JSON delle API di quei campi, e `java.util.Date` è usato anche da DTO, filtri e calendario: è una modifica a sé.
+- **Configurazione.** `spring-boot-properties-migrator`, aggiunto per la fase e tolto alla fine, non ha segnalato proprietà rinominate. Le chiavi di `application*.yml`, confrontate con i metadati di Spring Boot 4.0.9 e 4.1.2, sono tutte valide. `spring.output.ansi.console-available` non è nei metadati, ma Spring Boot 4 la legge ancora, come la 3.5.
+- **Hibernate 7 e tenant.** Hibernate 7.4 non chiede modifiche al codice: `@SoftDelete`, `@SQLDelete`, `@SQLRestriction`, `@JdbcTypeCode` e le SPI multi-tenant restano le stesse. I test di autorizzazione e di isolamento tenant passano: cambiano solo gli import delle classi spostate e il container di Testcontainers 2. Non serve nessuna migrazione Liquibase.
+- **Licenza di Liquibase 5.** Il nuovo `taurus-be/THIRD_PARTY_NOTICES.md` annota la FSL-1.1-ALv2. L'immagine del backend è pubblicata, e la FSL chiede a chi ridistribuisce il software di includere i termini, o un collegamento ai termini. Per questo il `Dockerfile` copia il file accanto al JAR, come fa il servizio OMR con il suo.
+- **Statistiche di Liquibase.** Dalla 4.30, quindi già con la 4.31.1 della fase 4a, Liquibase legge `https://config.liquibase.com/analytics.yaml` e, se quella configurazione lo prevede, invia a Liquibase dati d'uso anonimi a ogni esecuzione, a meno che `liquibase.analytics.enabled` non sia `false`. Spring Boot ha `spring.liquibase.analytics-enabled`, ma `LiquibaseConfiguration` e `TenantSchemaProvisioningService` creano `SpringLiquibase` a mano e non la passano. Spegnerle è un cambio di comportamento fuori dal perimetro della fase: resta da decidere.
+- **Prometheus.** Micrometer 1.17.2 usa il client Prometheus 1.7.0. Con gli stessi binder della fase 4a restano tutti i 31 nomi. Se ne aggiunge uno nuovo di Micrometer 1.17, `jvm_classes_loaded_count_classes_total`, e compaiono le serie `jvm_gc_pause_seconds`, che dipendono da quando la JVM segnala la pausa del GC.
+- **Web Push.** La catena di web-push non cambia: httpcore 4.4.16, httpasyncclient 4.1.5, jose4j 0.9.7 e Bouncy Castle 1.86. `PushServiceImpl` serializza con Jackson 3 una `Map` di stringhe, come prima.
+- **Vulnerabilità.** Senza `.trivyignore.yaml`, Trivy 0.76.2 come nella CI non trova vulnerabilità nel `pom.xml` del backend. Risolve 212 pacchetti, fra cui spring-webmvc 7.0.10. Escono da `.trivyignore.yaml` CVE-2026-47884 e CVE-2026-47890. Resta la voce DS-0002 del dev container, della fase 7.
+  - Anche l'immagine costruita con il `Dockerfile` è stata scansionata, come chiede [Osservabilità e sicurezza](#osservabilità-e-sicurezza). Nel JAR Trivy non trova niente. Nel sistema dell'immagine base `eclipse-temurin:25-jre`, Ubuntu 26.04, trova CVE-2026-109518 (HIGH) in `apt` e `libapt-pkg`, già corretta da Ubuntu nella 3.2.1ubuntu0.1. Non dipende dalla fase, e il job `security` non scansiona le immagini: la correzione arriva quando l'immagine base viene ripubblicata, e il prossimo tag `v*.*.*` la prende alla build. Va ricontrollata a quel rilascio.
+- **Test e copertura.** `./mvnw verify -Dtaurus.test.requireDocker=true` con Java 25 su Spring Boot 4.1.2 supera 1225 test unitari e 279 di integrazione in 30 minuti. La copertura unita è del 77,27% delle linee e del 61,68% dei branch, contro il 77,28% e il 61,70% della fase 4a. Resta sopra le soglie, che non cambiano: 0,77 e 0,61.
+  - Una prima esecuzione si era fermata su `staysWithinTheTimeBudgetOnAnA4PageAt300Dpi`: 5,3 secondi contro un limite di 5, mentre sulla stessa macchina giravano Trivy e la prova delle metriche. Senza quel carico il test passa.
+
 ### Stato dei lavori
 
 Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che parte da `84ae3b8`. I commit sono sei, uno per modulo e due per il backend:
@@ -408,7 +454,14 @@ Fase 4a verificata il 2026-11-08 sul ramo `upgrade-phase-4a`, che parte da `b7ab
 - `Build the backend with Java 25 in CI`: i job `backend` e `security` di `verify.yml` e il commento sull'immagine `maven` in `.github/dependabot.yml`;
 - `Record phase 4a of the platform upgrade`: `.trivyignore.yaml`, `AGENTS.md`, `README.md`, il README del backend, i runbook, la specifica del riconoscimento del testo, questa specifica e il catalogo.
 
-Con il merge, Dependabot dovrebbe chiudere da solo la [#157](https://github.com/danielefundaro/Taurus/pull/157) e la [#123](https://github.com/danielefundaro/Taurus/pull/123), che la fase contiene.
+La pull request è la [#160](https://github.com/danielefundaro/Taurus/pull/160), unita su `main` il 2026-11-08 con il merge `36a43ed`. La CI di `main` è passata in tutti gli otto job. Dependabot ha chiuso da solo la [#157](https://github.com/danielefundaro/Taurus/pull/157) e la [#123](https://github.com/danielefundaro/Taurus/pull/123), che la fase conteneva, e ha aperto la [#161](https://github.com/danielefundaro/Taurus/pull/161), che porta `maven-wrapper` del backend dalla 3.3.2 alla 3.3.4, con la CI verde. La fase 4a è chiusa.
+
+Fase 4b verificata il 2026-11-08 sul ramo `upgrade-phase-4b`, che parte da `36a43ed` (vedi [Esito della fase 4b](#esito-della-fase-4b)). I commit sono quattro:
+
+- `Update the backend to Spring Boot 4.1.2 and JHipster 9.4`: `pom.xml`, codice, test e configurazione per Spring Boot 4, Jackson 3 e Testcontainers 2;
+- `Replace APIs deprecated by Spring Boot 4`: codici HTTP, annotazioni di JSpecify, container di Testcontainers 2, marker di `CRLFLogConverter` e LiveReload nei profili;
+- `Add third-party notices to the backend image`: `THIRD_PARTY_NOTICES.md`, `Dockerfile`, `.dockerignore` e README del backend;
+- `Record phase 4b of the platform upgrade`: `.trivyignore.yaml`, il Runbook operativo, questa specifica e il catalogo.
 
 #### Verifiche eseguite
 
@@ -489,6 +542,15 @@ Con il merge, Dependabot dovrebbe chiudere da solo la [#157](https://github.com/
 | Provider Keycloak | `./mvnw -DskipTests package` con JDK 25 | riuscita: lo stesso JDK compila il backend per Java 25 e il provider per Java 21 |
 | Repository | Trivy 0.76.2 come nella CI sul backend, con i POM del repository Maven locale | senza `.trivyignore.yaml` CVE-2026-47884 e CVE-2026-47890 di spring-webmvc 6.2.19 e DS-0002 del dev container; con il file nessuna segnalazione |
 | Repository | i controlli del job `documentation` con la fase 4a | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento |
+| Backend | compilazione con JDK 25 su Spring Boot 4.0.9 e su 4.1.2, con gli avvisi di deprecazione | riuscita in entrambe; gli unici avvisi di deprecazione sono le quattro di `@Temporal` in `Albums` e `Users` |
+| Backend | `./mvnw verify -Dtaurus.test.requireDocker=true` su Spring Boot 4.0.9, con RabbitMQ irraggiungibile come in CI | prima esecuzione: 265 errori in 11 test di configurazione della sicurezza, senza contesto per la chiave `spring.jackson.serialization.write-durations-as-timestamps`; seconda: 1225 test unitari e 278 di integrazione su 279, con `ExceptionTranslatorIT` che si aspettava «Unprocessable Entity»; dopo la correzione i suoi 14 test passano |
+| Backend | test temporaneo di confronto del JSON: Jackson 2 su `36a43ed`, Jackson 3 su 4.0.9 e su 4.1.2 | 230 classi DTO con JSON identico, rilettura compresa; JSON canonico di hash e firme identico, salvo il record `Checked` che Jackson 2 non serializzava; senza `use-jackson2-defaults`, 39 righe diverse |
+| Backend | chiavi di `application*.yml` contro i metadati di configurazione di Spring Boot 4.0.9 e 4.1.2 | tutte valide; nella 4.1 è deprecata solo `spring.devtools.livereload.enabled`, tolta |
+| Backend | `./mvnw verify -Dtaurus.test.requireDocker=true` su Spring Boot 4.1.2, con RabbitMQ irraggiungibile come in CI | prima esecuzione, con Trivy in parallelo: fallito il test di tempo dell'analisi di una pagina A4 (5298 ms su 5000); seconda: superata in 30 minuti, 1225 test unitari e 279 di integrazione, copertura unita 77,27% delle linee e 61,68% dei branch, sopra le soglie 0,77 e 0,61 |
+| Backend | nomi delle metriche con `micrometer-registry-prometheus` 1.17.2, con i binder della fase 4a | i 31 nomi della fase 4a, più `jvm_classes_loaded_count_classes_total` e le tre serie di `jvm_gc_pause_seconds` |
+| Repository | Trivy 0.76.2 come nella CI sul backend, con i POM del repository Maven locale | senza `.trivyignore.yaml` nessuna vulnerabilità nel `pom.xml`, con 212 pacchetti risolti fra cui spring-webmvc 7.0.10, e DS-0002 del dev container; con il file nessuna segnalazione |
+| Backend | `docker build` del `Dockerfile` e Trivy 0.76.2 sull'immagine, `HIGH` e `CRITICAL` corrette | build riuscita, `THIRD_PARTY_NOTICES.md` accanto ad `app.jar`, processo con l'utente `taurus`; nel JAR nessuna vulnerabilità, nell'immagine base Ubuntu 26.04 CVE-2026-109518 di `apt` e `libapt-pkg` |
+| Repository | i controlli del job `documentation` con la fase 4b | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento |
 
 Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta. Dopo il merge di `fix-a11y-defects` non sono stati ripetuti né axe né la suite end to end: le due correzioni sono state verificate con axe sul loro ramo, con PrimeNG 19.0.10, e sul ramo unito le coprono i test unitari.
 
@@ -544,7 +606,7 @@ Risolto il 2026-11-06.
 - Codice: Jackson 3, Hibernate 7, Spring Security 7, Testcontainers 2 e le API rimosse in Spring Boot 4, guidate dalle note di migrazione ufficiali e da OpenRewrite dove disponibile.
 - `Dockerfile`: immagini Temurin 25 e `--no-install-recommends`.
 - Configurazione: proprietà rinominate da Spring Boot 4, segnalate all'avvio da `spring-boot-properties-migrator`, che si toglie a fine fase.
-- Fatto nella fase 4a: Spring Boot 3.5.16, JHipster 8.12, librerie e plugin, `java.version` 25, rimozione di Spring Cloud, immagini Temurin 25 di Jib e del `Dockerfile`, API deprecate. Restano alla fase 4b Spring Boot 4.0 e 4.1 con il codice e la configurazione, Undertow, gli starter rinominati e `liquibase-hibernate7`.
+- Fatto nella fase 4a: Spring Boot 3.5.16, JHipster 8.12, librerie e plugin, `java.version` 25, rimozione di Spring Cloud, immagini Temurin 25 di Jib e del `Dockerfile`, API deprecate. Fatto nella fase 4b: Spring Boot 4.0 e 4.1 con JHipster 9.4, il codice e la configurazione, Undertow, gli starter rinominati, `liquibase-hibernate7` e le API deprecate di Spring Boot 4, tranne `@Temporal` su due campi `java.util.Date`.
 
 ### Frontend
 
@@ -578,7 +640,7 @@ Nessun cambio di regole. Il passaggio a Spring Security 7 e a Hibernate 7 tocca 
 ## Osservabilità e sicurezza
 
 - Actuator: la correzione di CVE-2026-22733 è arrivata con Spring Boot 3.5.16, nella fase 4a. Gli endpoint esposti si ricontrollano con la configurazione di produzione.
-- Le metriche Prometheus e i nomi esposti da Micrometer possono cambiare con Spring Boot 4: i pannelli Grafana di `taurus-be/src/main/docker/grafana` si verificano. Nella fase 4a il registro passa al client Prometheus 1.x con gli stessi nomi (vedi [Esito della fase 4a](#esito-della-fase-4a)).
+- Le metriche Prometheus e i nomi esposti da Micrometer possono cambiare con Spring Boot 4: i pannelli Grafana di `taurus-be/src/main/docker/grafana` si verificano. Nella fase 4a il registro passa al client Prometheus 1.x con gli stessi nomi (vedi [Esito della fase 4a](#esito-della-fase-4a)); nella fase 4b Micrometer 1.17 li mantiene tutti e ne aggiunge uno (vedi [Esito della fase 4b](#esito-della-fase-4b)).
 - Il job `security` resta bloccante per vulnerabilità `HIGH` e `CRITICAL` corrette, configurazioni e segreti.
 - Ogni immagine Docker pubblicata viene ricontrollata con Trivy dopo la fase che la cambia.
 
@@ -586,7 +648,7 @@ Nessun cambio di regole. Il passaggio a Spring Security 7 e a Hibernate 7 tocca 
 
 | Componente | Licenza | Nota |
 | --- | --- | --- |
-| Liquibase 5 Community | Functional Source License 1.1, con licenza futura Apache-2.0 (`FSL-1.1-ALv2`) | dalla 5 non è più Apache-2.0: l'uso interno è gratuito. Accettata il 2026-11-07 per la fase 4b, che la annota in un nuovo `taurus-be/THIRD_PARTY_NOTICES.md`. L'alternativa era restare sull'ultima 4.x, fuori supporto dal 30/09/2025 |
+| Liquibase 5 Community | Functional Source License 1.1, con licenza futura Apache-2.0 (`FSL-1.1-ALv2`) | dalla 5 non è più Apache-2.0: l'uso interno è gratuito. Accettata il 2026-11-07 per la fase 4b, che la annota in un nuovo `taurus-be/THIRD_PARTY_NOTICES.md`, copiato anche nell'immagine come chiede la licenza a chi ridistribuisce. L'alternativa era restare sull'ultima 4.x, fuori supporto dal 30/09/2025 |
 | Tutti gli altri componenti | invariata | da ricontrollare a ogni maggiore in `THIRD_PARTY_NOTICES.md` |
 
 ## Strategia di test

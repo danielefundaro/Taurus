@@ -1,8 +1,5 @@
 package com.fundaro.zodiac.taurus.service.signature;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fundaro.zodiac.taurus.domain.signature.SignatureChainHead;
 import com.fundaro.zodiac.taurus.domain.signature.SignatureEvidence;
 import com.fundaro.zodiac.taurus.domain.signature.SignatureEvidenceMethod;
@@ -25,6 +22,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Evidence of the signatures, chained within the tenant: every evidence stores the hash of the previous one and its
@@ -38,7 +39,7 @@ public class SignatureEvidenceService {
     private static final Logger LOG = LoggerFactory.getLogger(SignatureEvidenceService.class);
     static final String GENESIS_HASH = "0".repeat(64);
     private static final int PAGE_SIZE = 500;
-    private static final ObjectMapper CANONICAL = new ObjectMapper().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+    private static final ObjectMapper CANONICAL = JsonMapper.builderWithJackson2Defaults().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).build();
 
     private final SignatureEvidenceRepository evidenceRepository;
     private final SignatureChainHeadRepository headRepository;
@@ -186,7 +187,7 @@ public class SignatureEvidenceService {
     private static String canonical(Map<String, Object> values) {
         try {
             return CANONICAL.writeValueAsString(values);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to serialize the signature evidence", exception);
         }
     }

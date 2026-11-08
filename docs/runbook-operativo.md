@@ -43,7 +43,7 @@ Finché questi campi non sono valorizzati e approvati, il runbook è utilizzabil
 | Componente | Tecnologia | Responsabilità | Porta locale | Stato persistente |
 | --- | --- | --- | --- | --- |
 | `taurus-fe` | Angular 19, Nginx | SPA utente/amministrazione, PWA e Web Push; nel container serve anche da ingresso unico, inoltrando `/api` e `/auth` | `4200` in sviluppo, `80` nel container | Nessuno; configurazione letta all'avvio del container (§4.2) |
-| `taurus-be` | Java 25, Spring Boot 3.5, JHipster | API, processi asincroni, scheduler, migrazioni e accesso ai dati | `8080` | Media su filesystem; dati in PostgreSQL |
+| `taurus-be` | Java 25, Spring Boot 4.1, JHipster | API, processi asincroni, scheduler, migrazioni e accesso ai dati | `8080` | Media su filesystem; dati in PostgreSQL |
 | PostgreSQL | PostgreSQL 17 nel compose locale | Schema globale `public`, schemi tenant e database Keycloak | `5432` | Critico |
 | Keycloak | Keycloak 26.8.2 nel compose locale | OIDC, utenti, ruoli, tenant claim, login e-mail e temi | `9080`, `9443` locali | Database `taurus_keycloak` e provider custom |
 | RabbitMQ | RabbitMQ 4.0.7 management nel compose locale | Code `upload.files` (elaborazione PDF) e `score.recognition` (riconoscimento delle parti), con le rispettive code di scarto `.dead` | `5672`, console `15672` | Code e messaggi in transito |

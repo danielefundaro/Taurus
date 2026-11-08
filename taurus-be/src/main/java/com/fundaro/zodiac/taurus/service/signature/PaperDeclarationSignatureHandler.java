@@ -1,7 +1,5 @@
 package com.fundaro.zodiac.taurus.service.signature;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.domain.signature.SignatureAct;
 import com.fundaro.zodiac.taurus.domain.signature.SignatureActType;
 import com.fundaro.zodiac.taurus.domain.signature.SignatureChallenge;
@@ -18,6 +16,9 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Declaration by an administrator, confirmed with the own code, that an act was signed on paper: when the parent cannot
@@ -26,7 +27,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class PaperDeclarationSignatureHandler implements SignaturePurposeHandler {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON = JsonMapper.builderWithJackson2Defaults().build();
 
     private final LoanSheetSignatureService signatureService;
     private final LoanSheetActCompletion completion;
@@ -126,7 +127,7 @@ public class PaperDeclarationSignatureHandler implements SignaturePurposeHandler
     private static String json(Item item) {
         try {
             return JSON.writeValueAsString(item);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to serialize the declaration", exception);
         }
     }
@@ -134,7 +135,7 @@ public class PaperDeclarationSignatureHandler implements SignaturePurposeHandler
     private static Item item(String json) {
         try {
             return JSON.readValue(json, Item.class);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to read the declaration", exception);
         }
     }

@@ -1,8 +1,5 @@
 package com.fundaro.zodiac.taurus.service.eventpreparation;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.eventpreparation.CalendarEventMaterial;
 import com.fundaro.zodiac.taurus.domain.eventpreparation.CalendarEventProgramEntry;
@@ -18,6 +15,10 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The fingerprints of what a confirmation attests: SHA-256 of a canonical JSON — keys in alphabetical order, amounts
@@ -28,7 +29,7 @@ final class PreparationHashes {
     static final int SCHEMA = 2;
     /** The event budget has no currency of its own: it is the one the finance module books, EUR in this version. */
     static final String BUDGET_CURRENCY = "EUR";
-    private static final ObjectMapper JSON = new ObjectMapper().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+    private static final ObjectMapper JSON = JsonMapper.builderWithJackson2Defaults().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).build();
 
     private PreparationHashes() {
     }
@@ -113,7 +114,7 @@ final class PreparationHashes {
     private static String hash(Object value) {
         try {
             return HexFormat.of().formatHex(sha256(JSON.writeValueAsBytes(value)));
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to write the canonical JSON of a confirmation", exception);
         }
     }

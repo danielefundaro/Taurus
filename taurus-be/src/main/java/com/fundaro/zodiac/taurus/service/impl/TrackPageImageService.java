@@ -1,8 +1,8 @@
 package com.fundaro.zodiac.taurus.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.domain.Media;
 import com.fundaro.zodiac.taurus.domain.SheetsMusic;
 import com.fundaro.zodiac.taurus.domain.TrackPageEditReceipt;
@@ -425,7 +425,7 @@ public class TrackPageImageService {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             digest.update((trackId + "\0" + scoreId + "\0" + mediaId + "\0").getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest.digest(recipe));
-        } catch (JsonProcessingException | NoSuchAlgorithmException exception) {
+        } catch (JacksonException | NoSuchAlgorithmException exception) {
             throw new IllegalStateException("Unable to fingerprint image edit", exception);
         }
     }
@@ -440,7 +440,7 @@ public class TrackPageImageService {
     private String serializeMedia(List<ChildrenEntitiesDTO> media) {
         try {
             return objectMapper.writeValueAsString(media);
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to serialize image edit result", exception);
         }
     }
@@ -449,7 +449,7 @@ public class TrackPageImageService {
         try {
             return objectMapper.readValue(mediaJson, new TypeReference<>() {
             });
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             throw new IllegalStateException("Unable to deserialize image edit result", exception);
         }
     }

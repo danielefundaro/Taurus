@@ -1,6 +1,6 @@
 package com.fundaro.zodiac.taurus.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.fundaro.zodiac.taurus.IntegrationTest;
 import com.fundaro.zodiac.taurus.domain.Tenants;
 import com.fundaro.zodiac.taurus.domain.UserIdentity;
@@ -783,7 +783,7 @@ class OperationalDashboardIT {
     private String json(OperationalDashboardDTO value) {
         try {
             return objectMapper.writeValueAsString(value);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException exception) {
+        } catch (tools.jackson.core.JacksonException exception) {
             throw new IllegalStateException(exception);
         }
     }
