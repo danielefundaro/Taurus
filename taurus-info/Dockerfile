@@ -1,12 +1,13 @@
 # syntax=docker/dockerfile:1.7
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /app
 
-RUN corepack enable
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml ./
+# Node 26 non include più corepack: pnpm si installa con npm, alla versione di `packageManager`.
+# Lo script di installazione di pnpm collega il suo eseguibile nativo, e npm lo esegue solo se ammesso.
+RUN npm install --global --allow-scripts=pnpm "$(node -p "require('./package.json').packageManager")" \
+    && pnpm install --frozen-lockfile
 
 COPY . .
 
