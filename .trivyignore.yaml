@@ -9,34 +9,9 @@
 # Quelle del backend sono tolte il 2026-11-08 nella fase 4a, con Spring Boot 3.5.16, tranne le due di
 # spring-webmvc, tolte lo stesso giorno nella fase 4b con Spring Boot 4.1.2.
 # Quelle del frontend sono tolte il 2026-11-08 nella fase 5, con Angular 21 e ngx-extended-pdf-viewer 31.
+# Quelle del sito informativo sono tolte il 2026-11-09 nella fase 6, con Astro 7.4.5 e sharp 0.35.5.
 
 vulnerabilities:
-  # Sito informativo: Astro 5 e lo sharp che accetta, 0.34 (fase 6).
-  - id: GHSA-26w7-cxv4-gfx2
-    paths: ["taurus-info/pnpm-lock.yaml"]
-    statement: "astro 5.18.2, esecuzione di codice remoto: corretto dalla 7.2.8, fase 6"
-    expired_at: 2027-01-05
-  - id: CVE-2026-50146
-    paths: ["taurus-info/pnpm-lock.yaml"]
-    statement: "astro 5.18.2: corretto dalla 6.3.3, fase 6"
-    expired_at: 2027-01-05
-  - id: CVE-2026-54299
-    paths: ["taurus-info/pnpm-lock.yaml"]
-    statement: "astro 5.18.2: corretto dalla 6.4.6, fase 6"
-    expired_at: 2027-01-05
-  - id: GHSA-f88m-g3jw-g9cj
-    paths: ["taurus-info/pnpm-lock.yaml"]
-    statement: "sharp 0.34.5, richiesto da Astro 5: corretto dalla 0.35.0, fase 6"
-    expired_at: 2027-01-05
-  - id: GHSA-rgj7-g3m4-5g8c
-    paths: ["taurus-info/pnpm-lock.yaml"]
-    statement: "sharp 0.34.5, richiesto da Astro 5: corretto dalla 0.35.4, fase 6"
-    expired_at: 2027-01-05
-  - id: GHSA-wq5f-xc86-pv6w
-    paths: ["taurus-info/pnpm-lock.yaml"]
-    statement: "sharp 0.34.5, richiesto da Astro 5: corretto dalla 0.35.5, fase 6"
-    expired_at: 2027-01-05
-
   # Servizio OMR: Pillow 12.3.0. La correzione è solo nella 13.0.0, ma homr 0.7.0, ultima versione,
   # richiede Pillow<13: la fase 2 le risolve quando homr accetta Pillow 13.
   - id: CVE-2026-96637

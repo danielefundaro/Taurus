@@ -175,8 +175,7 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      # Le maggiori di Astro e delle sue integrazioni si fanno a mano, una per volta (decisione 2):
-      # prima la 6, poi la 7.
+      # Le maggiori di Astro e delle sue integrazioni si fanno a mano, una per volta (decisione 2).
       - dependency-name: astro
         update-types: ['version-update:semver-major']
       - dependency-name: '@astrojs/*'

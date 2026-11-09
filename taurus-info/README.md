@@ -4,8 +4,8 @@ Sito-vetrina statico del gestionale Taurus per organizzazioni musicali, realizza
 
 ## Requisiti
 
-- Node.js 22
-- pnpm 11
+- Node.js 26
+- pnpm 12, alla versione di `packageManager` in `package.json`: Node.js 26 non include più corepack, e pnpm si installa con `npm install --global pnpm@<versione>`
 - Docker e Docker Compose, per l'esecuzione containerizzata
 
 ## Sviluppo locale

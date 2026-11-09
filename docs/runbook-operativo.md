@@ -49,7 +49,7 @@ Finché questi campi non sono valorizzati e approvati, il runbook è utilizzabil
 | RabbitMQ | RabbitMQ 4.0.7 management nel compose locale | Code `upload.files` (elaborazione PDF) e `score.recognition` (riconoscimento delle parti), con le rispettive code di scarto `.dead` | `5672`, console `15672` | Code e messaggi in transito |
 | `taurus-omr` | Python 3.12, FastAPI, Audiveris 5.11.0, homr 0.7.0 | Riconoscimento ottico della musica e conversione MIDI per l'ascolto delle parti, chiamato solo dal backend | `8090` | Nessuno; file temporanei in `/tmp`, eliminati a fine richiesta |
 | `keycloak-authenticator` | Java 21, provider Keycloak | Selezione tenant/ruolo, protocol mapper e verifica dei codici dell'app per la firma (`taurus-otp`) | n/a | JAR e temi distribuiti in Keycloak |
-| `taurus-info` | Astro, Nginx | Sito informativo statico | `4321` dev, `8088` container locale | Nessuno; variabili incorporate in build |
+| `taurus-info` | Astro 7, Nginx | Sito informativo statico | `4321` dev, `8088` container locale | Nessuno; variabili incorporate in build |
 | Prometheus/Grafana | Compose opzionale | Metriche JVM/HTTP e dashboard | `9090`, `3000` | Configurazione e dashboard locali |
 
 ### 2.1 Flusso principale
@@ -88,8 +88,7 @@ L'ordine di arresto è inverso. Durante un arresto pianificato, fermare prima l'
 
 - Git;
 - un JDK 25: il backend si compila per Java 25, il provider Keycloak per Java 21, la JVM dell'immagine di Keycloak;
-- Node.js 26 e npm per `taurus-fe`, Node.js 22 per `taurus-info`;
-- pnpm 11 per `taurus-info`;
+- Node.js 26, con npm per `taurus-fe` e con pnpm 12 per `taurus-info`;
 - Docker Engine con Docker Compose, con almeno 4 CPU e 8 GB di memoria assegnati: il servizio OMR del compose è limitato a 4 CPU e 6 GB;
 - Chrome/Chromium per i test Karma;
 - una copia del SoundFont del lettore per `npm start` e `npm run build` (circa 38 MB, verificata con SHA-256): da `TAURUS_SOUNDFONT_PATH`, da `TAURUS_SOUNDFONT_URL` o, in mancanza di entrambe, da `ftp.osuosl.org`, che richiede accesso a Internet; `TAURUS_SKIP_SOUNDFONT=1` salta il passaggio quando il lettore non serve;
@@ -304,7 +303,7 @@ Senza segreto il profilo mostra l'app come non disponibile e le firme usano il c
 
 **CieSign** (facoltativo, non è un requisito): l'Affidatario con codice fiscale italiano, socio maggiorenne o genitore, può firmare i documenti con l'app CieSign o con il Software CIE e caricarli in Taurus, che verifica firma, certificato e integrità. Serve solo che il backend riconosca le CA della CIE, e nel manifest di produzione è già così: il bundle dei certificati è versionato in [`deploy/cie/trust-anchors.pem`](../deploy/cie/trust-anchors.pem), il manifest lo monta in sola lettura su `/etc/taurus/cie` e `SIGNATURE_CIE_TRUST_ANCHORS` ci punta per default. Un'installazione parte quindi con CieSign disponibile, senza chiamare nessuno all'avvio; per non offrirlo si mette `TAURUS_SIGNATURE_CIE_TRUST_ANCHORS=` vuoto nel `.env`.
 
-Il bundle si procura e si rinnova con uno script, che gira nel repository e non sull'host (serve Node.js 22), perché lo scaricamento sia ripetibile e la fiducia non dipenda da chi lo esegue:
+Il bundle si procura e si rinnova con uno script, che gira nel repository e non sull'host (serve Node.js 26, come la CI), perché lo scaricamento sia ripetibile e la fiducia non dipenda da chi lo esegue:
 
 ```bash
 node scripts/ops/fetch-cie-trust-anchors.mjs                  # scarica, verifica e riscrive il bundle
