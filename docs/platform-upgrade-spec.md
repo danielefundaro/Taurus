@@ -182,7 +182,7 @@ JHipster framework 9.4 è costruito su Spring Boot 4.1: le due versioni salgono 
 
 ### 5. Angular e PrimeNG alla 21, con TypeScript 5.9
 
-Approvata il 06/11/2026 come passo ad Angular 22 con PrimeNG 22 e TypeScript 6.0, rivista il 2026-11-08: per la licenza di PrimeNG 22, la fase 5 si chiude alla linea 21. Restano Angular 21 con TypeScript 5.9, PrimeNG 21, `@primeuix/themes` 2 e PrimeIcons 7, tutti MIT. PrimeNG 21 chiede Angular 21, e PrimeNG 22 è la prima versione che dichiara il supporto ad Angular 22: le due librerie salgono insieme. Il tema passa comunque a `@primeuix/themes`, che sostituisce `@primeng/themes`, deprecato. `docs/llms-full.md`, che `AGENTS.md` indica come riferimento, descrive la 22 e va rigenerato per la 21. Tailwind passa alla 4, perché `tailwindcss-primeui` 0.6 accompagna i temi nuovi. L'impatto riguarda 129 file che importano PrimeNG, 81 dei quali per `DynamicDialog`.
+Approvata il 06/11/2026 come passo ad Angular 22 con PrimeNG 22 e TypeScript 6.0, rivista il 2026-11-08: per la licenza di PrimeNG 22, la fase 5 si chiude alla linea 21. Restano Angular 21 con TypeScript 5.9, PrimeNG 21, `@primeuix/themes` 2 e PrimeIcons 7, tutti MIT. PrimeNG 21 chiede Angular 21, e PrimeNG 22 è la prima versione che dichiara il supporto ad Angular 22: le due librerie salgono insieme. Il tema passa comunque a `@primeuix/themes`, che sostituisce `@primeng/themes`, deprecato. `docs/llms-full.md`, che `AGENTS.md` indica come riferimento, descriveva la 22 ed è rigenerato per la 21. Tailwind passa alla 4, perché `tailwindcss-primeui` 0.6 accompagna i temi nuovi. L'impatto riguarda 129 file che importano PrimeNG, 81 dei quali per `DynamicDialog`.
 
 **Licenza di PrimeNG 22.** Dalla 22 PrimeNG, `@primeuix/themes` e `@primeuix/styles` 3 e PrimeIcons 8 non sono più MIT: si usano con la PrimeUI License. La sua Community License è gratuita per le organizzazioni con meno di un milione di dollari di ricavi annui e meno di cinque sviluppatori, per i singoli, per gli enti senza scopo di lucro e per i progetti open source non commerciali. Si rinnova ogni anno e chiede una chiave di licenza. Le versioni fino alla 21 restano MIT.
 
@@ -460,7 +460,7 @@ In corso dal 2026-11-08 sul ramo `upgrade-phase-5`, che parte da `078141a`. Sono
 - **Dependabot.** `.github/dependabot.yml` ignora anche le maggiori di `@primeuix/themes` e PrimeIcons, che dalla 3 e dalla 8 hanno la PrimeUI License: le maggiori di PrimeNG erano già escluse.
 - **Test e build.** `npm run test:coverage` supera 751 test su 751, con copertura sopra la baseline: statements 64,57%, branches 54,40%, lines 66,63%. `npm run build` riesce con i due avvisi di budget CSS già presenti.
 - **Suite end to end e verifica visiva.** Eseguite il 2026-11-08 sul risultato del passo 21 (vedi [Suite end to end e verifica visiva della fase 5](#suite-end-to-end-e-verifica-visiva-della-fase-5)). Nessuna regressione di aspetto nelle pagine viste, cascade layer di Tailwind 4 compresi. Sono stati trovati due difetti, corretti lo stesso giorno: la regola `label-content-name-mismatch`, che axe-core 4.14.0 applica da sé, su markup già presente dell'applicazione, e la direttiva `AutoFocus` di PrimeNG 21, che scrive l'attributo `autofocus` su quasi tutti i componenti. Dopo le correzioni le prove di accessibilità passano. Il 2026-11-09 è stata corretta anche una prova instabile del workspace delle parti, non legata alla fase, insieme ad altri difetti delle prove dello stesso file che i salti nascondevano. L'esclusione di `aria-required-children` su `p-stepper` serve ancora: README della suite, prova e Runbook di test la annotano per la 19 e la 21.
-- **Non ancora fatto.** `docs/llms-full.md`, che descrive la 22, rigenerato per la 21.
+- **Documentazione di PrimeNG.** Il 2026-11-09 `docs/llms-full.md` è sostituito con la documentazione ufficiale di PrimeNG 21, `https://v21.primeng.org/llms/llms-full.txt`, generata da PrimeTek il 2026-06-04: 47.982 righe al posto delle 52.869 di quella della 22, generata il 2026-06-28. Le guide di migrazione arrivano alla 21, l'installazione non chiede la chiave di licenza, e mancano le pagine dei componenti nuovi della 22: CommandMenu, Compare, InputColor, InputPassword, InputTags, Label, Scroll Area e Sidebar.
 
 #### Passo ad Angular e PrimeNG 22
 
@@ -475,7 +475,7 @@ Programmato e rimandato il 2026-11-08: la fase 5 si chiude alla linea 21 (decisi
 3. **Chiave di licenza.** `TAURUS_PRIMEUI_LICENSE` in `40-taurus-runtime-config.sh`, nel tipo `RuntimeConfig` con i suoi test, in `providePrimeNG({ license })`, nel compose e in `.env.example` di `deploy/` e nella tabella delle variabili del Runbook operativo, con il rinnovo annuale. In sviluppo la chiave non va nel `src/assets/config.json` versionato. Si verifica cosa vede chi installa l'immagine senza chiave.
 4. **Note di terze parti.** `taurus-fe/THIRD_PARTY_NOTICES.md` con la PrimeUI License, copiato dal `Dockerfile` nell'immagine.
 5. **Permesso aggiuntivo.** Il testo della decisione 5 in fondo a `LICENSE` e una nota nel README, in un commit del repository separato da quelli del frontend.
-6. **Documentazione di PrimeNG.** `docs/llms-full.md`, generato il 2026-06-28, descrive già la 22: si rigenera per la versione installata, come chiede `AGENTS.md`.
+6. **Documentazione di PrimeNG.** `docs/llms-full.md` descrive la 21: si sostituisce con quella della 22, `https://primeng.org/llms/llms-full.txt`, come chiede `AGENTS.md`.
 7. **Verifiche.** `npm run build`, `npm run test:coverage`, Trivy come nella CI e `npm audit`; la suite end to end, ricontrollando l'esclusione su `p-stepper` annotata per PrimeNG 19 nel [README della suite](../taurus-fe/e2e/README.md) e nel [Runbook di test](runbook-test.md); la verifica visiva delle pagine del [Taurus Layout Standard](taurus-layout-standard.md) in chiaro e scuro, desktop e mobile, con il controllo dei cascade layer di Tailwind 4. Il banner di PrimeNG non deve comparire con la chiave valida.
 8. **Riferimenti.** `AGENTS.md`, README e runbook passano ad Angular 22 e PrimeNG 22.
 
@@ -550,7 +550,14 @@ Fase 5 in corso dal 2026-11-08 sul ramo `upgrade-phase-5`, che parte da `078141a
 - `Exclude PrimeUI-licensed majors from Dependabot`: `.github/dependabot.yml`;
 - `Record phase 5 of the platform upgrade`: `.trivyignore.yaml`, `AGENTS.md`, `README.md`, il README del frontend, il Runbook operativo, questa specifica e il catalogo.
 
-La suite end to end e la verifica visiva sono state eseguite il 2026-11-08, e i due difetti trovati sono stati corretti lo stesso giorno (vedi [Suite end to end e verifica visiva della fase 5](#suite-end-to-end-e-verifica-visiva-della-fase-5)). Prima della pull request resta `docs/llms-full.md`.
+La suite end to end e la verifica visiva sono state eseguite il 2026-11-08, e i due difetti trovati sono stati corretti lo stesso giorno (vedi [Suite end to end e verifica visiva della fase 5](#suite-end-to-end-e-verifica-visiva-della-fase-5)). Hanno aggiunto quattro commit:
+
+- `Neutralize the PrimeNG 21 AutoFocus default`: `primeng-autofocus.ts`, con il suo test, e `app.config.ts`;
+- `Match accessible names to visible text`: i nomi accessibili della barra superiore, dei widget delle notifiche e delle statistiche e delle pagine di album, calendario, tenant, tracce e utenti;
+- `Stabilize the track parts workspace e2e tests`: la prova del workspace delle parti e il README della suite;
+- `Record the phase 5 end-to-end run`: la prova dell'importazione iniziale, il README della suite, il Runbook di test, questa specifica e il catalogo.
+
+Il 2026-11-09 il commit `Use the PrimeNG 21 documentation` sostituisce `docs/llms-full.md` con la documentazione della 21 e aggiorna questa specifica e il catalogo. Con questo la fase è pronta per la pull request.
 
 #### Verifiche eseguite
 
@@ -653,6 +660,8 @@ La suite end to end e la verifica visiva sono state eseguite il 2026-11-08, e i 
 | Frontend | axe con Playwright dopo le correzioni, su dashboard, tracce, album, calendario e utenti, a 1280 e a 375 pixel, e con il menu della topbar aperto su mobile | nessuna `label-content-name-mismatch`; `color-contrast` solo nella vista mese del calendario, già presente. Nessun elemento con `autofocus` su Economia, dettaglio di una traccia, Inventario, Utenti e Calendario, focus sul documento |
 | Frontend | `npm run e2e` dopo le correzioni, Node 26.13.0 | 56 superate, 37 saltate, 1 fallita in 7,5 minuti: accessibilità superata nei due profili; fallita la prova del divisore del workspace delle parti, instabile e non legata alla fase |
 | Frontend | `track-parts-workspace.spec.ts` dopo la correzione della prova, profili desktop e mobile, ripetuto due volte, Node 26.13.0 | 16 superate e 8 saltate in 3,5 minuti. Le saltate sono la traccia da 200 parti, senza `E2E_LARGE_TRACK_ID`, e nel profilo mobile trascinamento e divisore. La prova del divisore, ripetuta 8 volte da sola su desktop, passa tutte le volte |
+| Repository | `docs/llms-full.md` di PrimeNG 21 confrontato con quello della 22 | 47.982 righe contro 52.869; guide di migrazione fino alla v21; nessuna chiave di licenza nell'installazione; mancano solo le otto pagine dei componenti nuovi della 22 |
+| Repository | i controlli del job `documentation` con `docs/llms-full.md` della 21 | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento |
 
 Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta. Dopo il merge di `fix-a11y-defects` non sono stati ripetuti né axe né la suite end to end: le due correzioni sono state verificate con axe sul loro ramo, con PrimeNG 19.0.10, e sul ramo unito le coprono i test unitari.
 
@@ -758,7 +767,7 @@ Risolto il 2026-11-06.
 - `ToggleButtonRoleDirective`, aggiunta nella fase 0: con PrimeNG 21 diventa `ToggleButtonDisabledDirective` e aggiunge solo `aria-disabled`; da togliere quando PrimeNG lo scriverà da sé, verificandolo con la suite di accessibilità.
 - `Dockerfile`: `node:26-alpine` e nginx senza root sulla porta 8080.
 - `docs/llms-full.md` rigenerato per PrimeNG 21.
-- Fatto finora nella fase 5: Angular 21 e PrimeNG 21, le API deprecate, Tailwind 4, le librerie, la direttiva dei ToggleButton e Node 26 nel `Dockerfile` e nella CI (vedi [Avanzamento della fase 5](#avanzamento-della-fase-5)).
+- Fatto nella fase 5: Angular 21 e PrimeNG 21, le API deprecate, Tailwind 4, le librerie, la direttiva dei ToggleButton, Node 26 nel `Dockerfile` e nella CI, le correzioni trovate dalla suite end to end e `docs/llms-full.md` di PrimeNG 21 (vedi [Avanzamento della fase 5](#avanzamento-della-fase-5)).
 
 ### Sito informativo
 
