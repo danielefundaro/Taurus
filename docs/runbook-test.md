@@ -106,7 +106,7 @@ Caratteristiche richieste:
 
 ### 5.3 Integrazione full-stack
 
-Deve contenere PostgreSQL 17, Keycloak 26.8.2 con provider e temi, RabbitMQ 4, servizio OMR, backend, frontend, storage persistente temporaneo e browser controllato. Gli URL devono replicare lo schema pubblico HTTPS previsto, non gli hostname interni della configurazione attuale.
+Deve contenere PostgreSQL 18, Keycloak 26.8.2 con provider e temi, RabbitMQ 4.4, servizio OMR, backend, frontend, storage persistente temporaneo e browser controllato. Gli URL devono replicare lo schema pubblico HTTPS previsto, non gli hostname interni della configurazione attuale.
 
 ### 5.4 Staging production-like
 
@@ -376,14 +376,14 @@ pnpm install --frozen-lockfile
 pnpm check
 pnpm build
 docker build -t taurus-info:test .
-docker run --rm -p 127.0.0.1:8088:80 taurus-info:test
+docker run --rm -p 127.0.0.1:8088:8080 taurus-info:test
 ```
 
 In un secondo terminale verificare `http://localhost:8088/health` e le pagine principali.
 
 I controlli automatici del sito costruito sono in `pnpm test` (`scripts/check-build.mjs`): file attesi, `lang`, titolo, descrizione, canonical e `og:image` di ogni pagina, accessibilità strutturale, collegamenti interni che esistono, corrispondenza con la sitemap e intestazioni di sicurezza della configurazione nginx. L'accessibilità è quella che si legge nel file costruito: un solo `h1` per pagina e livelli di titolo senza salti, il punto di riferimento `<main>`, il testo alternativo delle immagini, il nome accessibile di collegamenti e pulsanti, l'etichetta dei campi e nessun `tabindex` positivo. Contrasto e tastiera restano al gate axe della suite end to end, che gira su un browser vero.
 
-`pnpm test:image` (`scripts/smoke-image.mjs`) costruisce l'immagine, la avvia su una porta libera del loopback e la interroga come farebbe un browser: punto di salute, home con `200`, tipo `text/html`, le intestazioni di sicurezza davvero servite e `<main>` nel corpo, pagina inesistente con `404` e intestazione `Server` senza versione. Senza Docker si salta, a meno di `TAURUS_REQUIRE_DOCKER=1`.
+`pnpm test:image` (`scripts/smoke-image.mjs`) costruisce l'immagine, la avvia su una porta libera del loopback e la interroga come farebbe un browser: punto di salute, home con `200`, tipo `text/html`, le intestazioni di sicurezza davvero servite e `<main>` nel corpo, pagina inesistente con `404`, intestazione `Server` senza versione e nginx che non gira come root: l'immagine parte da `nginxinc/nginx-unprivileged` e ascolta sulla `8080` del container. Senza Docker si salta, a meno di `TAURUS_REQUIRE_DOCKER=1`.
 
 Le intestazioni di sicurezza stanno in `security-headers.conf`, incluso dal blocco `server` e da ogni `location` di `nginx.conf`: nginx non eredita gli `add_header` del blocco esterno in un `location` che ne dichiara di propri, quindi senza quell'include le pagine uscirebbero senza nessuna intestazione. È il difetto che lo smoke ha trovato alla prima esecuzione; `check-build.mjs` ora controlla anche che l'include non manchi.
 
