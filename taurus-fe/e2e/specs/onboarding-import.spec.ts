@@ -92,7 +92,7 @@ test.describe('configurazione iniziale', () => {
 
         // `aria-required-children` resta fuori: p-stepper si dichiara `tablist` e ci annida dentro i
         // propri pannelli `tabpanel`, con i passi a `presentation`. È il markup del componente di
-        // PrimeNG 19, non del nostro modello, e il difetto è annotato fra i gap del runbook di test.
+        // PrimeNG, 19 e 21, non del nostro modello, e il difetto è annotato fra i gap del runbook di test.
         const audit = await new AxeBuilder({ page })
             .include('app-onboarding')
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
