@@ -49,7 +49,7 @@ class EmailDeliveryIT {
     static void start() {
         assertThat(PROVIDER).as("package the provider before the integration tests").exists();
         network = Network.newNetwork();
-        mailpit = new GenericContainer<>("axllent/mailpit:v1.31.3")
+        mailpit = new GenericContainer<>("axllent/mailpit:v1.33.0")
             .withNetwork(network)
             .withNetworkAliases("mailpit")
             .withExposedPorts(8025)
