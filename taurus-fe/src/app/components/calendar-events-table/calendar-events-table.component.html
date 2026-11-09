@@ -16,7 +16,7 @@
             </p-floatlabel>
         </div>
     </ng-template>
-    <ng-template pTemplate="header">
+    <ng-template #header>
         <tr>
             <th pSortableColumn="name" scope="col">Nome <p-sortIcon field="name"></p-sortIcon></th>
             <th pSortableColumn="startDate" scope="col">Data inizio <p-sortIcon field="startDate"></p-sortIcon></th>
@@ -24,14 +24,14 @@
             </th>
         </tr>
     </ng-template>
-    <ng-template pTemplate="body" let-event>
+    <ng-template #body let-event>
         <tr>
             <td>{{ event.name }}</td>
             <td>{{ event.startDate | date: 'dd/MM/yyyy HH:mm' }}</td>
             <td>{{ event.endDate | date: 'dd/MM/yyyy HH:mm' }}</td>
         </tr>
     </ng-template>
-    <ng-template pTemplate="emptymessage">
+    <ng-template #emptymessage>
         <tr>
             <td colspan="3">Nessun evento trovato.</td>
         </tr>

@@ -10,7 +10,7 @@ import { RouterModule } from '@angular/router';
     host: {
         class: 'col-span-12 sm:col-span-6 md:col-span-4 xl:col-span-3'
     },
-    changeDetection: ChangeDetectionStrategy.Default
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class StatsWidgetComponent {
     @Input() label: string = '';

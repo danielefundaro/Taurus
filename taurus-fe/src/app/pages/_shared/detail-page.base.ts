@@ -57,7 +57,6 @@ export abstract class DetailPageBase implements HasUnsavedChanges {
     private readonly browserExitGuard = (event: BeforeUnloadEvent): void => {
         if (!this.isDirty) return;
         event.preventDefault();
-        event.returnValue = '';
     };
 
     protected watchBrowserExit(): void {

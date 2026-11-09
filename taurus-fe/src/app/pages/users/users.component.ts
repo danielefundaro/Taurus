@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DialogService } from 'primeng/dynamicdialog';
 import { delay, finalize, first, firstValueFrom, forkJoin } from 'rxjs';
 import { AddUsersDialogComponent } from '../../dialogs/add-users-dialog/add-users-dialog.component';
 import { ImportsModule } from '../../imports';
@@ -59,7 +59,7 @@ export class UsersComponent extends ListPageBase implements OnInit {
     }
 
     protected addNew(): void {
-        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddUsersDialogComponent, {
+        const dynamicDialogRef = this.dialogService.open(AddUsersDialogComponent, {
             header: 'Aggiungi utente',
             inputValues: {
                 instruments: this.instruments
@@ -73,7 +73,7 @@ export class UsersComponent extends ListPageBase implements OnInit {
             breakpoints: { '767px': 'calc(100vw - 2rem)' }
         });
 
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Users) => {
+        dynamicDialogRef?.onClose.pipe(first()).subscribe((result: Users) => {
             if (result) {
                 this.usersService
                     .create(result)

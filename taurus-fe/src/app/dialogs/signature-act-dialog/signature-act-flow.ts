@@ -68,10 +68,10 @@ export class SignatureActFlow {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data
             })
-            .onClose.pipe(
+            ?.onClose.pipe(
                 first(),
                 map((result?: SignatureCodeDialogResult) => result?.confirmation)
-            );
+            ) ?? of(undefined);
     }
 
     /** Apre la finestra dell'atto: dati dell'Affidatario oppure lettura del documento da firmare. */
@@ -86,6 +86,6 @@ export class SignatureActFlow {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data
             })
-            .onClose.pipe(first());
+            ?.onClose.pipe(first()) ?? of(undefined);
     }
 }

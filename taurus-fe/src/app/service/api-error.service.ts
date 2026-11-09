@@ -121,7 +121,7 @@ export class ApiErrorService {
         const body: unknown = error.error;
         if (!(body instanceof Blob)) return of(error);
         return from(body.text()).pipe(
-            map((text) => new HttpErrorResponse({ error: this.parse(text) ?? text, headers: error.headers, status: error.status, statusText: error.statusText, url: error.url ?? undefined })),
+            map((text) => new HttpErrorResponse({ error: this.parse(text) ?? text, headers: error.headers, status: error.status, url: error.url ?? undefined })),
             catchError(() => of(error))
         );
     }

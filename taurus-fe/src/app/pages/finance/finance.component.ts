@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DialogService } from 'primeng/dynamicdialog';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { first, forkJoin, of } from 'rxjs';
@@ -137,7 +137,7 @@ export class FinanceComponent implements OnInit {
     }
 
     protected openAccount(account?: FinancialAccount): void {
-        const ref: DynamicDialogRef = this.dialogService.open(FinanceAccountDialogComponent, {
+        const ref = this.dialogService.open(FinanceAccountDialogComponent, {
             inputValues: { account: account ? { ...account } : undefined },
             closable: false,
             modal: true,
@@ -146,7 +146,7 @@ export class FinanceComponent implements OnInit {
             breakpoints: { '960px': '75vw', '640px': '94vw' }
         });
 
-        ref.onClose.pipe(first()).subscribe((result?: AccountDialogResult) => {
+        ref?.onClose.pipe(first()).subscribe((result?: AccountDialogResult) => {
             if (!result) return;
             const payload = result.account;
             const request = payload.id ? this.financeService.updateAccount(payload) : this.financeService.createAccount(payload);
@@ -203,7 +203,7 @@ export class FinanceComponent implements OnInit {
     }
 
     protected openCategory(category?: FinancialCategory): void {
-        const ref: DynamicDialogRef = this.dialogService.open(FinanceCategoryDialogComponent, {
+        const ref = this.dialogService.open(FinanceCategoryDialogComponent, {
             inputValues: { category: category ? { ...category } : undefined },
             closable: false,
             modal: true,
@@ -212,7 +212,7 @@ export class FinanceComponent implements OnInit {
             breakpoints: { '960px': '75vw', '640px': '94vw' }
         });
 
-        ref.onClose.pipe(first()).subscribe((result?: FinancialCategory) => {
+        ref?.onClose.pipe(first()).subscribe((result?: FinancialCategory) => {
             if (!result) return;
             const request = result.id ? this.financeService.updateCategory(result) : this.financeService.createCategory(result);
             request.pipe(first()).subscribe(() => {
@@ -237,7 +237,7 @@ export class FinanceComponent implements OnInit {
     }
 
     protected openMovement(movement?: FinancialMovement, eventId?: number, direction?: FinancialDirection): void {
-        const ref: DynamicDialogRef = this.dialogService.open(FinanceMovementDialogComponent, {
+        const ref = this.dialogService.open(FinanceMovementDialogComponent, {
             inputValues: {
                 movement: movement ? { ...movement } : undefined,
                 accounts: this.accounts,
@@ -255,7 +255,7 @@ export class FinanceComponent implements OnInit {
             breakpoints: { '960px': '80vw', '640px': '94vw' }
         });
 
-        ref.onClose.pipe(first()).subscribe((result?: MovementDialogResult) => {
+        ref?.onClose.pipe(first()).subscribe((result?: MovementDialogResult) => {
             if (!result) return;
             const warning = this.negativeBalanceWarning(result.movement);
             if (!warning) {
@@ -336,7 +336,7 @@ export class FinanceComponent implements OnInit {
     }
 
     protected openTransfer(): void {
-        const ref: DynamicDialogRef = this.dialogService.open(FinanceTransferDialogComponent, {
+        const ref = this.dialogService.open(FinanceTransferDialogComponent, {
             inputValues: { accounts: this.accounts.filter((account) => account.active !== false) },
             closable: false,
             modal: true,
@@ -345,7 +345,7 @@ export class FinanceComponent implements OnInit {
             breakpoints: { '960px': '75vw', '640px': '94vw' }
         });
 
-        ref.onClose.pipe(first()).subscribe((result?: FinancialTransferRequest) => {
+        ref?.onClose.pipe(first()).subscribe((result?: FinancialTransferRequest) => {
             if (!result) return;
             this.financeService
                 .createTransfer({ ...result, requestKey: newRequestKey() })
@@ -358,7 +358,7 @@ export class FinanceComponent implements OnInit {
     }
 
     protected openEventBudget(event: FinancialEventSummary): void {
-        const ref: DynamicDialogRef = this.dialogService.open(FinanceEventBudgetDialogComponent, {
+        const ref = this.dialogService.open(FinanceEventBudgetDialogComponent, {
             inputValues: { event },
             closable: false,
             modal: true,
@@ -367,7 +367,7 @@ export class FinanceComponent implements OnInit {
             breakpoints: { '960px': '75vw', '640px': '94vw' }
         });
 
-        ref.onClose.pipe(first()).subscribe((result?: EventBudgetResult) => {
+        ref?.onClose.pipe(first()).subscribe((result?: EventBudgetResult) => {
             if (!result) return;
             this.financeService
                 .updateEventBudget(event.eventId, result.fee, result.costs)

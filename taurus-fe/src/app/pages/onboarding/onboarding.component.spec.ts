@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { OnboardingContext, OnboardingIssue, OnboardingJob, OnboardingOutcome, OnboardingRow } from '../../module';
@@ -81,7 +80,6 @@ describe('OnboardingComponent', () => {
                 { provide: ToastService, useValue: jasmine.createSpyObj<ToastService>('ToastService', ['error']) },
                 provideRouter([]),
                 { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => null } } } },
-                provideNoopAnimations()
             ]
         }).compileComponents();
 

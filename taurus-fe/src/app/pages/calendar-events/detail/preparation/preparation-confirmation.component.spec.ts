@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { RoleEnums } from '../../../../constants';
 import { EventPreparationConfirmations, EventPreparationView } from '../../../../module';
@@ -25,7 +24,7 @@ describe('PreparationConfirmationComponent', () => {
         service.confirmNoMovements.and.returnValue(of(view));
         await TestBed.configureTestingModule({
             imports: [PreparationConfirmationComponent],
-            providers: [provideNoopAnimations(), { provide: EventPreparationService, useValue: service }, { provide: KeycloakService, useValue: { currentUserRole: RoleEnums.ADMIN } }]
+            providers: [{ provide: EventPreparationService, useValue: service }, { provide: KeycloakService, useValue: { currentUserRole: RoleEnums.ADMIN } }]
         }).compileComponents();
         fixture = TestBed.createComponent(PreparationConfirmationComponent);
         fixture.componentRef.setInput('eventId', 42);

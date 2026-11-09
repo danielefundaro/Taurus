@@ -8,48 +8,9 @@
 # Le voci del provider sono tolte il 2026-11-07 nella fase 3, con Spring Boot 4.1.2.
 # Quelle del backend sono tolte il 2026-11-08 nella fase 4a, con Spring Boot 3.5.16, tranne le due di
 # spring-webmvc, tolte lo stesso giorno nella fase 4b con Spring Boot 4.1.2.
+# Quelle del frontend sono tolte il 2026-11-08 nella fase 5, con Angular 21 e ngx-extended-pdf-viewer 31.
 
 vulnerabilities:
-  # Frontend: Angular 19.2.25, ultima 19. Corrette solo dalla 20.3 (fase 5).
-  - id: CVE-2026-54264
-    paths: ["taurus-fe/package-lock.json"]
-    statement: "@angular/service-worker 19.2.25: corretto dalla 20.3.25, fase 5"
-    expired_at: 2027-01-05
-  - id: CVE-2026-54266
-    paths: ["taurus-fe/package-lock.json"]
-    statement: "@angular/common 19.2.25: corretto dalla 20.3.25, fase 5"
-    expired_at: 2027-01-05
-  - id: CVE-2026-54267
-    paths: ["taurus-fe/package-lock.json"]
-    statement: "@angular/core 19.2.25: corretto dalla 20.3.25, fase 5"
-    expired_at: 2027-01-05
-  - id: CVE-2026-54268
-    paths: ["taurus-fe/package-lock.json"]
-    statement: "@angular/common 19.2.25: corretto dalla 20.3.25, fase 5"
-    expired_at: 2027-01-05
-  - id: CVE-2026-68945
-    paths: ["taurus-fe/package-lock.json"]
-    statement: "@angular/common 19.2.25: corretto dalla 20.3.27, fase 5"
-    expired_at: 2027-01-05
-  - id: CVE-2026-69151
-    paths: ["taurus-fe/package-lock.json"]
-    statement: "@angular/core e @angular/compiler 19.2.25: corretto dalla 20.3.27, fase 5"
-    expired_at: 2027-01-05
-  - id: CVE-2026-101896
-    paths: ["taurus-fe/package-lock.json"]
-    statement: "@angular/router 19.2.25: corretto dalla 20.3.32, fase 5"
-    expired_at: 2027-01-05
-  - id: CVE-2026-111752
-    paths: ["taurus-fe/package-lock.json"]
-    statement: "@angular/router 19.2.25: corretto dalla 20.3.33, fase 5"
-    expired_at: 2027-01-05
-
-  # Frontend: il pdf.js incluso in ngx-extended-pdf-viewer 28 (fase 5).
-  - id: GHSA-w9hm-4m3m-fxmm
-    paths: ["taurus-fe/package-lock.json"]
-    statement: "ngx-extended-pdf-viewer 28.1.2: corretto dalla 29, maggiore, fase 5"
-    expired_at: 2027-01-05
-
   # Sito informativo: Astro 5 e lo sharp che accetta, 0.34 (fase 6).
   - id: GHSA-26w7-cxv4-gfx2
     paths: ["taurus-info/pnpm-lock.yaml"]

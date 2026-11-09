@@ -1,5 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { DynamicDialogConfig } from 'primeng/dynamicdialog';
 import { of, throwError } from 'rxjs';
 import { PartPlayback, TrackPlayback } from '../../module';
@@ -135,7 +134,6 @@ describe('ScorePlayerDialogComponent in the page', () => {
         await TestBed.configureTestingModule({
             imports: [ScorePlayerDialogComponent],
             providers: [
-                provideNoopAnimations(),
                 { provide: DynamicDialogConfig, useValue: { data: { trackId: 5, playback, mode, scoreId: 1 } satisfies ScorePlayerDialogData } },
                 { provide: ScorePlaybackService, useValue: { playbackFile: () => of(XML) } },
                 { provide: ScoreAudioService, useValue: audio },

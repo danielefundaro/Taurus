@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { LegalDocumentStatus, LegalStatus, PublicLegalDocument } from '../../module';
@@ -43,7 +42,6 @@ describe('LegalAcceptanceComponent', () => {
         await TestBed.configureTestingModule({
             imports: [LegalAcceptanceComponent],
             providers: [
-                provideNoopAnimations(),
                 { provide: LegalService, useValue: legal },
                 { provide: Router, useValue: router },
                 { provide: ToastService, useValue: jasmine.createSpyObj<ToastService>('ToastService', ['success']) },

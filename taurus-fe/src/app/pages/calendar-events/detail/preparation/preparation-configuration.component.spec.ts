@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { RoleEnums } from '../../../../constants';
 import { EventPreparationConfiguration, EventPreparationView } from '../../../../module';
@@ -27,7 +26,7 @@ describe('PreparationConfigurationComponent', () => {
         confirm = jasmine.createSpyObj<ConfirmService>('ConfirmService', ['confirmReversible']);
         await TestBed.configureTestingModule({
             imports: [PreparationConfigurationComponent],
-            providers: [provideNoopAnimations(), { provide: EventPreparationService, useValue: service }, { provide: ConfirmService, useValue: confirm }, { provide: KeycloakService, useValue: { currentUserRole: RoleEnums.ADMIN } }]
+            providers: [{ provide: EventPreparationService, useValue: service }, { provide: ConfirmService, useValue: confirm }, { provide: KeycloakService, useValue: { currentUserRole: RoleEnums.ADMIN } }]
         }).compileComponents();
         fixture = TestBed.createComponent(PreparationConfigurationComponent);
         component = fixture.componentInstance;

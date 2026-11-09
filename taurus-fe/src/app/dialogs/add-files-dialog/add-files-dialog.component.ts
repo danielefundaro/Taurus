@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ButtonModule } from 'primeng/button';
 import { FileUploadModule } from 'primeng/fileupload';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
@@ -12,7 +12,7 @@ import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell
 @Component({
     selector: 'app-add-files-dialog',
     standalone: true,
-    imports: [CommonModule, ButtonModule, FileUploadModule, DialogShellComponent],
+    imports: [ButtonModule, FileUploadModule, DialogShellComponent],
     providers: [TracksService, KeycloakService, DialogService],
     templateUrl: './add-files-dialog.component.html',
     styleUrl: './add-files-dialog.component.scss'
@@ -26,7 +26,7 @@ export class AddFilesDialogComponent {
         private readonly dialogRef: DynamicDialogRef,
         private readonly dialogService: DialogService,
         private readonly tracksService: TracksService
-    ) { }
+    ) {}
 
     protected onFileSelect(event: any): void {
         this.selectedFile = event.currentFiles?.[0] ?? event.files?.[0] ?? null;
@@ -55,7 +55,7 @@ export class AddFilesDialogComponent {
                 height: 'calc(90vh - 54px)'
             }
         });
-        ref.onClose.pipe(first()).subscribe((result: PdfAnnotations | null | undefined) => {
+        ref?.onClose.pipe(first()).subscribe((result: PdfAnnotations | null | undefined) => {
             if (result !== null && result !== undefined) {
                 this.annotations = result;
             }

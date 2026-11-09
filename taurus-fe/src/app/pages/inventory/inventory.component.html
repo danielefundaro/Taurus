@@ -94,7 +94,7 @@
         (delete)="deleteSelectedItems()" />
     }
 
-    <div class="card !p-0 overflow-hidden" [appTourAnchor]="personalView ? 'inventory.assignments' : 'inventory.items'">
+    <div class="card p-0! overflow-hidden" [appTourAnchor]="personalView ? 'inventory.assignments' : 'inventory.items'">
         <p-dataview [value]="values" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
             [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
             paginatorPosition="bottom" [totalRecords]="totalRecords" [sortField]="dataViewLazyLoadEvent.sortField"

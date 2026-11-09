@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ConfirmationService } from 'primeng/api';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { firstValueFrom, of } from 'rxjs';
@@ -39,7 +38,6 @@ describe('ScoreEditorDialogComponent', () => {
         await TestBed.configureTestingModule({
             imports: [ScoreEditorDialogComponent],
             providers: [
-                provideNoopAnimations(),
                 ConfirmationService,
                 { provide: DynamicDialogConfig, useValue: { data } },
                 { provide: DynamicDialogRef, useValue: dialogRef },

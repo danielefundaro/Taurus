@@ -64,7 +64,7 @@
     actionIcon="pi pi-replay" [actionSeverity]="null" [actionLoading]="bulkRetrying"
     (toggleAll)="toggleAllVisible($event)" (clear)="selected = []" (action)="retrySelected()" />
 
-<div class="card !p-0 overflow-hidden" appTourAnchor="deliveries.list">
+<div class="card p-0! overflow-hidden" appTourAnchor="deliveries.list">
     <p-table [value]="loading ? skeletonRows : deliveries" [(selection)]="selected" dataKey="rowKey" [lazy]="true"
         [lazyLoadOnInit]="true" [loading]="loading" [showLoader]="false" [paginator]="true" paginatorPosition="bottom"
         [first]="tableFirst" [rows]="tableRows" [rowsPerPageOptions]="[12, 24, 48]" paginatorDropdownAppendTo="body"
@@ -100,7 +100,7 @@
                 <td><p-skeleton width="6rem" /></td>
                 <td>
                     <p-skeleton width="10rem" />
-                    <p-skeleton width="7rem" styleClass="mt-2" />
+                    <p-skeleton width="7rem" class="mt-2" />
                 </td>
                 <td><p-skeleton width="5rem" height="1.5rem" /></td>
                 <td><p-skeleton width="8rem" /></td>

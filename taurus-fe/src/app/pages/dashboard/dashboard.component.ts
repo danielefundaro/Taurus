@@ -38,7 +38,7 @@ import { OperationsWidgetComponent } from './components/operations-widget/operat
     templateUrl: './dashboard.component.html',
     styleUrl: './dashboard.component.scss',
     providers: [KeycloakService, TenantsService, UsersService, AlbumsService, TracksService, CalendarEventsService, InventoryService, UserInventoryService],
-    changeDetection: ChangeDetectionStrategy.Default
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     protected totalTenants: number = 0;

@@ -18,18 +18,30 @@ test.describe('workspace delle parti', () => {
     test.skip(environmentMissing(), 'Servono due tenant di prova: vedi e2e/README.md');
 
     const openWorkspace = async (page: Page, trackId?: string) => {
+        const list = page.getByRole('listbox', { name: /parti della traccia/i });
+        // Senza parti il workspace mostra lo stato vuoto: la prova si salta nel passo dopo, non qui.
+        const workspaceShown = () => expect(list.or(page.getByText(/nessuna parte/i)).first()).toBeVisible();
         if (trackId) {
             await page.goto(`/tracks/${trackId}?tab=parts`);
-        } else {
-            await goToSection(page, /tracce/i);
-            // I nomi delle tracce dipendono dall'ambiente: la prima riga dell'elenco si trova dal suo indirizzo.
-            await page.locator('a[href^="/tracks/"]:visible').first().click();
-            await page.getByRole('tab', { name: /parti/i }).click();
+            await workspaceShown();
+            return;
         }
-        // Senza parti il workspace mostra lo stato vuoto: la prova si salta nel passo dopo, non qui.
-        const list = page.getByRole('listbox', { name: /parti della traccia/i });
-        await expect(list.or(page.getByText(/nessuna parte/i)).first()).toBeVisible();
+        await goToSection(page, /tracce/i);
+        // Finché la dashboard resta a schermo, il primo link a una traccia è quello delle tracce recenti.
+        await expect(page.getByRole('heading', { level: 1, name: /^tracce$/i })).toBeVisible();
+        const rows = page.locator('a[href^="/tracks/"]:visible');
+        await expect(rows.first()).toBeVisible();
+        // I nomi delle tracce dipendono dall'ambiente: si apre la prima dell'elenco che ha parti, altrimenti l'ultima.
+        const tracks = [...new Set(await rows.evaluateAll((links) => links.map((link) => link.getAttribute('href')!)))];
+        for (const track of tracks) {
+            await page.goto(`${track}?tab=parts`);
+            await workspaceShown();
+            if (await list.isVisible()) return;
+        }
     };
+
+    // Sotto 768 px elenco e dettaglio non stanno più affiancati e il divisore non c'è.
+    const sideBySide = (page: Page) => (page.viewportSize()?.width ?? 0) >= 768;
 
     test('l’elenco delle parti si percorre con le frecce e Maiusc estende la selezione', async ({ page, environment }) => {
         const [first] = environment;
@@ -54,6 +66,7 @@ test.describe('workspace delle parti', () => {
     test('una pagina si trascina sulla parte di destinazione', async ({ page, environment }) => {
         const [first] = environment;
         test.skip(!first.users.archivist, 'Serve un archivista del primo tenant');
+        test.skip(!sideBySide(page), 'Sotto 768 px pagine e parti non sono visibili insieme');
 
         await signIn(page, first.users.archivist!, 'archivist');
         await openWorkspace(page);
@@ -72,6 +85,7 @@ test.describe('workspace delle parti', () => {
     test('il divisore dei pannelli si muove da tastiera', async ({ page, environment }) => {
         const [first] = environment;
         test.skip(!first.users.archivist, 'Serve un archivista del primo tenant');
+        test.skip(!sideBySide(page), 'Sotto 768 px il divisore non c’è');
 
         await signIn(page, first.users.archivist!, 'archivist');
         await openWorkspace(page);
@@ -79,10 +93,11 @@ test.describe('workspace delle parti', () => {
 
         const divider = page.getByRole('separator', { name: /larghezza dell/i });
         await divider.focus();
-        const before = await divider.getAttribute('aria-valuenow');
+        const before = Number(await divider.getAttribute('aria-valuenow'));
         await page.keyboard.press('ArrowLeft');
 
-        expect(await divider.getAttribute('aria-valuenow')).not.toBe(before);
+        // Angular ridisegna al frame successivo (eventCoalescing): l'asserzione aspetta il valore, non lo legge subito.
+        await expect(divider).toHaveAttribute('aria-valuenow', String(before - 2));
     });
 
     test('uscire con una bozza modificata chiede conferma', async ({ page, environment }) => {
@@ -111,8 +126,10 @@ test.describe('workspace delle parti', () => {
         test.skip((await page.getByRole('option').count()) < 1, 'Serve una traccia con almeno una parte');
 
         await page.getByRole('option').first().click();
-        await expect(page.getByRole('button', { name: /^parti$/i })).toBeVisible();
-        await page.getByRole('button', { name: /^parti$/i }).click();
+        // Il nome comprende il glifo dell'icona di p-button, che PrimeNG non nasconde con aria-hidden.
+        const backToParts = page.getByRole('button', { name: /^\W*parti$/i });
+        await expect(backToParts).toBeVisible();
+        await backToParts.click();
         await expect(page.getByRole('listbox', { name: /parti della traccia/i })).toBeVisible();
     });
 

@@ -1,16 +1,15 @@
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { ApplicationConfig, LOCALE_ID, provideZoneChangeDetection } from '@angular/core';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { ApplicationConfig, LOCALE_ID, provideAppInitializer, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
-import { definePreset } from '@primeng/themes';
-import Aura from '@primeng/themes/aura';
+import { definePreset } from '@primeuix/themes';
+import Aura from '@primeuix/themes/aura';
 import { AutoRefreshTokenService, provideKeycloak, UserActivityService, withAutoRefreshToken } from 'keycloak-angular';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { HttpInterceptorService } from './app/interceptor/http-interceptor.service';
-import { ACCESSIBLE_LIGHT_SCHEME, accessibleComponents, PRIMENG_TRANSLATION_IT, publicPage } from './app/constants';
+import { ACCESSIBLE_LIGHT_SCHEME, accessibleComponents, neutralizePrimeNgAutoFocusDefault, PRIMENG_TRANSLATION_IT, publicPage } from './app/constants';
 import { LoadingService } from './app/service';
 import { environment } from "./environments/environment";
 
@@ -27,7 +26,6 @@ export const appConfig: ApplicationConfig = {
     providers: [
         provideZoneChangeDetection({ eventCoalescing: true }),
         provideRouter(appRoutes),
-        provideAnimationsAsync(),
         provideKeycloak({
             config: {
                 url: environment.keycloak.baseurl,
@@ -49,6 +47,8 @@ export const appConfig: ApplicationConfig = {
             ],
             providers: [AutoRefreshTokenService, UserActivityService],
         }),
+        // Prima del primo disegno: senza, i componenti di PrimeNG 21 escono con `autofocus="true"`.
+        provideAppInitializer(neutralizePrimeNgAutoFocusDefault),
         providePrimeNG({
             translation: PRIMENG_TRANSLATION_IT,
             theme: {

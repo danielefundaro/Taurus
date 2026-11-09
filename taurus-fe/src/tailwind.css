@@ -1,3 +1,41 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@import 'tailwindcss-primeui';
+
+@source './**/*.{html,ts,scss,css}';
+
+@custom-variant dark (&:where([class="app-dark"], [class="app-dark"] *));
+
+@theme {
+    --breakpoint-*: initial;
+    --breakpoint-sm: 576px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 992px;
+    --breakpoint-xl: 1200px;
+    --breakpoint-2xl: 1920px;
+}
+
+/*
+  Regole di compatibilità con Tailwind CSS 3, dalla guida di aggiornamento alla 4: il colore predefinito
+  dei bordi, il cursore dei pulsanti e il colore dei placeholder restano quelli della versione 3.
+  Per toglierle, ogni elemento che ne dipende deve dichiarare la propria utility.
+*/
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentcolor);
+    }
+
+    button:not(:disabled),
+    [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--color-gray-400);
+    }
+}

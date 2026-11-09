@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DialogService } from 'primeng/dynamicdialog';
 import { delay, finalize, first, forkJoin } from 'rxjs';
 import { AddInstrumentsDialogComponent } from '../../dialogs/add-instruments-dialog/add-instruments-dialog.component';
 import { ImportsModule } from '../../imports';
@@ -61,7 +61,7 @@ export class InstrumentsComponent extends ListPageBase implements OnInit {
     }
 
     protected addNew(): void {
-        const dynamicDialogRef: DynamicDialogRef = this.dialogService.open(AddInstrumentsDialogComponent, {
+        const dynamicDialogRef = this.dialogService.open(AddInstrumentsDialogComponent, {
             header: 'Aggiungi strumento',
             closable: false,
             showHeader: false,
@@ -72,7 +72,7 @@ export class InstrumentsComponent extends ListPageBase implements OnInit {
             breakpoints: { '767px': 'calc(100vw - 2rem)' }
         });
 
-        dynamicDialogRef.onClose.pipe(first()).subscribe((result: Instruments) => {
+        dynamicDialogRef?.onClose.pipe(first()).subscribe((result: Instruments) => {
             if (result) {
                 this.instrumentsService
                     .create(result)

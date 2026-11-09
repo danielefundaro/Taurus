@@ -4,7 +4,6 @@ import localeIt from '@angular/common/locales/it';
 import { LOCALE_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Meta, Title } from '@angular/platform-browser';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, ParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { PublicLegalDocument } from '../../module';
@@ -41,7 +40,7 @@ describe('LegalDocumentComponent', () => {
         params = new BehaviorSubject(convertToParamMap(version ? { version } : {}));
         await TestBed.configureTestingModule({
             imports: [LegalDocumentComponent],
-            providers: [provideNoopAnimations(), provideRouter([]), { provide: LOCALE_ID, useValue: 'it' }, { provide: LegalService, useValue: legal }, { provide: ActivatedRoute, useValue: { snapshot: { data: { documentType } }, paramMap: params } }]
+            providers: [provideRouter([]), { provide: LOCALE_ID, useValue: 'it' }, { provide: LegalService, useValue: legal }, { provide: ActivatedRoute, useValue: { snapshot: { data: { documentType } }, paramMap: params } }]
         }).compileComponents();
         meta = TestBed.inject(Meta);
         title = TestBed.inject(Title);

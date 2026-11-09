@@ -1,6 +1,5 @@
 import { HttpContext } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { CalendarFeed, CalendarFeedAuditEntry, CalendarFeedSecret } from '../../module';
 import { CalendarFeedService, ConfirmService, ToastService } from '../../service';
@@ -92,7 +91,6 @@ describe('CalendarFeedPanelComponent rendering', () => {
         await TestBed.configureTestingModule({
             imports: [CalendarFeedPanelComponent],
             providers: [
-                provideNoopAnimations(),
                 { provide: CalendarFeedService, useValue: service },
                 { provide: ConfirmService, useValue: jasmine.createSpyObj('ConfirmService', ['confirmDestructive', 'confirmReversible']) },
                 { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['success', 'error']) }

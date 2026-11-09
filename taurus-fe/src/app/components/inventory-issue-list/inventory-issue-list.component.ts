@@ -67,7 +67,7 @@ export class InventoryIssueListComponent implements OnChanges {
                     ? { assignmentId: this.assignmentId, maxQuantity: this.totalQuantity }
                     : { itemId: this.itemId, maxQuantity: this.totalQuantity }
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((issue) => {
                 if (!issue) return;
                 this.toastService.success('Segnalazione inviata', 'Il guasto è stato registrato.');

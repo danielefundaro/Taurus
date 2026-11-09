@@ -86,13 +86,23 @@ export class NotificationsWidgetComponent implements OnChanges {
     }
 
     protected mark(notice: Notices): void {
-        if (notice.targetPath?.startsWith('/') && !notice.targetPath.startsWith('//')) {
+        if (this.opensTarget(notice)) {
             this.navigateToNotice.emit(notice);
             return;
         }
         if (!notice.readDate) {
             this.markAsRead.emit([notice.id]);
         }
+    }
+
+    /** What a click on the row does, read by screen readers before the visible text; empty when it does nothing. */
+    protected actionHint(notice: Notices): string {
+        if (this.opensTarget(notice)) return 'Apri';
+        return notice.readDate ? '' : 'Segna come letta';
+    }
+
+    private opensTarget(notice: Notices): boolean {
+        return !!notice.targetPath?.startsWith('/') && !notice.targetPath.startsWith('//');
     }
 
     protected noticeIcon(notice: Notices): string {

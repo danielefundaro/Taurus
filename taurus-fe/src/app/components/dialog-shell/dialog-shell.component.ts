@@ -35,7 +35,7 @@ export class DialogShellComponent {
     }
 
     @HostListener('document:keydown.escape', ['$event'])
-    handleEscape(event: KeyboardEvent): void {
+    handleEscape(event: Event): void {
         event.preventDefault();
         event.stopPropagation();
         this.requestCancel();

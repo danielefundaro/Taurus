@@ -41,7 +41,7 @@ const EXPIRATION_ERRORS: readonly string[] = ['inventory.loanDuration.*', 'inven
     providers: [UsersService, DialogService]
 })
 export class InventoryDetailComponent extends DetailPageBase implements OnInit {
-    protected item: InventoryItem = this.emptyItem();
+    protected inventoryItem: InventoryItem = this.emptyItem();
     protected users: Users[] = [];
     protected selectedUser?: Users;
     protected assignmentQuantity = 1;
@@ -118,11 +118,11 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected get isNew(): boolean {
-        return !this.item.id;
+        return !this.inventoryItem.id;
     }
 
     protected get canSave(): boolean {
-        return this.isDirtyForm && !!this.item.name?.trim() && !!this.item.inventoryNumber?.trim();
+        return this.isDirtyForm && !!this.inventoryItem.name?.trim() && !!this.inventoryItem.inventoryNumber?.trim();
     }
 
     ngOnInit(): void {
@@ -130,7 +130,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
         this.route.params.pipe(first()).subscribe((params) => {
             const id = params['id'];
             if (id === 'new') {
-                this.item = this.emptyItem();
+                this.inventoryItem = this.emptyItem();
                 this.isDirty = false;
                 return;
             }
@@ -155,9 +155,9 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                 modal: true,
                 width: '40rem',
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
-                data: { items: [this.item] }
+                data: { items: [this.inventoryItem] }
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((request?: InventoryLabelRequest) => {
                 if (!request) return;
                 this.inventoryService
@@ -168,7 +168,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected rotateQrCode(): void {
-        if (!this.item.id) return;
+        if (!this.inventoryItem.id) return;
         this.dialogService
             .open(InventoryQrRotateDialogComponent, {
                 header: 'Ruota codice QR',
@@ -177,11 +177,11 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                 width: '28rem',
                 breakpoints: { '767px': 'calc(100vw - 1rem)' }
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((reason?: string) => {
                 if (!reason) return;
                 this.inventoryService
-                    .rotateQrCode(this.item.id!, reason)
+                    .rotateQrCode(this.inventoryItem.id!, reason)
                     .pipe(first())
                     .subscribe(() => {
                         this.toastService.success('Codice ruotato', 'Stampa una nuova etichetta per rendere nuovamente scansionabile il bene.');
@@ -190,7 +190,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected qrCodeUrl(): string {
-        return this.inventoryService.qrCodeUrl(this.item.id!, 256);
+        return this.inventoryService.qrCodeUrl(this.inventoryItem.id!, 256);
     }
 
     private downloadLabels(blob: Blob): void {
@@ -210,7 +210,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     protected save(): void {
         if (!this.canSave) return;
         this.saving = true;
-        const request = this.item.id ? this.inventoryService.updateItem(this.item.id, this.item) : this.inventoryService.createItem(this.item);
+        const request = this.inventoryItem.id ? this.inventoryService.updateItem(this.inventoryItem.id, this.inventoryItem) : this.inventoryService.createItem(this.inventoryItem);
         request
             .pipe(
                 first(),
@@ -228,14 +228,14 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected confirmDelete(): void {
-        if (!this.item.id) return;
+        if (!this.inventoryItem.id) return;
         this.confirmService.confirmDestructive({
             title: 'Elimina oggetto',
-            consequence: `“${this.item.name}” verrà rimosso dall’inventario.`,
+            consequence: `“${this.inventoryItem.name}” verrà rimosso dall’inventario.`,
             actionLabel: 'Elimina',
             accept: () =>
                 this.inventoryService
-                    .deleteItem(this.item.id!)
+                    .deleteItem(this.inventoryItem.id!)
                     .pipe(first())
                     .subscribe(() => {
                         this.clearDirtyUnits();
@@ -248,7 +248,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
 
     /** Gli strumenti in comodato con scadenza seguono le regole di durata fin dall'assegnazione. */
     protected get fixedTerm(): boolean {
-        return this.item.loanType === 'FIXED_TERM';
+        return this.inventoryItem.loanType === 'FIXED_TERM';
     }
 
     protected rangeHint(range?: InventoryLoanExpirationRange): string | undefined {
@@ -277,10 +277,10 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
     }
 
     protected assign(): void {
-        if (!this.item.id || !this.selectedUser?.id) return;
+        if (!this.inventoryItem.id || !this.selectedUser?.id) return;
         const request: InventoryAssignmentRequest = {
             userIndex: this.selectedUser.id,
-            order: this.item.assignments?.length ?? 0,
+            order: this.inventoryItem.assignments?.length ?? 0,
             quantity: this.assignmentQuantity,
             description: this.assignmentDescription,
             expirationDate: this.toLocalDate(this.assignmentExpirationDate),
@@ -288,7 +288,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
         };
         this.assignmentExpirationProblem = undefined;
         this.inventoryService
-            .assign(this.item.id, request, withHandledErrors(EXPIRATION_ERRORS, withErrorSummary('Assegnazione non riuscita')))
+            .assign(this.inventoryItem.id, request, withHandledErrors(EXPIRATION_ERRORS, withErrorSummary('Assegnazione non riuscita')))
             .pipe(first())
             .subscribe({
                 next: () => {
@@ -299,7 +299,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                     this.assignmentDescription = '';
                     this.assignmentExpirationDate = undefined;
                     this.assignmentAccessories = '';
-                    this.loadItem(this.item.id!);
+                    this.loadItem(this.inventoryItem.id!);
                 },
                 error: (error: HttpErrorResponse) => (this.assignmentExpirationProblem = this.apiErrorService.handledMessage(error, EXPIRATION_ERRORS))
             });
@@ -321,7 +321,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                     this.dirtyAssignments.delete(assignmentId);
                     this.syncAssignmentsUnit();
                     this.toastService.success('Assegnazione aggiornata', 'Le modifiche dell’assegnazione sono state salvate.');
-                    this.loadItem(this.item.id!);
+                    this.loadItem(this.inventoryItem.id!);
                 },
                 error: (error: HttpErrorResponse) => (this.assignmentExpirationProblems[assignmentId] = this.apiErrorService.handledMessage(error, EXPIRATION_ERRORS))
             });
@@ -340,7 +340,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                         this.dirtyAssignments.delete(assignment.id);
                         this.syncAssignmentsUnit();
                         this.toastService.success('Assegnazione eliminata', 'L’assegnazione e le relative riconsegne sono state eliminate.');
-                        this.loadItem(this.item.id!);
+                        this.loadItem(this.inventoryItem.id!);
                     })
         });
     }
@@ -356,7 +356,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                     .pipe(first())
                     .subscribe(() => {
                         this.toastService.success('Riconsegna eliminata', 'La procedura di riconsegna è stata eliminata.');
-                        this.loadItem(this.item.id!);
+                        this.loadItem(this.inventoryItem.id!);
                     })
         });
     }
@@ -384,7 +384,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                         breakpoints: { '767px': 'calc(100vw - 1rem)' },
                         data: { assignment, terms: sheet.terms }
                     })
-                    .onClose.pipe(first())
+                    ?.onClose.pipe(first())
                     .subscribe((request?: InventoryRenewalRequest) => {
                         if (!request) return;
                         this.inventoryService
@@ -392,7 +392,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                             .pipe(first())
                             .subscribe(() => {
                                 this.toastService.success('Rinnovo registrato', 'Il rinnovo compare nel registro delle variazioni e il socio deve prenderne visione.');
-                                this.loadItem(this.item.id!);
+                                this.loadItem(this.inventoryItem.id!);
                             });
                     })
             );
@@ -413,7 +413,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                         breakpoints: { '767px': 'calc(100vw - 1rem)' },
                         data: { assignment, terms: sheet.terms }
                     })
-                    .onClose.pipe(first())
+                    ?.onClose.pipe(first())
                     .subscribe((request?: InventorySubstitutionRequest) => {
                         if (!request) return;
                         this.inventoryService
@@ -421,7 +421,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                             .pipe(first())
                             .subscribe((delivered) => {
                                 this.toastService.success('Sostituzione registrata', `${delivered.itemName} è stato consegnato al posto di ${assignment.itemName}.`);
-                                this.loadItem(this.item.id!);
+                                this.loadItem(this.inventoryItem.id!);
                             });
                     })
             );
@@ -433,7 +433,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
             .pipe(first())
             .subscribe(() => {
                 this.toastService.success('Presa visione riemessa', 'È stata creata una nuova revisione.');
-                this.loadItem(this.item.id!);
+                this.loadItem(this.inventoryItem.id!);
             });
     }
 
@@ -444,7 +444,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
             .pipe(first())
             .subscribe(() => {
                 this.toastService.success('Riconsegna avviata', 'La procedura di riconsegna è stata aperta.');
-                this.loadItem(this.item.id!);
+                this.loadItem(this.inventoryItem.id!);
             });
     }
 
@@ -458,14 +458,14 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
             .pipe(first())
             .subscribe(() => {
                 this.toastService.success('Riconsegna completata', 'Il materiale è stato segnato come riconsegnato.');
-                this.loadItem(this.item.id!);
+                this.loadItem(this.inventoryItem.id!);
             });
     }
 
     /** Le fotografie scelte insieme si caricano una alla volta, nell'ordine di selezione; al primo errore le restanti non partono. */
     protected upload(event: Event): void {
         const input = event.target as HTMLInputElement;
-        const itemId = this.item.id;
+        const itemId = this.inventoryItem.id;
         const files = Array.from(input.files ?? []);
         if (!files.length || !itemId) return;
         const photos = this.acceptedPhotos(files);
@@ -497,7 +497,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
             .pipe(first())
             .subscribe(() => {
                 input.value = '';
-                this.loadItem(this.item.id!);
+                this.loadItem(this.inventoryItem.id!);
             });
     }
 
@@ -505,41 +505,41 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
         this.inventoryService
             .deletePhoto(id)
             .pipe(first())
-            .subscribe(() => this.loadItem(this.item.id!));
+            .subscribe(() => this.loadItem(this.inventoryItem.id!));
     }
 
     protected movePhoto(index: number, offset: number): void {
-        const photos = [...(this.item.photos ?? [])];
+        const photos = [...(this.inventoryItem.photos ?? [])];
         const destination = index + offset;
         if (destination < 0 || destination >= photos.length) return;
         const [photo] = photos.splice(index, 1);
         photos.splice(destination, 0, photo);
-        this.item.photos = photos;
+        this.inventoryItem.photos = photos;
         this.photoOrderDirty = true;
     }
 
     protected savePhotoOrder(): void {
-        if (!this.item.id || !this.photoOrderDirty || !this.item.photos?.length) return;
+        if (!this.inventoryItem.id || !this.photoOrderDirty || !this.inventoryItem.photos?.length) return;
         this.inventoryService
             .reorderPhotos(
-                this.item.id,
-                this.item.photos.map((photo) => photo.id)
+                this.inventoryItem.id,
+                this.inventoryItem.photos.map((photo) => photo.id)
             )
             .pipe(first())
             .subscribe((photos) => {
-                this.item.photos = photos;
+                this.inventoryItem.photos = photos;
                 this.photoOrderDirty = false;
                 this.toastService.success('Ordine aggiornato', 'Il nuovo ordine delle fotografie è stato salvato.');
             });
     }
 
     protected setPreviewPhoto(photoId: number): void {
-        if (!this.item.id || this.photoOrderDirty) return;
+        if (!this.inventoryItem.id || this.photoOrderDirty) return;
         this.inventoryService
-            .setPreviewPhoto(this.item.id, photoId)
+            .setPreviewPhoto(this.inventoryItem.id, photoId)
             .pipe(first())
             .subscribe((photos) => {
-                this.item.photos = photos;
+                this.inventoryItem.photos = photos;
                 this.toastService.success('Anteprima aggiornata', 'La fotografia selezionata verrà usata come anteprima.');
             });
     }
@@ -561,7 +561,7 @@ export class InventoryDetailComponent extends DetailPageBase implements OnInit {
                 finalize(() => (this.loading = false))
             )
             .subscribe((value) => {
-                this.item = value;
+                this.inventoryItem = value;
                 this.assignmentEdits = Object.fromEntries(
                     (value.assignments ?? []).map((assignment) => [
                         assignment.id,

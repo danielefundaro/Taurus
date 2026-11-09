@@ -25,7 +25,7 @@ import { ConfirmService, InstrumentsService, KeycloakService, PrinterService, Te
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
     providers: [TracksService, InstrumentsService, KeycloakService, DialogService],
-    changeDetection: ChangeDetectionStrategy.Default
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class DetailComponent extends DetailPageBase implements OnInit, OnDestroy {
     @ViewChild('fu') private fileUpload?: FileUpload;
@@ -316,7 +316,7 @@ export class DetailComponent extends DetailPageBase implements OnInit, OnDestroy
             },
             contentStyle: { overflow: 'hidden', padding: '0', height: 'calc(95vh - 54px)' }
         });
-        ref.onClose.pipe(first()).subscribe((result: TrackPageEditResult | undefined) => {
+        ref?.onClose.pipe(first()).subscribe((result: TrackPageEditResult | undefined) => {
             if (!result) return;
             this.applyImageEditResult(result);
         });
@@ -391,7 +391,7 @@ export class DetailComponent extends DetailPageBase implements OnInit, OnDestroy
                 height: 'calc(90vh - 54px)'
             }
         });
-        ref.onClose.pipe(first()).subscribe((result: PdfAnnotations | null | undefined) => {
+        ref?.onClose.pipe(first()).subscribe((result: PdfAnnotations | null | undefined) => {
             if (result !== null && result !== undefined) {
                 this.annotations = result;
             }

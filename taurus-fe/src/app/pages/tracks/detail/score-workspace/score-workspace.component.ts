@@ -586,7 +586,7 @@ export class ScoreWorkspaceComponent implements OnChanges {
      * inline resta al campo, dove chiude l'elenco dei suggerimenti.
      */
     @HostListener('keydown.escape', ['$event'])
-    protected onEscape(event: KeyboardEvent): void {
+    protected onEscape(event: Event): void {
         if (this.inlineEditActive) return;
         if (this.selectedMediaIds.size) {
             this.selectedMediaIds = new Set<number>();

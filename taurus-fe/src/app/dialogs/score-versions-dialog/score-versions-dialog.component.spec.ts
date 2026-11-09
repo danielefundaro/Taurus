@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { of } from 'rxjs';
 import { ScoreVersion } from '../../module';
@@ -31,8 +30,7 @@ describe('ScoreVersionsDialogComponent', () => {
 
         await TestBed.configureTestingModule({
             imports: [ScoreVersionsDialogComponent],
-            providers: [
-                provideNoopAnimations(),
+            providers: [
                 { provide: DynamicDialogConfig, useValue: { data } },
                 { provide: DynamicDialogRef, useValue: dialogRef },
                 { provide: ScorePlaybackService, useValue: playbackService },

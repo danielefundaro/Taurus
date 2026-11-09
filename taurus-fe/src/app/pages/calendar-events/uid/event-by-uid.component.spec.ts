@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { CalendarFeedService } from '../../../service';
@@ -15,7 +14,7 @@ describe('EventByUidComponent', () => {
         router = jasmine.createSpyObj<Router>('Router', ['navigate']);
         await TestBed.configureTestingModule({
             imports: [EventByUidComponent],
-            providers: [provideNoopAnimations(), { provide: CalendarFeedService, useValue: service }, { provide: Router, useValue: router }, { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ uid }) } } }]
+            providers: [{ provide: CalendarFeedService, useValue: service }, { provide: Router, useValue: router }, { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ uid }) } } }]
         }).compileComponents();
     });
 

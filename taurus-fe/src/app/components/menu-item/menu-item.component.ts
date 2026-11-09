@@ -1,7 +1,6 @@
-import { animate, state, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 import { Component, HostBinding, Input, OnDestroy, OnInit } from '@angular/core';
-import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { isActive, NavigationEnd, Router, RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { RippleModule } from 'primeng/ripple';
 import { Subscription } from 'rxjs';
@@ -19,23 +18,6 @@ import { HasRolesDirective } from './../../directive';
     ],
     templateUrl: './menu-item.component.html',
     styleUrl: './menu-item.component.scss',
-    animations: [
-        trigger('children', [
-            state(
-                'collapsed',
-                style({
-                    height: '0'
-                })
-            ),
-            state(
-                'expanded',
-                style({
-                    height: '*'
-                })
-            ),
-            transition('collapsed <=> expanded', animate('400ms cubic-bezier(0.86, 0, 0.07, 1)'))
-        ])
-    ],
     providers: [LayoutService]
 })
 export class MenuItemComponent implements OnInit, OnDestroy {
@@ -94,7 +76,7 @@ export class MenuItemComponent implements OnInit, OnDestroy {
     }
 
     updateActiveStateFromRoute() {
-        let activeRoute = this.router.isActive(this.item.routerLink[0], { paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' });
+        const activeRoute = isActive(this.item.routerLink[0], this.router, { paths: 'exact', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' })();
 
         if (activeRoute) {
             this.layoutService.onMenuStateChange({ key: this.key, routeEvent: true });
@@ -119,10 +101,6 @@ export class MenuItemComponent implements OnInit, OnDestroy {
         }
 
         this.layoutService.onMenuStateChange({ key: this.key });
-    }
-
-    get submenuAnimation() {
-        return this.root ? 'expanded' : this.active ? 'expanded' : 'collapsed';
     }
 
     @HostBinding('class.active-menuitem')

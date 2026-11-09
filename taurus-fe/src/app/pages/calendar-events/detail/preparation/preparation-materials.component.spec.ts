@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { RoleEnums } from '../../../../constants';
@@ -42,7 +41,6 @@ describe('PreparationMaterialsComponent', () => {
             imports: [PreparationMaterialsComponent],
             providers: [
                 provideRouter([]),
-                provideNoopAnimations(),
                 { provide: EventPreparationService, useValue: service },
                 { provide: InventoryService, useValue: inventory },
                 { provide: ConfirmService, useValue: confirm },

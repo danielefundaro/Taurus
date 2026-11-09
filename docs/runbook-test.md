@@ -1072,7 +1072,7 @@ Eseguire solo test sintetici non distruttivi:
 | Priorità | Gap attuale | Azione |
 | --- | --- | --- |
 | Media | Pulsanti pieni delle severità success, info, warn, help e danger: Aura li dà con il fondo alla tinta 500 e l'etichetta bianca, fra 2,3:1 e 4:1 | Decidere se scurirli alla tinta 700 nel livello dei design token, sapendo che cambia il colore di quei pulsanti in tutta l'applicazione |
-| Media | `p-stepper` di PrimeNG 19 si dichiara `tablist` e ci annida dentro i pannelli `tabpanel`: `aria-required-children` è escluso dall'audit della configurazione iniziale | Seguire il difetto a monte e togliere l'esclusione quando la libreria lo corregge |
+| Media | `p-stepper` di PrimeNG, 19 e 21, si dichiara `tablist` e ci annida dentro i pannelli `tabpanel`: `aria-required-children` è escluso dall'audit della configurazione iniziale | Seguire il difetto a monte e togliere l'esclusione quando la libreria lo corregge |
 | Media | Suite E2E eseguita sui profili desktop e mobile, con 34 prove saltate per dati assenti | Preparare nell'ambiente di prova parti, QR inventario, evento con programma e traccia grande, e valorizzare le variabili che le abilitano |
 | Alta | Script di carico k6 presente ma mai eseguito su dati realistici; SLO non approvati | Preparare il dataset, eseguire i profili e far approvare p95/p99, throughput ed error rate |
 | Alta | Prova di ripristino automatizzabile ma non programmata; RPO/RTO reali non misurati | Programmare `scripts/ops/restore-test.sh` sull'host del database, estenderla a Keycloak e allo storage media, registrare i tempi |

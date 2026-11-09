@@ -167,7 +167,7 @@ export class InventoryScanComponent implements OnInit, AfterViewChecked {
                 width: '28rem',
                 breakpoints: { '767px': 'calc(100vw - 1rem)' }
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((reason?: string) => {
                 if (!reason) return;
                 this.inventoryService
@@ -198,7 +198,7 @@ export class InventoryScanComponent implements OnInit, AfterViewChecked {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data: { items: [item] }
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((request?: InventoryLabelRequest) => {
                 if (!request) return;
                 this.inventoryService
@@ -218,7 +218,7 @@ export class InventoryScanComponent implements OnInit, AfterViewChecked {
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
                 data
             })
-            .onClose.pipe(first())
+            ?.onClose.pipe(first())
             .subscribe((issue) => {
                 if (!issue) return;
                 this.toastService.success('Segnalazione inviata', 'Il guasto è stato registrato.');

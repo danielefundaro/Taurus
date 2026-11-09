@@ -10,7 +10,7 @@
     deleteLabel="Elimina utenti selezionati" (toggleAll)="toggleSelectAll(users)" (clear)="selectedUsers = []"
     (delete)="deleteSelectedElements()" />
 
-<div class="card !p-0 overflow-hidden" appTourAnchor="users.list">
+<div class="card p-0! overflow-hidden" appTourAnchor="users.list">
     <p-dataview [value]="users" [layout]="layout" [lazy]="true" [lazyLoadOnInit]="true" [loading]="loading"
         [first]="dataViewLazyLoadEvent.first" [rows]="dataViewLazyLoadEvent.rows" [paginator]="true"
         paginatorPosition="bottom" [showCurrentPageReport]="true"
@@ -24,8 +24,7 @@
                 <app-list-row>
                     <p-checkbox rowSelection [binary]="true" [ngModel]="isSelected(item)"
                         (ngModelChange)="toggleSelection(item)" [disabled]="!canManage(item)" [ariaLabel]="'Seleziona ' + item.name" />
-                    <a rowMedia class="list-thumbnail" [routerLink]="item.id"
-                        [attr.aria-label]="item.name + ' ' + item.lastName">{{ item.name | initials: item.lastName
+                    <a rowMedia class="list-thumbnail" [routerLink]="item.id" tabindex="-1" aria-hidden="true">{{ item.name | initials: item.lastName
                         }}</a>
                     <div rowIdentity>
                         <a class="text-base font-semibold cursor-pointer block" [routerLink]="item.id">{{ item.name }}
@@ -67,8 +66,7 @@
                     <app-entity-card [selected]="isSelected(item)">
                         <p-checkbox cardSelection [binary]="true" [ngModel]="isSelected(item)"
                             (ngModelChange)="toggleSelection(item)" [disabled]="!canManage(item)" [ariaLabel]="'Seleziona ' + item.name" />
-                        <a cardMedia class="list-thumbnail" [routerLink]="item.id"
-                            [attr.aria-label]="item.name + ' ' + item.lastName">{{ item.name | initials: item.lastName
+                        <a cardMedia class="list-thumbnail" [routerLink]="item.id" tabindex="-1" aria-hidden="true">{{ item.name | initials: item.lastName
                             }}</a>
                         <div cardBody>
                             <div class="flex flex-wrap items-center gap-2">

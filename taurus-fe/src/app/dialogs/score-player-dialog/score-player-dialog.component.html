@@ -63,15 +63,13 @@
                         pButton
                         type="button"
                         class="score-player__parts-toggle"
-                        [label]="partsOpen ? 'Nascondi le parti' : 'Mostra le parti (' + (rows.length + unavailable.length) + ')'"
-                        [icon]="partsOpen ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
                         severity="secondary"
                         size="small"
                         [text]="true"
                         aria-controls="playerParts"
                         [attr.aria-expanded]="partsOpen"
                         (click)="partsOpen = !partsOpen"
-                    ></button>
+                    ><i [class]="partsOpen ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" pButtonIcon aria-hidden="true"></i><span pButtonLabel>{{ partsOpen ? 'Nascondi le parti' : 'Mostra le parti (' + (rows.length + unavailable.length) + ')' }}</span></button>
                     <div id="playerParts" class="score-player__parts" [class.score-player__parts--closed]="!partsOpen">
                         @for (row of rows; track row.part.scoreId) {
                             <div class="score-player__row" [class.score-player__row--muted]="row.muted">

@@ -111,8 +111,9 @@ updates:
       default-days: 7
     ignore:
       # Le maggiori di Angular, PrimeNG e keycloak-angular si fanno a mano con `ng update`, una per
-      # volta (decisione 2): Dependabot salterebbe dalla 19 alla 22 e perderebbe le migrazioni
-      # automatiche intermedie. Minor e patch restano nel gruppo.
+      # volta (decisione 2). Il frontend resta alla linea 21: dalla 22 PrimeNG, dalla 3
+      # `@primeuix/themes` e dalla 8 PrimeIcons hanno la PrimeUI License e non sono più MIT
+      # (decisione 5). Minor e patch restano nel gruppo.
       - dependency-name: '@angular/*'
         update-types: ['version-update:semver-major']
       - dependency-name: '@angular-devkit/*'
@@ -121,10 +122,14 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@primeng/*'
         update-types: ['version-update:semver-major']
+      - dependency-name: '@primeuix/themes'
+        update-types: ['version-update:semver-major']
+      - dependency-name: primeicons
+        update-types: ['version-update:semver-major']
       - dependency-name: keycloak-angular
         update-types: ['version-update:semver-major']
-      # Seguono Angular e PrimeNG e si aggiornano con loro: TypeScript (Angular 19 chiede `>=5.5 <5.9`,
-      # Angular 22 `>=6.0 <6.1`, come nelle Eccezioni), zone.js (Angular 19 chiede `~0.15.0`) e
+      # Seguono Angular e PrimeNG e si aggiornano con loro: TypeScript (Angular 21 chiede `>=5.9 <6.0`,
+      # come nelle Eccezioni), zone.js (Angular 21 chiede `~0.15.0 || ~0.16.0`) e
       # tailwindcss-primeui (la 0.6 va con Tailwind 4 e i temi nuovi della fase 5). TypeScript non
       # segue semver e nelle versioni 0.x la minor è una maggiore: restano solo le patch.
       - dependency-name: typescript

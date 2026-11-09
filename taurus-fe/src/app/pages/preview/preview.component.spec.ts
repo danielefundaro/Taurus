@@ -2,7 +2,6 @@ import { Location } from '@angular/common';
 import { ChangeDetectorRef } from '@angular/core';
 import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { DomSanitizer } from '@angular/platform-browser';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { SheetsMusic } from '../../module';
@@ -25,7 +24,7 @@ describe('PreviewComponent', () => {
         component = new PreviewComponent(
             { scores: [], previewTitle: 'Titolo', previewSource: 'Traccia', clear: () => undefined } as unknown as PrinterService,
             { stream: (id: number) => `/media/${id}`, streamImage: () => of(imageBlob()) } as unknown as MediaService,
-            { navigate: () => Promise.resolve(true), getCurrentNavigation: () => null, lastSuccessfulNavigation: null } as unknown as Router,
+            { navigate: () => Promise.resolve(true), currentNavigation: () => null, lastSuccessfulNavigation: () => null } as unknown as Router,
             { back: () => undefined } as Location,
             { bypassSecurityTrustUrl: (url: string) => url } as unknown as DomSanitizer,
             { markForCheck: () => undefined } as ChangeDetectorRef,
@@ -69,7 +68,7 @@ describe('PreviewComponent', () => {
         const orphan = new PreviewComponent(
             { scores: [], previewTitle: 'Spartiti selezionati', previewSource: 'Traccia', clear: () => undefined } as unknown as PrinterService,
             { stream: (id: number) => `/media/${id}`, streamImage: () => of(imageBlob()) } as unknown as MediaService,
-            { navigate, getCurrentNavigation: () => null, lastSuccessfulNavigation: null } as unknown as Router,
+            { navigate, currentNavigation: () => null, lastSuccessfulNavigation: () => null } as unknown as Router,
             { back } as unknown as Location,
             { bypassSecurityTrustUrl: (url: string) => url } as unknown as DomSanitizer,
             { markForCheck: () => undefined } as ChangeDetectorRef,
@@ -96,7 +95,7 @@ describe('PreviewComponent', () => {
                 clear: () => undefined
             } as unknown as PrinterService,
             { stream: (id: number) => `/media/${id}`, streamImage: () => of(imageBlob()) } as unknown as MediaService,
-            { navigate, getCurrentNavigation: () => ({ previousNavigation: {} }), lastSuccessfulNavigation: null } as unknown as Router,
+            { navigate, currentNavigation: () => ({ previousNavigation: {} }), lastSuccessfulNavigation: () => null } as unknown as Router,
             { back } as unknown as Location,
             { bypassSecurityTrustUrl: (url: string) => url } as unknown as DomSanitizer,
             { markForCheck: () => undefined } as ChangeDetectorRef,
@@ -193,7 +192,6 @@ describe('PreviewComponent template', () => {
         await TestBed.configureTestingModule({
             imports: [PreviewComponent],
             providers: [
-                provideNoopAnimations(),
                 provideRouter([]),
                 { provide: Location, useValue: { back: () => undefined } },
                 { provide: PrinterService, useValue: { scores, previewTitle: 'Marcia sinfonica', previewSource: 'Traccia', clear: () => undefined } },

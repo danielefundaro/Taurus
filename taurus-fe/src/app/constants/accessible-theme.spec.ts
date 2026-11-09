@@ -1,5 +1,5 @@
-import Aura from '@primeng/themes/aura';
-import Lara from '@primeng/themes/lara';
+import Aura from '@primeuix/themes/aura';
+import Lara from '@primeuix/themes/lara';
 import { ACCESSIBLE_BUTTON, ACCESSIBLE_MESSAGE, ACCESSIBLE_TOAST, accessibleComponents, MessageSeverity, SEVERITY_PALETTES } from './accessible-theme';
 
 type Rgb = [number, number, number];

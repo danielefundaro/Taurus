@@ -1,7 +1,6 @@
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { RoleEnums } from '../../../../constants';
@@ -45,7 +44,6 @@ describe('PreparationProgramComponent', () => {
             imports: [PreparationProgramComponent],
             providers: [
                 provideRouter([]),
-                provideNoopAnimations(),
                 { provide: EventPreparationService, useValue: service },
                 { provide: TracksService, useValue: tracks },
                 { provide: AlbumsService, useValue: albums },

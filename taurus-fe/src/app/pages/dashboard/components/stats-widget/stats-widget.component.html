@@ -12,7 +12,7 @@
 </ng-template>
 
 @if (link) {
-<a class="card stat-card" [routerLink]="link" [attr.aria-label]="actionLabel">
+<a class="card stat-card" [routerLink]="link">
     <ng-container [ngTemplateOutlet]="cardContent" />
 </a>
 } @else {

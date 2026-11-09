@@ -83,8 +83,8 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             @for (photo of value.photos; track photo.id) {
             <div class="inventory-photo">
-                <p-image class="block" [src]="(photoUrl(photo.id) | secure | async) ?? undefined" [alt]="photo.fileName"
-                    [preview]="true" appendTo="body" styleClass="w-full" imageClass="block w-full h-40 object-cover" />
+                <p-image class="block w-full" [src]="(photoUrl(photo.id) | secure | async) ?? undefined" [alt]="photo.fileName"
+                    [preview]="true" appendTo="body" imageClass="block w-full h-40 object-cover" />
                 <span class="photo-name">{{ photo.fileName }}</span>
             </div>
             }

@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { OperationalDashboard, OperationalItem } from '../../../../module/operational-dashboard';
 import { OperationsWidgetComponent } from './operations-widget.component';
@@ -39,7 +38,7 @@ describe('OperationsWidgetComponent', () => {
         router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
         await TestBed.configureTestingModule({
             imports: [OperationsWidgetComponent],
-            providers: [{ provide: Router, useValue: router }, provideNoopAnimations()]
+            providers: [{ provide: Router, useValue: router }]
         }).compileComponents();
 
         fixture = TestBed.createComponent(OperationsWidgetComponent);

@@ -10,6 +10,7 @@ describe('TopbarComponent', () => {
     let bootstrap: ReturnType<typeof signal<boolean>>;
     let attention: ReturnType<typeof signal<boolean>>;
     let calendarEnabled: ReturnType<typeof signal<boolean>>;
+    let notificationNumber: ReturnType<typeof signal<number>>;
     let guidedTour: jasmine.SpyObj<GuidedTourService>;
     let keycloakService: jasmine.SpyObj<KeycloakService>;
     let fixture: ComponentFixture<TopbarComponent>;
@@ -18,6 +19,7 @@ describe('TopbarComponent', () => {
         bootstrap = signal(false);
         attention = signal(false);
         calendarEnabled = signal(true);
+        notificationNumber = signal(0);
         guidedTour = jasmine.createSpyObj<GuidedTourService>('GuidedTourService', ['open', 'openPage', 'pageGuideAvailable'], { attention });
         guidedTour.pageGuideAvailable.and.resolveTo(false);
         guidedTour.openPage.and.resolveTo();
@@ -34,7 +36,7 @@ describe('TopbarComponent', () => {
             providers: [
                 provideRouter([]),
                 { provide: KeycloakService, useValue: keycloakService },
-                { provide: LayoutService, useValue: { isDarkTheme: signal(false), notificationNumber: signal(0) } },
+                { provide: LayoutService, useValue: { isDarkTheme: signal(false), notificationNumber } },
                 { provide: TenantFeatureService, useValue: { refresh: () => of({}), current: signal({ tenantName: 'Orchestra Aurora' }), loaded: signal(true), calendarEnabled } },
                 { provide: TenantStatusService, useValue: { bootstrap } },
                 { provide: GuidedTourService, useValue: guidedTour }
@@ -51,7 +53,7 @@ describe('TopbarComponent', () => {
     it('offers calendar, notifications and profile for a provisioned tenant', () => {
         fixture.detectChanges();
 
-        expect(actionLabels()).toEqual(['Calendar', 'Notifiche', 'Profilo']);
+        expect(actionLabels()).toEqual(['Calendario', 'Notifiche', 'Profilo']);
         expect(fixture.nativeElement.querySelector('.topbar-tenant-name')?.textContent.trim()).toBe('Orchestra Aurora');
     });
 
@@ -60,6 +62,20 @@ describe('TopbarComponent', () => {
         fixture.detectChanges();
 
         expect(actionLabels()).toEqual(['Notifiche', 'Profilo']);
+    });
+
+    it('names the notifications action with the unread count that its badge shows', () => {
+        fixture.detectChanges();
+        const action = (): HTMLElement => fixture.nativeElement.querySelector('.layout-topbar-action[pTooltip="Notifiche"]');
+
+        expect(action().getAttribute('aria-label')).toBe('Notifiche');
+        expect(action().textContent?.trim()).toBe('Notifiche');
+
+        notificationNumber.set(3);
+        fixture.detectChanges();
+        expect(action().getAttribute('aria-label')).toBe('Notifiche, 3 da leggere');
+        // Label and badge stay two words: axe compares the visible text with the name word by word.
+        expect(action().textContent?.replace(/\s+/g, ' ').trim()).toBe('Notifiche 3');
     });
 
     it('adds the role to the tenant name only when the user chose it among more roles of the tenant', () => {

@@ -1,6 +1,6 @@
 # Taurus frontend
 
-Applicazione Angular 19 di Taurus per utenti e amministratori, con componenti PrimeNG 19 e autenticazione Keycloak (`keycloak-angular`). Il progetto nasce dal template Sakai.
+Applicazione Angular 21 di Taurus per utenti e amministratori, con componenti PrimeNG 21 e autenticazione Keycloak (`keycloak-angular`). Il progetto nasce dal template Sakai.
 
 ## Struttura
 
@@ -18,7 +18,7 @@ Applicazione Angular 19 di Taurus per utenti e amministratori, con componenti Pr
 
 ## Sviluppo
 
-Con Node.js 22 e i servizi del backend avviati (vedi il [README principale](../README.md)):
+Con Node.js 26 e i servizi del backend avviati (vedi il [README principale](../README.md)):
 
 ```bash
 npm ci
@@ -49,7 +49,7 @@ TypeScript strict, indentazione a quattro spazi, apici singoli e punto e virgola
 
 ## Immagine
 
-Il `Dockerfile` costruisce l'applicazione con Node.js 22 e la serve con nginx. Il workflow
+Il `Dockerfile` costruisce l'applicazione con Node.js 26 e la serve con nginx. Il workflow
 `docker-publish.yml` pubblica l'immagine come `taurus-frontend` a ogni tag `v*.*.*`.
 
 L'immagine non porta dentro la configurazione: all'avvio `docker-entrypoint.d/40-taurus-runtime-config.sh`

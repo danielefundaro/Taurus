@@ -65,6 +65,12 @@ export class TopbarComponent implements OnInit {
         return this.roleLabel ? `${this.tenantName} · ${this.roleLabel}` : this.tenantName;
     }
 
+    /** Includes the unread count shown by the badge: the accessible name must contain the visible text. */
+    protected get notificationsLabel(): string {
+        const unread = this.layoutService.notificationNumber();
+        return unread ? `Notifiche, ${unread} da leggere` : 'Notifiche';
+    }
+
     protected get fullName(): string {
         const parts = [this.keycloakService.currentUserFirstName, this.keycloakService.currentUserLastName];
         return parts.filter(Boolean).join(' ');

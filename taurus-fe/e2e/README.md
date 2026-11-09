@@ -14,9 +14,10 @@ Le prove sono in `specs`:
   verifica a mano con tastiera e lettore di schermo resta nel runbook;
 - `track-parts-workspace.spec.ts`: il workspace delle parti con un archivista — frecce e Maiusc
   sull'elenco, trascinamento di una pagina sulla parte di destinazione, divisore da tastiera,
-  conferma di uscita con bozza modificata e dettaglio della parte sotto 768 px. Le prove si saltano
-  se la traccia aperta non ha almeno due parti e una pagina, perché il workspace non crea pagine:
-  nascono dall'elaborazione di un PDF;
+  conferma di uscita con bozza modificata e dettaglio della parte sotto 768 px. Le prove aprono la
+  prima traccia dell'elenco che ha parti, e si saltano se quella traccia non ha almeno due parti e
+  una pagina, perché il workspace non crea pagine: nascono dall'elaborazione di un PDF. Trascinamento
+  e divisore si saltano anche sotto 768 px, dove elenco e dettaglio non stanno affiancati;
 - `operational-dashboard.spec.ts`: la sezione «Da fare» per ogni ruolo configurato — voci
   restituite dal server dentro la matrice del ruolo, risposta `no-store`, una riga per voce o lo
   stato vuoto —, ogni azione di un amministratore che apre la pagina già filtrata, **Aggiorna** da
@@ -37,7 +38,7 @@ Le prove sono in `specs`:
   guidata con il nome dell'organizzazione, **Ultima importazione** e i limiti del tenant in risposta
   `no-store` e senza stati tecnici a schermo, scaricamento del modello XLSX, socio che non vede la
   voce di menu e riceve `403` dal contesto, axe-core e nessuno scorrimento orizzontale a 320, 768 e
-  1280 pixel. Il suo audit esclude la regola `aria-required-children`: `p-stepper` di PrimeNG 19 si
+  1280 pixel. Il suo audit esclude la regola `aria-required-children`: `p-stepper` di PrimeNG, 19 e 21, si
   dichiara `tablist` e ci annida dentro i propri pannelli `tabpanel`, con i passi a `presentation`,
   ed è il markup del componente, non del nostro modello. Le prove non caricano e non applicano
   nulla, perché l'importazione è additiva e lascerebbe dati nell'ambiente: validazione, file
@@ -91,7 +92,8 @@ I due tenant non nascono da soli: il codice del tenant vive in tre posti, che va
    `public.tenant_user_membership` e una in `<schema>.app_user` con il suo `<schema>.app_user_role`.
 
 Le prove sull'elenco delle tracce vogliono almeno una traccia nel primo tenant; quelle del workspace
-si saltano finché la traccia non ha due parti, che nascono solo dall'elaborazione di un PDF.
+aprono la prima traccia dell'elenco che ha parti, e si saltano se non ne ha due: le parti nascono
+solo dall'elaborazione di un PDF.
 
 ## Variabili d'ambiente
 

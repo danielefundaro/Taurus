@@ -464,7 +464,7 @@
             [globalFilterFields]="['name', 'lastName']">
             <ng-template #caption>
                 <p-iconfield>
-                    <p-inputicon styleClass="pi pi-search" />
+                    <p-inputicon class="pi pi-search" />
                     <input pInputText type="text" (input)="onGlobalFilter(presenceTable, $event)"
                         placeholder="Cerca utente..." />
                 </p-iconfield>
@@ -487,7 +487,7 @@
                     <td>{{ row.lastName }}</td>
                     <td>
                         <p-datepicker [(ngModel)]="row.arrivalTime" [timeOnly]="true" [disabled]="!row.present"
-                            appendTo="body" inputId="arrivalTime-{{ row.id }}" styleClass="w-full"
+                            appendTo="body" inputId="arrivalTime-{{ row.id }}" class="w-full"
                             (ngModelChange)="isDirtyPresence = true" />
                     </td>
                     <td>

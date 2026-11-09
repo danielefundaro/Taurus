@@ -1,17 +1,16 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { ToggleButtonModule } from 'primeng/togglebutton';
-import { ToggleButtonRoleDirective } from './toggle-button-role.directive';
+import { ToggleButtonDisabledDirective } from './toggle-button-disabled.directive';
 
 @Component({
     standalone: true,
-    imports: [FormsModule, SelectButtonModule, ToggleButtonModule, ToggleButtonRoleDirective],
+    imports: [FormsModule, SelectButtonModule, ToggleButtonModule, ToggleButtonDisabledDirective],
     template: `
         <p-togglebutton id="solo" [(ngModel)]="solo" onLabel="S" offLabel="S" [ariaLabel]="soloLabel" [disabled]="locked" />
-        <p-selectbutton id="layout" aria-label="Vista elenco" [(ngModel)]="layout" [options]="options" />
+        <p-selectbutton id="layout" aria-label="Vista elenco" [(ngModel)]="layout" [options]="options" [disabled]="layoutLocked" />
     `
 })
 class HostComponent {
@@ -19,10 +18,11 @@ class HostComponent {
     soloLabel = 'Solo Clarinetto';
     locked = false;
     layout = 'list';
+    layoutLocked = false;
     options = ['list', 'grid'];
 }
 
-describe('ToggleButtonRoleDirective', () => {
+describe('ToggleButtonDisabledDirective', () => {
     let fixture: ComponentFixture<HostComponent>;
     const element = (selector: string): HTMLElement => fixture.nativeElement.querySelector(selector);
     const options = (): HTMLElement[] => Array.from(element('#layout').querySelectorAll<HTMLElement>('p-togglebutton'));
@@ -38,21 +38,19 @@ describe('ToggleButtonRoleDirective', () => {
     };
 
     beforeEach(async () => {
-        await TestBed.configureTestingModule({ imports: [HostComponent], providers: [provideNoopAnimations()] }).compileComponents();
+        await TestBed.configureTestingModule({ imports: [HostComponent] }).compileComponents();
         fixture = TestBed.createComponent(HostComponent);
         await settle();
     });
 
-    it('dà a un ToggleButton il ruolo di pulsante, accanto ad aria-pressed', () => {
+    // Ruolo e nome li dà PrimeNG: se li togliesse di nuovo, come nella 19.1, la direttiva dovrebbe tornare a scriverli.
+    it('trova in un ToggleButton di PrimeNG il ruolo di pulsante e il nome, e non aggiunge aria-disabled se è attivo', async () => {
         const toggle = element('#solo');
 
         expect(toggle.getAttribute('role')).toBe('button');
         expect(toggle.getAttribute('aria-pressed')).toBe('false');
+        expect(toggle.getAttribute('aria-label')).toBe('Solo Clarinetto');
         expect(toggle.hasAttribute('aria-disabled')).toBeFalse();
-    });
-
-    it("porta l'ariaLabel del ToggleButton sull'elemento e lo segue quando cambia", async () => {
-        expect(element('#solo').getAttribute('aria-label')).toBe('Solo Clarinetto');
 
         fixture.componentInstance.soloLabel = 'Solo Tromba';
         await settle();
@@ -70,7 +68,7 @@ describe('ToggleButtonRoleDirective', () => {
         expect(element('#solo').hasAttribute('aria-disabled')).toBeFalse();
     });
 
-    it('lascia al SelectButton il ruolo di gruppo e il suo nome, e rende pulsanti le opzioni', () => {
+    it('lascia al SelectButton il ruolo di gruppo e il suo nome, con opzioni che sono pulsanti', () => {
         const group = element('#layout');
 
         expect(group.getAttribute('role')).toBe('group');
@@ -78,13 +76,21 @@ describe('ToggleButtonRoleDirective', () => {
         expect(options().length).toBe(2);
         expect(options().every((option) => option.getAttribute('role') === 'button')).toBeTrue();
         expect(options().map((option) => option.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
+        expect(options().some((option) => option.hasAttribute('aria-disabled'))).toBeFalse();
     });
 
-    it('rende pulsanti anche le opzioni aggiunte dopo il primo disegno', async () => {
+    it('segnala con aria-disabled le opzioni di un SelectButton disabilitato, anche quelle aggiunte dopo', async () => {
+        fixture.componentInstance.layoutLocked = true;
+        await settle();
+        expect(options().every((option) => option.getAttribute('aria-disabled') === 'true')).toBeTrue();
+
         fixture.componentInstance.options = ['list', 'grid', 'calendar'];
         await settle();
-
         expect(options().length).toBe(3);
-        expect(options().every((option) => option.getAttribute('role') === 'button')).toBeTrue();
+        expect(options().every((option) => option.getAttribute('aria-disabled') === 'true')).toBeTrue();
+
+        fixture.componentInstance.layoutLocked = false;
+        await settle();
+        expect(options().some((option) => option.hasAttribute('aria-disabled'))).toBeFalse();
     });
 });

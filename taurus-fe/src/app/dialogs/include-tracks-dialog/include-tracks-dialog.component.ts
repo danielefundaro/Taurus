@@ -19,7 +19,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
     templateUrl: './include-tracks-dialog.component.html',
     styleUrl: './include-tracks-dialog.component.scss',
     providers: [TracksService],
-    changeDetection: ChangeDetectionStrategy.Default
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class IncludeTracksDialogComponent {
     protected tableLazyLoadEvent: TableLazyLoadEvent = { first: 0, rows: 10, sortField: 'name', sortOrder: 1 };

@@ -20,7 +20,7 @@ export type InventoryWidgetMode = 'admin' | 'user';
     host: {
         class: 'col-span-12'
     },
-    changeDetection: ChangeDetectionStrategy.Default
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class InventoryWidgetComponent {
     @Input({ required: true }) mode: InventoryWidgetMode = 'user';
