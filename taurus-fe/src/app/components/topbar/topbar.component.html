@@ -160,15 +160,17 @@
                     @if (calendarEnabled) {
                         <button type="button" class="layout-topbar-action" [routerLink]="['/calendar']" aria-label="Calendario" pTooltip="Calendario" tooltipPosition="bottom">
                             <i class="pi pi-calendar"></i>
-                            <span>Calendar</span>
+                            <span>Calendario</span>
                         </button>
                     }
-                    <button type="button" class="layout-topbar-action" [routerLink]="['']" aria-label="Notifiche" pTooltip="Notifiche" tooltipPosition="bottom">
+                    <!-- Il nome contiene il testo visibile, contatore compreso (WCAG 2.5.3). Il contatore segue l'etichetta, separato
+                         da uno spazio che Angular conserva, così nel menu mobile si legge "Notifiche 3" e non "3Notifiche". -->
+                    <button type="button" class="layout-topbar-action" [routerLink]="['']" [attr.aria-label]="notificationsLabel" pTooltip="Notifiche" tooltipPosition="bottom">
                         <i class="pi pi-bell"></i>
-                        @if (layoutService.notificationNumber()) {
-                            <p-overlaybadge class="blink-animation" [value]="layoutService.notificationNumber()" severity="info"></p-overlaybadge>
-                        }
                         <span>Notifiche</span>
+                        @if (layoutService.notificationNumber()) {
+                            &ngsp;<p-overlaybadge class="blink-animation" [value]="layoutService.notificationNumber()" severity="info"></p-overlaybadge>
+                        }
                     </button>
                     <button type="button" class="layout-topbar-action" [routerLink]="['/profile']" aria-label="Profilo" appTourAnchor="topbar.profile" pTooltip="Profilo" tooltipPosition="bottom">
                         <i class="pi pi-user"></i>

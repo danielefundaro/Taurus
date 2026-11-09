@@ -149,4 +149,17 @@ describe('NotificationsWidgetComponent', () => {
 
         expect(fixture.debugElement.query(By.css('button[aria-label^="Ricordamelo tra"]'))).toBeNull();
     });
+
+    // WCAG 2.5.3: un aria-label al posto del testo visibile non lo conterrebbe mai, perché titolo, messaggio e stato
+    // si leggono attaccati. Il nome viene dal contenuto, e l'azione la sente solo il lettore di schermo.
+    it('names the row with its visible text, preceded by the action for screen readers', () => {
+        component.notices = page({ id: 1, name: 'Prova', message: 'Spostata alle 21' }, { id: 2, name: 'Quota', readDate: new Date() }, { id: 3, name: 'Concerto', targetPath: '/calendar/3' }, { id: 4, name: 'Esterno', targetPath: '//example.org' });
+        component.view = 'ACTIVE';
+        fixture.detectChanges();
+
+        const rows = Array.from(fixture.nativeElement.querySelectorAll('button.notice-main') as NodeListOf<HTMLElement>);
+        expect(rows.map((row) => row.hasAttribute('aria-label'))).toEqual([false, false, false, false]);
+        expect(rows.map((row) => row.querySelector('.sr-only')?.textContent?.trim() ?? null)).toEqual(['Segna come letta:', null, 'Apri:', 'Segna come letta:']);
+        expect(rows[0].textContent).toContain('Spostata alle 21');
+    });
 });

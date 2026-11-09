@@ -19,9 +19,12 @@
     <app-list-row compact>
         <span rowMedia class="notice-icon" [class.notice-icon--unread]="!notice.readDate"><i
                 [class]="noticeIcon(notice)" aria-hidden="true"></i></span>
+        <!-- Il nome viene dal testo visibile (WCAG 2.5.3): l'azione la sente solo il lettore di schermo, prima del testo. -->
         <button rowIdentity type="button" class="notice-main" [class.notice-main--unread]="!notice.readDate"
-            (click)="mark(notice)"
-            [attr.aria-label]="notice.readDate ? notice.name : 'Segna come letta: ' + notice.name">
+            (click)="mark(notice)">
+            @if (actionHint(notice); as hint) {
+            <span class="sr-only">{{ hint }}: </span>
+            }
             <strong>{{ notice.name }}</strong>
             <small>{{ notice.message }}</small>
             <em>{{ view === 'SNOOZED' && notice.snoozedUntil ? 'Ritorna ' + (notice.snoozedUntil | date: 'dd/MM/yyyy
