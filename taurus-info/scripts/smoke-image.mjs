@@ -2,7 +2,7 @@
  * Smoke test dell'immagine servita da nginx: la costruisce, la avvia e interroga il sito come lo
  * interrogherebbe un browser. I controlli di `check-build.mjs` leggono i file e la configurazione;
  * qui si verifica che il server li serva davvero, con le intestazioni di sicurezza, il punto di
- * salute e la pagina di errore.
+ * salute e la pagina di errore, e che giri senza privilegi.
  *
  * Si esegue con `pnpm test:image` e richiede Docker. Senza Docker il controllo si salta, a meno di
  * `TAURUS_REQUIRE_DOCKER=1`, come fa la pipeline del backend.
@@ -14,6 +14,8 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const image = 'taurus-info:smoke';
 const container = `taurus-info-smoke-${process.pid}`;
+// La porta di nginx senza privilegi, dentro il container.
+const containerPort = 8080;
 const requiredHeaders = {
     'x-content-type-options': 'nosniff',
     'x-frame-options': 'DENY',
@@ -72,6 +74,12 @@ const checkNotFound = async (base) => {
     if (!(await response.text()).toLowerCase().includes('<html')) problems.push('la pagina di errore non è una pagina HTML');
 };
 
+/** nginx gira con l'utente dell'immagine senza privilegi, non come root. */
+const checkUser = () => {
+    const uid = docker(['exec', container, 'id', '-u']).trim();
+    if (uid === '0') problems.push('il container gira come root');
+};
+
 /** Nessuna traccia della versione del server nelle risposte. */
 const checkServerTokens = async (base) => {
     const response = await fetch(`${base}/health`);
@@ -94,7 +102,7 @@ let started = false;
 try {
     console.log(`Costruzione di ${image}…`);
     docker(['build', '-t', image, '.'], { cwd: root, stdio: ['ignore', 'inherit', 'inherit'] });
-    docker(['run', '-d', '--name', container, '-p', `127.0.0.1:${port}:80`, image]);
+    docker(['run', '-d', '--name', container, '-p', `127.0.0.1:${port}:${containerPort}`, image]);
     started = true;
 
     if (!(await waitForHealth(base))) {
@@ -103,6 +111,7 @@ try {
         await checkHomePage(base);
         await checkNotFound(base);
         await checkServerTokens(base);
+        checkUser();
     }
 } finally {
     if (started) {
@@ -121,4 +130,4 @@ if (problems.length > 0) {
     process.exit(1);
 }
 
-console.log('Immagine verificata: salute, home con le intestazioni di sicurezza, pagina di errore e server anonimo.');
+console.log('Immagine verificata: salute, home con le intestazioni di sicurezza, pagina di errore, server anonimo e utente senza privilegi.');
