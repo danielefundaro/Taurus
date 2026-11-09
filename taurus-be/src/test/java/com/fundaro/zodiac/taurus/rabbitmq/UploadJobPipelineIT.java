@@ -69,7 +69,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 )
 class UploadJobPipelineIT {
 
-    private static final RabbitMQContainer BROKER = new RabbitMQContainer("rabbitmq:3.13-management-alpine").withReuse(true);
+    private static final RabbitMQContainer BROKER = new RabbitMQContainer("rabbitmq:4.4.0-management-alpine").withReuse(true);
     private static final Duration TIMEOUT = Duration.ofSeconds(60);
     private static Path storageRoot;
 

@@ -2,11 +2,13 @@
 name: taurus
 services:
   postgresql:
-    image: postgres:17.0
+    image: postgres:18.6
     container_name: postgresql-container
     restart: unless-stopped
     volumes:
-      #      - ./postgresql/:/var/lib/postgresql/data/
+      # Dalla 18 l'immagine tiene i dati in /var/lib/postgresql/<versione>/docker: si monta la cartella
+      # superiore, non più /var/lib/postgresql/data.
+      #      - ./postgresql/:/var/lib/postgresql/
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_USER=${DB_USERNAME}

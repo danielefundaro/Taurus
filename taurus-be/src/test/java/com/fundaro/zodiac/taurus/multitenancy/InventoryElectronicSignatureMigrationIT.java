@@ -40,7 +40,7 @@ class InventoryElectronicSignatureMigrationIT {
         String password = System.getProperty("taurus.test.postgres.password", "password");
         if (jdbcUrl == null) {
             DockerRequirement.required();
-            postgres = new PostgreSQLContainer("postgres:17.0");
+            postgres = new PostgreSQLContainer("postgres:18.6");
             postgres.start();
             jdbcUrl = postgres.getJdbcUrl();
             username = postgres.getUsername();

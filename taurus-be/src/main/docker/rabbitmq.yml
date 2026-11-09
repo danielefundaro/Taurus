@@ -2,9 +2,12 @@ name: taurus
 
 services:
   rabbitmq:
-    image: rabbitmq:4.0.7-management-alpine
+    image: rabbitmq:4.4.0-management-alpine
     container_name: rabbitmq
     restart: unless-stopped
+    # Il nome del nodo, e la cartella dei suoi dati, vengono dall'host: con un nome fisso il nodo resta lo
+    # stesso anche quando il container viene ricreato.
+    hostname: rabbitmq
     environment:
       # Le credenziali predefinite dell'immagine, che il backend di sviluppo usa così come sono.
       # In produzione sono altre e arrivano dall'ambiente: vedi deploy/compose.yml.
