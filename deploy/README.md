@@ -18,11 +18,16 @@ e le scelte che li rendono eseguibili.
   [`reverse-proxy.example.conf`](reverse-proxy.example.conf), e il certificato è di Let's Encrypt.
 - **Rete interna.** PostgreSQL, Keycloak, RabbitMQ e il servizio OMR non pubblicano porte: parlano
   solo con gli altri container.
+- **nginx senza privilegi.** Frontend e sito informativo partono da `nginxinc/nginx-unprivileged`:
+  nginx gira con l'utente `nginx` (uid 101) e ascolta sulla porta `8080` del container, che il
+  manifest pubblica sul loopback dell'host.
 - **Configurazione a runtime.** L'immagine del frontend è costruita una volta e configurata
   all'avvio: scrive `assets/config.json` dalle variabili d'ambiente, quindi gli indirizzi dell'API e
   di Keycloak non sono fissati nel bundle.
 - **Dati su volumi.** `taurus-db`, `taurus-rabbit` e `taurus-media` sopravvivono a un `down`. Il
-  backend gira senza privilegi e lo storage dei media appartiene al suo utente.
+  backend gira senza privilegi e lo storage dei media appartiene al suo utente. RabbitMQ ha un
+  hostname fisso, perché il nodo prende il nome da lì: senza, ogni container ricreato aprirebbe un
+  nodo vuoto nel volume.
 - **Versioni fissate.** Le immagini arrivano da `TAURUS_*_VERSION`; per fissare anche il digest si
   usa la forma `1.2.3@sha256:…`.
 - **Certificati della CIE versionati.** Il bundle delle CA della Carta d'Identità Elettronica sta
@@ -95,6 +100,12 @@ Se la release cambia la versione di Keycloak, anche il JAR in `keycloak/provider
 con quello della stessa release, dopo il backup di `taurus_keycloak`: la versione nuova aggiorna il
 suo database e non si torna indietro senza quel backup. Procedura e ritorno indietro sono nel
 runbook operativo, §8.5.
+
+Se la release cambia la versione maggiore di PostgreSQL, il tag da solo non basta: la versione
+nuova non legge i dati della precedente e il container non parte. Si passa con un dump e un
+ripristino, §8.6 del runbook. RabbitMQ si aggiorna con un nodo nuovo, dopo aver lasciato svuotare
+le code, §8.7. La release che porta PostgreSQL 18 e RabbitMQ 4.4 sposta anche nginx sulla porta
+`8080` del container: la porta pubblicata sull'host e il reverse proxy restano quelli di prima.
 
 ## Quello che questo manifest non risolve
 

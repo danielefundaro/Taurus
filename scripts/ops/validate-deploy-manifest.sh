@@ -2,8 +2,8 @@
 # Controlla che il manifest di produzione sia valido e coerente, senza avviare niente.
 #
 # Riempie le variabili obbligatorie con valori finti, chiede a Compose di risolvere il manifest e
-# verifica le scelte che non devono regredire: nessuna porta pubblicata fuori dal loopback, i dati
-# su volumi, le restrizioni del servizio OMR, Keycloak in modalita' produzione.
+# verifica le scelte che non devono regredire: nessuna porta pubblicata fuori dal loopback, nginx
+# senza privilegi, i dati su volumi, le restrizioni del servizio OMR, Keycloak in modalita' produzione.
 #
 #   scripts/ops/validate-deploy-manifest.sh
 #
@@ -63,22 +63,38 @@ if [ "$published" -eq "$loopback" ]; then
 else
     fail "porte pubblicate: $published, legate al loopback: $loopback. Una porta senza 127.0.0.1 ascolta su tutte le interfacce"
 fi
+# Il frontend gira con nginx senza privilegi, che ascolta sulla 8080: pubblicare la 80 del container
+# porterebbe a una porta su cui non risponde nessuno.
+frontend_ports="$(printf '%s' "$resolved" | sed -n '/^  frontend:/,/^  [a-z]/p' | grep -E '^\s+target: [0-9]+$' | tr -d ' ' || true)"
+if [ "$frontend_ports" = "target:8080" ]; then
+    ok "il frontend pubblica la porta 8080 del container, quella di nginx senza privilegi"
+else
+    fail "il frontend deve pubblicare la porta 8080 del container, non: $(printf '%s' "$frontend_ports" | tr '\n' ' ')"
+fi
 
 echo "== Dati e restrizioni"
+# I percorsi devono essere esattamente questi: PostgreSQL 18 non parte con il volume su .../data.
 for expectation in \
-    'taurus-db:/var/lib/postgresql/data=il database sta su un volume' \
+    'taurus-db:/var/lib/postgresql=il database sta su un volume, montato dove lo cerca PostgreSQL 18' \
     'taurus-media:/var/lib/taurus/media=i media stanno su un volume' \
     'taurus-rabbit:/var/lib/rabbitmq=la coda sta su un volume'; do
     needle="${expectation%%=*}"
     what="${expectation#*=}"
     source="${needle%%:*}"
     target="${needle#*:}"
-    if printf '%s' "$resolved" | grep -q "source: $source" && printf '%s' "$resolved" | grep -q "target: $target"; then
+    if printf '%s' "$resolved" | grep -q "source: $source" && printf '%s' "$resolved" | grep -qE "^\s+target: $target\$"; then
         ok "$what"
     else
         fail "$what: manca il volume $needle"
     fi
 done
+# RabbitMQ tiene i dati in una cartella con il nome del nodo, che viene dall'hostname: senza un nome
+# fisso ogni container ricreato apre un nodo vuoto, e il volume non conserva niente.
+if printf '%s' "$resolved" | sed -n '/^  rabbitmq:/,/^  [a-z]/p' | grep -qE '^\s+hostname: \S+'; then
+    ok "RabbitMQ ha un nome fisso e ritrova il suo nodo quando il container viene ricreato"
+else
+    fail "RabbitMQ senza hostname: ogni container ricreato aprirebbe un nodo vuoto nel volume"
+fi
 
 if printf '%s' "$resolved" | grep -q 'read_only: true'; then
     ok "il servizio OMR gira con il file system in sola lettura"
