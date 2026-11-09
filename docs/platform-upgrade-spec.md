@@ -479,6 +479,28 @@ Programmato e rimandato il 2026-11-08: la fase 5 si chiude alla linea 21 (decisi
 7. **Verifiche.** `npm run build`, `npm run test:coverage`, Trivy come nella CI e `npm audit`; la suite end to end, ricontrollando l'esclusione su `p-stepper` annotata per PrimeNG 19 nel [README della suite](../taurus-fe/e2e/README.md) e nel [Runbook di test](runbook-test.md); la verifica visiva delle pagine del [Taurus Layout Standard](taurus-layout-standard.md) in chiaro e scuro, desktop e mobile, con il controllo dei cascade layer di Tailwind 4. Il banner di PrimeNG non deve comparire con la chiave valida.
 8. **Riferimenti.** `AGENTS.md`, README e runbook passano ad Angular 22 e PrimeNG 22.
 
+### Esito della fase 6
+
+Applicata e verificata il 2026-11-09 sul ramo `upgrade-phase-6`, che parte da `22aed0c`. Le versioni sono le ultime pubblicate da almeno sette giorni, come chiede la decisione 7: il lockfile è risolto da capo con `pnpm install --config.minimumReleaseAge=10080`, che rifiuta i pacchetti pubblicati da meno di sette giorni.
+
+- **Versioni.** Astro 7.4.5, `@astrojs/sitemap` 3.7.4, `@astrojs/check` 0.9.12 e TypeScript 6.0.3, l'ultima che `@astrojs/check` accetta (vedi [Eccezioni](#eccezioni-alla-versione-più-recente)); pnpm 12.17.0 in `packageManager`.
+  - Astro 7 porta Vite 8.3.5 con Rolldown 1.2.16, sharp 0.35.5, devalue 6.0.3 e svgo 4.1.0; esbuild e js-yaml escono dal lockfile.
+  - Come chiede la decisione 2, il passo intermedio è stato Astro 6.4.8, l'ultima della 6: `pnpm check`, `pnpm build` e `pnpm test` sono passati prima di salire alla 7.
+  - Tailwind CSS e `@tailwindcss/vite` restano alla 4.3.3, come nel frontend: la 4.3.4 è uscita il 2026-11-02 alle 21:30 UTC, meno di sette giorni prima. Per lo stesso motivo Astro è alla 7.4.5 e non alla 7.4.8, del 2026-11-09.
+- **Codice.** Il sito non usa le API che Astro 6 e 7 tolgono, come le collezioni di contenuti, `Astro.glob`, `<ViewTransitions />` e il Markdown: né i sorgenti né `astro.config.mjs` cambiano. Due cambi di comportamento toccano l'HTML prodotto:
+  - con Astro 6 stili e script dei componenti seguono l'ordine dei sorgenti, e lo stile del logo, in `Brand.astro`, passa dalla pagina al foglio di stile comune;
+  - con Astro 7 `compressHTML` vale `'jsx'` e toglie gli spazi fra gli elementi. La guida all'aggiornamento avverte che può togliere anche gli spazi fra elementi in linea.
+
+  Per controllarlo, le build con Astro 5.18.2 e 7.4.5, con gli stessi indirizzi, sono state confrontate pagina per pagina in Chromium, con il Playwright del frontend. Il testo visibile (`innerText`) e gli screenshot dell'intera pagina sono identici in tutte le otto pagine, a 1280×800 e a 375×812. `compressHTML` resta quindi al valore predefinito.
+- **pnpm 12.** pnpm 12 è un eseguibile nativo: il pacchetto `pnpm` ne porta uno per piattaforma, e lo collega con il suo script di installazione.
+  - Quando `packageManager` indica la 12 o una versione successiva, il lockfile comincia con un documento che fissa la versione di pnpm e la sua integrità, `packageManagerDependencies`. Il parser di Dependabot salta quel documento, e pnpm 12 è fra le versioni che Dependabot supporta.
+  - `pnpm-workspace.yaml` è tolto. Conteneva solo `allowBuilds` per esbuild e sharp: esbuild non è più una dipendenza, sharp 0.35 non ha più script di installazione, e nessun pacchetto del lockfile ne ha.
+- **Dockerfile.** La build usa `node:26-alpine`, che non include più corepack. pnpm si installa con `npm install --global`, alla versione di `packageManager` letta da `package.json`. Serve `--allow-scripts=pnpm`: npm 11 non esegue gli script di installazione che non sono stati ammessi, e senza il suo script pnpm non collega l'eseguibile nativo e passa da Node. L'immagine servita da nginx non cambia.
+- **CI.**
+  - Il job `info-site` usa Node 26, e `pnpm/action-setup` legge la versione di pnpm da `taurus-info/package.json` con `package_json_file`, al posto di `version: 11`. Prima l'azione cercava `package.json` alla radice del repository, dove non c'è: installava l'ultima pnpm 11, e pnpm passava da sé alla versione di `packageManager`.
+  - Passano a Node 26 anche gli altri job rimasti su Node 22: `changes` e `documentation` di `verify.yml`, `documentation` di `docker-publish.yml` e il workflow mensile `cie-trust-anchors`. Con Node 26 i loro script danno lo stesso esito che con Node 22.
+- **Vulnerabilità.** Senza `.trivyignore.yaml`, Trivy 0.76.2 come nella CI non trova vulnerabilità nel lockfile del sito, letto per intero con i suoi 304 pacchetti. Escono da `.trivyignore.yaml` le sei voci del sito, tre di Astro 5.18.2 e tre di sharp 0.34.5. Resta DS-0002 del `Dockerfile`, nginx come root, della fase 7.
+
 ### Stato dei lavori
 
 Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che parte da `84ae3b8`. I commit sono sei, uno per modulo e due per il backend:
@@ -558,6 +580,15 @@ La suite end to end e la verifica visiva sono state eseguite il 2026-11-08, e i 
 - `Record the phase 5 end-to-end run`: la prova dell'importazione iniziale, il README della suite, il Runbook di test, questa specifica e il catalogo.
 
 Il 2026-11-09 il commit `Use the PrimeNG 21 documentation` sostituisce `docs/llms-full.md` con la documentazione della 21 e aggiorna questa specifica e il catalogo. Con questo la fase è pronta per la pull request.
+
+La pull request è la [#166](https://github.com/danielefundaro/Taurus/pull/166), unita su `main` il 2026-11-09 con il merge `22aed0c`. La fase 5 è chiusa.
+
+Fase 6 verificata il 2026-11-09 sul ramo `upgrade-phase-6`, che parte da `22aed0c` (vedi [Esito della fase 6](#esito-della-fase-6)). I commit sono quattro:
+
+- `Update the info site to Astro 7 and pnpm 12`: `package.json`, lockfile, `Dockerfile` e README del sito, e la rimozione di `pnpm-workspace.yaml`;
+- `Build the info site with Node 26 in CI`: il job `info-site` di `verify.yml`;
+- `Run the repository scripts with Node 26 in CI`: i job `changes` e `documentation` di `verify.yml`, il job `documentation` di `docker-publish.yml` e `cie-trust-anchors.yml`;
+- `Record phase 6 of the platform upgrade`: `.trivyignore.yaml`, il commento sulle maggiori di Astro in `.github/dependabot.yml`, `AGENTS.md`, `README.md`, il Runbook operativo, questa specifica e il catalogo.
 
 #### Verifiche eseguite
 
@@ -662,6 +693,13 @@ Il 2026-11-09 il commit `Use the PrimeNG 21 documentation` sostituisce `docs/llm
 | Frontend | `track-parts-workspace.spec.ts` dopo la correzione della prova, profili desktop e mobile, ripetuto due volte, Node 26.13.0 | 16 superate e 8 saltate in 3,5 minuti. Le saltate sono la traccia da 200 parti, senza `E2E_LARGE_TRACK_ID`, e nel profilo mobile trascinamento e divisore. La prova del divisore, ripetuta 8 volte da sola su desktop, passa tutte le volte |
 | Repository | `docs/llms-full.md` di PrimeNG 21 confrontato con quello della 22 | 47.982 righe contro 52.869; guide di migrazione fino alla v21; nessuna chiave di licenza nell'installazione; mancano solo le otto pagine dei componenti nuovi della 22 |
 | Repository | i controlli del job `documentation` con `docs/llms-full.md` della 21 | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento |
+| Sito informativo | `pnpm check`, `pnpm build` e `pnpm test` su Astro 5.18.2 con Node 24.21.0 e pnpm 11.16.0, poi su Astro 6.4.8 e 7.4.5 con Node 26.13.0 e pnpm 12.17.0 | superati a ogni passo: nessun errore né avviso di `astro check`, 8 pagine costruite |
+| Sito informativo | confronto delle build di Astro 5.18.2 e 7.4.5, con gli stessi indirizzi, in Chromium 1248 con Playwright 1.64.1 del frontend: otto pagine a 1280×800 e a 375×812 | `innerText` e screenshot dell'intera pagina identici in tutte; nell'HTML spariscono solo spazi fra elementi a blocco |
+| Sito informativo | `pnpm install --frozen-lockfile` senza `pnpm-workspace.yaml`, e ricerca degli script di installazione in tutte le dipendenze | riuscito; nessun pacchetto con script `preinstall`, `install` o `postinstall` |
+| Sito informativo | `pnpm test:image` con `TAURUS_REQUIRE_DOCKER=1` | immagine costruita da `node:26-alpine` con pnpm 12.17.0 nativo, senza avvisi di npm; salute, home con le intestazioni, pagina di errore e server anonimo verificati |
+| Repository | Trivy 0.76.2 come nella CI sul sito, senza `.trivyignore.yaml` | nessuna vulnerabilità nel lockfile, letto per intero: 304 pacchetti, fra cui astro 7.4.5, sharp 0.35.5 e vite 8.3.5; DS-0002 del `Dockerfile` |
+| Repository | Trivy 0.76.2 come nella CI su tutto il repository, con il `.trivyignore.yaml` senza le voci del sito e il repository Maven locale | nessuna segnalazione, codice di uscita 0 |
+| Repository | gli script dei job `changes`, `documentation` e `cie-trust-anchors` con Node 26.13.0 | superati: moduli coinvolti calcolati, catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori e con lo stesso esito di Node 22.11.0, `features.md` uguale a quello generato, bundle della CIE in regola |
 
 Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta. Dopo il merge di `fix-a11y-defects` non sono stati ripetuti né axe né la suite end to end: le due correzioni sono state verificate con axe sul loro ramo, con PrimeNG 19.0.10, e sul ramo unito le coprono i test unitari.
 
@@ -736,9 +774,9 @@ Risolto il 2026-11-06.
 #### Note sull'ambiente locale
 
 - Fino alla fase 3 il backend è stato verificato con Java 21.0.2, e la CI usava Java 17. Dalla fase 4a entrambi usano Java 25: in locale Temurin 25.0.5, scelto solo con `JAVA_HOME`. Con i servizi di sviluppo avviati, `SPRING_RABBITMQ_PORT=5679` punta i test su una porta chiusa, come in CI dove nessun broker ascolta su `localhost:5672`.
-- Fino alla fase 4b il frontend è stato verificato con Node 22.11.0, come la CI che usava Node 22. Dalla fase 5 usa Node 26.13.0, come il job `frontend` della CI. pnpm 11.16 non parte su Node 22.11.0 e il corepack di quella versione rifiuta le chiavi di firma di pnpm: per il sito è stato usato Node 24.21.0.
+- Fino alla fase 4b il frontend è stato verificato con Node 22.11.0, come la CI che usava Node 22. Dalla fase 5 usa Node 26.13.0, come il job `frontend` della CI. pnpm 11.16 non parte su Node 22.11.0 e il corepack di quella versione rifiuta le chiavi di firma di pnpm: per il sito è stato usato Node 24.21.0. Dalla fase 6 il sito usa Node 26.13.0 e pnpm 12.17.0, come il job `info-site` della CI: senza corepack in Node 26, pnpm è stato installato con npm in una cartella temporanea.
 - Il lockfile del frontend è stato rigenerato così: `npm audit fix`, minimi del `package.json` alzati a mano, poi rimozione dal lock delle sole voci con nome esatto (`@angular/*`, `@angular-devkit/*`, `@ngtools/*`, `@schematics/angular`, `primeng`, `postcss`) e `npm install`. Una rimozione per prefisso toglie anche `postcss-modules-*`, che npm non ripristina: la build passa, ma Karma non trova `postcss-modules-values`. `npm ls --all` deve uscire senza errori. Nella fase 5 il lockfile è rigenerato da `npm install --before=2026-11-01T23:59:59Z`, che sceglie solo versioni pubblicate da almeno sette giorni.
-- Il `node_modules` del sito era collegato allo store pnpm `D:\Daniele\Zodiac\Taurus\.pnpm-store`, che non esisteva più. Lo store è stato ricreato per l'aggiornamento e poi cancellato: se pnpm segnala uno store inatteso, `pnpm install` ricollega le dipendenze.
+- Il `node_modules` del sito era collegato allo store pnpm `D:\Daniele\Zodiac\Taurus\.pnpm-store`, che non esisteva più. Lo store è stato ricreato per l'aggiornamento e poi cancellato: se pnpm segnala uno store inatteso, `pnpm install` ricollega le dipendenze. Nella fase 6 l'installazione di riferimento con pnpm 11.16 ha ricreato la cartella, cancellata alla fine; pnpm 12 usa lo store predefinito, `D:\.pnpm-store`.
 - La coda `upload.files` del RabbitMQ locale è precedente alla dead-letter exchange introdotta il 2026-10-31 con `ad15f670`: all'avvio il backend registra `PRECONDITION_FAILED - inequivalent arg 'x-dead-letter-exchange'`. Non dipende dalla fase 0: cancellata la coda dalla console di RabbitMQ, il backend la dichiara di nuovo.
 - L'enforcer del backend segnala due divergenze di dipendenze, solo come avvisi: amqp-client, 5.21.0 da `spring-rabbit` contro quella dichiarata, già presente con la 5.25.0, e `checker-qual`, 3.55.1 da pgjdbc 42.7.14 contro 3.37.0 da Caffeine, nuova. Dalla fase 4a gli avvisi riguardano jaxb-api, amqp-client, bcpkix, nimbus-jose-jwt, commons-text e jose4j, dove vince la 0.9.7 dichiarata; quello su `checker-qual` non c'è più. La regola resta non bloccante.
 
@@ -746,7 +784,7 @@ Risolto il 2026-11-06.
 
 ### Repository
 
-- `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA come già dalla fase 0; Trivy con `version` esplicita e le dipendenze Maven risolte prima della scansione; gitleaks e semgrep aggiornati. Fatto nella fase 1. Java 25 nei job `backend` e `security` è arrivato con la fase 4a; Node 26 arriva con le fasi 5 e 6.
+- `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA come già dalla fase 0; Trivy con `version` esplicita e le dipendenze Maven risolte prima della scansione; gitleaks e semgrep aggiornati. Fatto nella fase 1. Java 25 nei job `backend` e `security` è arrivato con la fase 4a; Node 26 è arrivato con le fasi 5 e 6: dalla 6 lo usano tutti i job, e il job `info-site` prende la versione di pnpm da `packageManager`.
 - `.github/dependabot.yml`: nuovo (decisione 7), nella fase 1. Nella fase 5 ignora anche le maggiori di `@primeuix/themes` e PrimeIcons (decisione 5).
 - `.gitleaks.toml`: due test del backend nell'allowlist, falsi positivi di gitleaks 8.30 (fase 1).
 - `.trivyignore.yaml`: nuovo nella fase 0, vuoto alla fine della fase 8.
@@ -772,6 +810,7 @@ Risolto il 2026-11-06.
 ### Sito informativo
 
 - `package.json`, `packageManager` pnpm 12, lockfile; adeguamenti di Astro 6 e 7; `Dockerfile` come il frontend.
+- Fatto nella fase 6: Astro 7.4.5, passando dalla 6.4.8, pnpm 12.17.0 e TypeScript 6.0.3; `Dockerfile` su `node:26-alpine` senza corepack e `pnpm-workspace.yaml` tolto. Il codice non ha richiesto adeguamenti (vedi [Esito della fase 6](#esito-della-fase-6)).
 
 ### Servizio OMR
 
