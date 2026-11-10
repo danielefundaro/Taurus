@@ -1,16 +1,11 @@
-# Vulnerabilità e configurazioni che il job `security` ignora finché la fase che le risolve non arriva.
-# Regole (docs/platform-upgrade-spec.md, decisione 13):
-# - una voce per identificativo, con il file a cui si applica, il motivo e la fase che la risolve;
-# - ogni voce scade dopo 60 giorni: alla scadenza torna a far fallire la CI, e o la fase è arrivata
-#   o la scadenza si rinnova con una nuova motivazione nella pull request;
-# - la fase che risolve una vulnerabilità toglie la sua voce; alla fine della fase 8 il file è vuoto.
-# Creato il 2026-11-06 nella fase 0; voci Maven del backend e del provider aggiunte il 2026-11-07 nella fase 1.
-# Le voci del provider sono tolte il 2026-11-07 nella fase 3, con Spring Boot 4.1.2.
-# Quelle del backend sono tolte il 2026-11-08 nella fase 4a, con Spring Boot 3.5.16, tranne le due di
-# spring-webmvc, tolte lo stesso giorno nella fase 4b con Spring Boot 4.1.2.
-# Quelle del frontend sono tolte il 2026-11-08 nella fase 5, con Angular 21 e ngx-extended-pdf-viewer 31.
-# Quelle del sito informativo sono tolte il 2026-11-09 nella fase 6, con Astro 7.4.5 e sharp 0.35.5.
-# Le due DS-0002 sono tolte il 2026-11-10 nella fase 7: frontend e sito su nginx senza privilegi, dev
-# container con l'utente vscode.
-# Quelle di Pillow sono tolte il 2026-11-10: il servizio OMR usa Pillow 13.0.0, nonostante il limite
-# <13 di homr 0.7.0.
+# Vulnerabilità e configurazioni che il job `security` ignora. Di norma il file non ha voci: una
+# vulnerabilità corretta si risolve aggiornando la dipendenza nella stessa pull request.
+#
+# Una voce serve solo quando la correzione non si può applicare subito, per esempio perché richiede una
+# versione maggiore o un'altra libreria la blocca. Regole (docs/platform-upgrade-spec.md, decisione 13):
+# - una voce per identificativo, con il file a cui si applica, il motivo e l'aggiornamento che la toglierà;
+# - `expired_at` al massimo a 60 giorni: alla scadenza la voce torna a far fallire la CI, e o
+#   l'aggiornamento è arrivato o la scadenza si rinnova con una nuova motivazione nella pull request;
+# - la pull request che applica l'aggiornamento toglie la voce.
+#
+# Il file è nato il 2026-11-06 per l'aggiornamento della piattaforma, che lo ha svuotato il 2026-11-10.
