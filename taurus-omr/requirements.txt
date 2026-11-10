@@ -38,7 +38,7 @@ pyclipper==1.4.0
 pydantic==2.14.2
 pydantic_core==2.50.2
 pyparsing==3.3.3
-python-dateutil==3.0.0
+python-dateutil==4.0.0
 python-multipart==0.0.33
 PyYAML==6.0.3
 rapidocr==3.10.0

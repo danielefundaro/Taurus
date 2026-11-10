@@ -32,7 +32,7 @@ pydantic_core==2.50.2
 Pygments==2.21.0
 pyparsing==3.3.3
 pytest==9.2.0
-python-dateutil==3.0.0
+python-dateutil==4.0.0
 python-multipart==0.0.33
 requests==2.34.2
 six==1.17.0
