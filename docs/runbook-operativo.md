@@ -42,15 +42,15 @@ Finché questi campi non sono valorizzati e approvati, il runbook è utilizzabil
 
 | Componente | Tecnologia | Responsabilità | Porta locale | Stato persistente |
 | --- | --- | --- | --- | --- |
-| `taurus-fe` | Angular 21, Nginx | SPA utente/amministrazione, PWA e Web Push; nel container serve anche da ingresso unico, inoltrando `/api` e `/auth` | `4200` in sviluppo, `80` nel container | Nessuno; configurazione letta all'avvio del container (§4.2) |
+| `taurus-fe` | Angular 21, Nginx 1.30 senza privilegi | SPA utente/amministrazione, PWA e Web Push; nel container serve anche da ingresso unico, inoltrando `/api` e `/auth` | `4200` in sviluppo, `8080` nel container | Nessuno; configurazione letta all'avvio del container (§4.2) |
 | `taurus-be` | Java 25, Spring Boot 4.1, JHipster | API, processi asincroni, scheduler, migrazioni e accesso ai dati | `8080` | Media su filesystem; dati in PostgreSQL |
-| PostgreSQL | PostgreSQL 17 nel compose locale | Schema globale `public`, schemi tenant e database Keycloak | `5432` | Critico |
+| PostgreSQL | PostgreSQL 18.6 nel compose locale | Schema globale `public`, schemi tenant e database Keycloak | `5432` | Critico |
 | Keycloak | Keycloak 26.8.2 nel compose locale | OIDC, utenti, ruoli, tenant claim, login e-mail e temi | `9080`, `9443` locali | Database `taurus_keycloak` e provider custom |
-| RabbitMQ | RabbitMQ 4.0.7 management nel compose locale | Code `upload.files` (elaborazione PDF) e `score.recognition` (riconoscimento delle parti), con le rispettive code di scarto `.dead` | `5672`, console `15672` | Code e messaggi in transito |
+| RabbitMQ | RabbitMQ 4.4.0 management nel compose locale | Code `upload.files` (elaborazione PDF) e `score.recognition` (riconoscimento delle parti), con le rispettive code di scarto `.dead` | `5672`, console `15672` | Code e messaggi in transito |
 | `taurus-omr` | Python 3.12, FastAPI, Audiveris 5.11.0, homr 0.7.0 | Riconoscimento ottico della musica e conversione MIDI per l'ascolto delle parti, chiamato solo dal backend | `8090` | Nessuno; file temporanei in `/tmp`, eliminati a fine richiesta |
 | `keycloak-authenticator` | Java 21, provider Keycloak | Selezione tenant/ruolo, protocol mapper e verifica dei codici dell'app per la firma (`taurus-otp`) | n/a | JAR e temi distribuiti in Keycloak |
-| `taurus-info` | Astro 7, Nginx | Sito informativo statico | `4321` dev, `8088` container locale | Nessuno; variabili incorporate in build |
-| Prometheus/Grafana | Compose opzionale | Metriche JVM/HTTP e dashboard | `9090`, `3000` | Configurazione e dashboard locali |
+| `taurus-info` | Astro 7, Nginx 1.30 senza privilegi | Sito informativo statico | `4321` dev, `8088` container locale, `8080` nel container | Nessuno; variabili incorporate in build |
+| Prometheus/Grafana | Prometheus 3.13, Grafana 13.3, compose opzionale | Metriche JVM/HTTP e dashboard | `9090`, `3000` | Configurazione e dashboard locali |
 
 ### 2.1 Flusso principale
 
@@ -463,6 +463,27 @@ docker compose -f taurus-be/src/main/docker/services.yml down
 
 Avvertenza: nel compose corrente il volume dati PostgreSQL è commentato. La ricreazione del container può quindi eliminare dati locali. Non usare `down -v` e non rimuovere il container finché i dati necessari non sono stati esportati.
 
+### 5.5 Aggiornamento dei servizi di sviluppo
+
+`services.yml` non dichiara volumi per i dati: PostgreSQL e RabbitMQ li tengono nei volumi anonimi dei loro container.
+
+Quando cambia la versione maggiore di PostgreSQL, come nel passaggio dalla 17 alla 18, `docker compose up` ricrea il container con un volume nuovo, perché cambia il punto di montaggio. Il database riparte vuoto e Keycloak reimporta il realm. I dati della versione precedente restano in un volume anonimo orfano, finché non lo cancella `docker volume prune`. Per portarli nella versione nuova, con il container della versione precedente ancora presente:
+
+```powershell
+docker compose -f taurus-be/src/main/docker/services.yml stop keycloak
+docker exec postgresql-container sh -c 'pg_dumpall --clean --if-exists -U "$POSTGRES_USER" > /tmp/sviluppo.sql'
+docker cp postgresql-container:/tmp/sviluppo.sql sviluppo.sql
+docker compose -f taurus-be/src/main/docker/services.yml rm -s -v postgresql
+docker compose -f taurus-be/src/main/docker/services.yml up -d --wait postgresql
+docker cp sviluppo.sql postgresql-container:/tmp/sviluppo.sql
+docker exec postgresql-container sh -c 'psql -U "$POSTGRES_USER" -d postgres -f /tmp/sviluppo.sql'
+docker compose -f taurus-be/src/main/docker/services.yml up -d --wait
+```
+
+Il dump passa da un file dentro il container, così il redirect di PowerShell non ne cambia la codifica. Come in produzione (§8.6), gli unici errori attesi sono sul ruolo `taurus`, che esiste già.
+
+Per RabbitMQ i dati di sviluppo non servono. Con l'hostname fisso, arrivato con RabbitMQ 4.4, il nodo nasce comunque vuoto la prima volta. Per non lasciare nel volume il nodo vecchio, prima di `up` si toglie il container con il suo volume: `docker compose -f taurus-be/src/main/docker/services.yml rm -s -v rabbitmq`. È anche il modo che la documentazione di RabbitMQ suggerisce per gli ambienti di sviluppo, perché salta i vincoli fra le versioni.
+
 ## 6. Build e verifiche
 
 Eseguire dalla root:
@@ -525,7 +546,7 @@ pnpm test
 pnpm test:image
 ```
 
-`pnpm test` controlla il sito costruito — file attesi, metadati, accessibilità strutturale, collegamenti, sitemap e intestazioni della configurazione nginx — e `pnpm test:image` costruisce l'immagine, la avvia e la interroga: salute, home con le intestazioni di sicurezza davvero servite, pagina di errore e `Server` senza versione. Senza Docker lo smoke si salta.
+`pnpm test` controlla il sito costruito — file attesi, metadati, accessibilità strutturale, collegamenti, sitemap e intestazioni della configurazione nginx — e `pnpm test:image` costruisce l'immagine, la avvia e la interroga: salute, home con le intestazioni di sicurezza davvero servite, pagina di errore, `Server` senza versione e nginx che gira con un utente diverso da root. Senza Docker lo smoke si salta.
 
 Per una modifica PrimeNG consultare solo le sezioni pertinenti di `docs/llms-full.md`. Per una migration tenant eseguire anche:
 
@@ -594,7 +615,7 @@ Resta aperto il gate che nessun file può chiudere: il manifest non è ancora st
 1. Aprire la change e registrare versione corrente, versione target e digest.
 2. Verificare health, tasso errori, code RabbitMQ, spazio disco e stato backup.
 3. Sospendere modifiche amministrative ai tenant durante la finestra.
-4. Eseguire backup coerente di PostgreSQL e storage media.
+4. Eseguire backup coerente di PostgreSQL e storage media. Se la release cambia la versione maggiore di PostgreSQL o la versione di RabbitMQ, aggiornarli ora, con §8.6 e §8.7.
 5. Distribuire l'eventuale provider Keycloak compatibile; riavviare e verificare Keycloak. Se cambia anche la versione di Keycloak, seguire §8.5.
 6. Se la release cambia il servizio OMR, distribuire la nuova immagine e verificare `GET /v1/health` dalla rete del backend; il servizio non ha stato e si sostituisce senza migration.
 7. Avviare un'unica istanza backend target per applicare Liquibase.
@@ -615,6 +636,12 @@ Una volta sola, alla prima release che porta la lettura del testo nel servizio O
 - le variabili del backend `SCORE_PLAYBACK_OMR_URL` e `SCORE_PLAYBACK_OMR_API_KEY` diventano `TAURUS_OMR_URL` e `TAURUS_OMR_API_KEY`: i nomi vecchi sono ignorati e senza i nuovi riconoscimento, caricamento MIDI e lettura del testo non vengono offerti. Il manifest di riferimento usa già i nomi nuovi;
 - le proprietà `application.tesseract.*` non esistono più: un'installazione che le imposta, nel file di configurazione o con variabili `APPLICATION_TESSERACT_*`, va ripulita prima, altrimenti il backend non si avvia;
 - il servizio OMR va aggiornato insieme al backend (punto 6): un servizio precedente risponde 404 alla lettura del testo e le parti scansionate restano senza suggerimenti.
+
+Una volta sola, alla prima release con nginx senza privilegi, PostgreSQL 18 e RabbitMQ 4.4:
+
+- nei container del frontend e del sito informativo nginx gira con l'utente `nginx` (uid 101) e ascolta sulla porta `8080`, non più sulla `80`. Il manifest di riferimento pubblica la `8080` del container sulla stessa porta dell'host di prima, quindi il proxy inverso non cambia; un compose o un proxy propri che puntano alla `80` del container vanno aggiornati;
+- PostgreSQL passa dalla 17 alla 18 con un dump e un ripristino (§8.6), e il volume dei dati si monta su `/var/lib/postgresql`;
+- RabbitMQ passa dalla 4.0 alla 4.4 con un nodo nuovo (§8.7), che da questa release ha un hostname fisso.
 
 ### 8.3 Verifica migration tenant
 
@@ -683,13 +710,97 @@ All'avvio la versione nuova aggiorna lo schema del database `taurus_keycloak`, e
 
 **Ritorno indietro.** Fermare Keycloak, ripristinare il dump del punto 1 in un database `taurus_keycloak` vuoto (§12.4), rimettere il JAR e la versione precedenti e riavviare. Le modifiche fatte in Keycloak dopo l'aggiornamento, come utenti creati, password cambiate e app di autenticazione configurate, vanno perse: per questo la verifica del punto 6 si fa subito.
 
+### 8.6 Aggiornamento di PostgreSQL a una nuova versione maggiore
+
+La versione di PostgreSQL è `TAURUS_POSTGRES_VERSION` in `.env`, o il valore predefinito di `deploy/compose.yml`. Una patch, per esempio dalla 18.6 alla 18.7, si applica cambiando il tag. Una maggiore no: la 18 non legge i file dei dati della 17. Il container della 18 si rifiuta di partire su un volume della 17, con `Error: in 18+, these Docker images are configured to store database data in a format which is compatible with "pg_ctlcluster"`, e non lo modifica. Si passa con un dump di tutto il cluster, preso dalla versione vecchia, e un ripristino nella nuova, con Keycloak e il backend fermi: i database `taurus` e `taurus_keycloak`, i ruoli e le loro password passano insieme.
+
+Dalla 18 l'immagine tiene i dati in `/var/lib/postgresql/18/docker`, e il volume va montato su `/var/lib/postgresql`, non più su `/var/lib/postgresql/data`. Il manifest della release che porta la 18 lo monta già così, e `scripts/ops/validate-deploy-manifest.sh` lo controlla.
+
+I comandi si eseguono dalla cartella `deploy/`, con `alias dc='docker compose --env-file .env -f compose.yml'`. Il volume dei dati si chiama `taurus_taurus-db` (`docker volume ls`).
+
+1. Fare il backup dei due database (§12.2). Il disco deve avere libero almeno il doppio dello spazio del volume, per il dump e per la copia del volume del punto 4 (`docker system df -v`).
+2. Fermare chi scrive: `dc stop frontend backend keycloak`. Applicazione e login restano indisponibili fino al punto 9.
+3. Fare il dump dell'intero cluster con la versione ancora in uso:
+
+   ```bash
+   dc exec -T postgresql sh -c 'pg_dumpall --clean --if-exists -U "$POSTGRES_USER"' > taurus-pg17-<UTC_TIMESTAMP>.sql
+   tail -n 3 taurus-pg17-<UTC_TIMESTAMP>.sql
+   ```
+
+   L'ultima riga di commento deve essere `-- PostgreSQL database cluster dump complete`: se manca, il dump è troncato e non si prosegue. Il file contiene le impronte delle password dei ruoli: va trattato come un backup e cancellato alla scadenza della retention.
+4. Mettere da parte il volume della 17, che è il ritorno indietro:
+
+   ```bash
+   dc stop postgresql
+   docker volume create taurus-db-pg17
+   docker run --rm -v taurus_taurus-db:/from:ro -v taurus-db-pg17:/to postgres:17.0 cp -a /from/. /to/
+   dc rm -f postgresql
+   docker volume rm taurus_taurus-db
+   ```
+
+   `postgres:17.0` è l'immagine già presente sull'host; `cp -a` conserva proprietari e permessi dei file.
+5. Portare `deploy/` alla release nuova, con il montaggio su `/var/lib/postgresql`. Se `TAURUS_POSTGRES_VERSION` è fissata in `.env`, aggiornarla. Poi `dc pull postgresql`.
+6. `dc up -d --wait postgresql`. Il cluster nuovo nasce sul volume vuoto, con l'utente e il database di `.env` e il database di Keycloak di `initdb/`.
+7. Ripristinare il dump:
+
+   ```bash
+   dc exec -T postgresql sh -c 'psql -U "$POSTGRES_USER" -d postgres' < taurus-pg17-<UTC_TIMESTAMP>.sql > ripristino.log 2>&1
+   grep -E 'ERROR|FATAL' ripristino.log
+   ```
+
+   Gli errori attesi sono due, tutti e due sul ruolo che esegue il ripristino, che esiste già: `current user cannot be dropped` e `role "taurus" already exists`. Il dump cancella e ricrea i due database e il ruolo di Keycloak, con la password di prima. Qualsiasi altro errore ferma la procedura: si torna indietro.
+8. Ricalcolare le statistiche, che il dump non porta: `dc exec postgresql sh -c 'vacuumdb -U "$POSTGRES_USER" --all --analyze-in-stages'`.
+9. Prima di riaprire, verificare la versione (`select version()`) e che il numero degli schemi dei tenant e delle righe di `databasechangelog` sia quello di prima del punto 3: sono le query di `scripts/ops/restore-test.sh`. Poi `dc up -d`, gli smoke test (§8.4) e un accesso con la scelta di tenant e ruolo.
+10. Dopo il periodo di esercizio fissato nella change, per esempio una settimana, `docker volume rm taurus-db-pg17`. Il dump resta con i backup, per la loro retention.
+
+**Ritorno indietro.** Si fa subito, se la verifica del punto 9 fallisce:
+
+```bash
+dc stop
+dc rm -f postgresql
+docker volume rm taurus_taurus-db
+```
+
+Rimettere i file di `deploy/` della release precedente, con il montaggio su `/var/lib/postgresql/data`, e `TAURUS_POSTGRES_VERSION=17.0`, poi:
+
+```bash
+dc up --no-start postgresql
+docker run --rm -v taurus-db-pg17:/from:ro -v taurus_taurus-db:/to postgres:17.0 cp -a /from/. /to/
+dc up -d
+```
+
+`up --no-start` crea il volume come lo vuole Compose, vuoto, e la copia lo riporta allo stato del punto 4. Le scritture fatte sulla 18 dopo la riapertura vanno perse: per questo la verifica del punto 9 si fa prima di riaprire il traffico.
+
+Per l'ambiente di sviluppo vedi §5.5.
+
+### 8.7 Aggiornamento di RabbitMQ
+
+La versione di RabbitMQ è `TAURUS_RABBITMQ_VERSION`. Le code di Taurus non sono un archivio (§12.1): contengono lavori che il database ricorda e che la ripresa pianificata chiude o ripubblica (§14.6). L'aggiornamento quindi non porta con sé il nodo: si lasciano svuotare le code, si ferma il nodo e se ne avvia uno nuovo, vuoto, con la versione nuova. All'avvio il backend dichiara di nuovo code, exchange e binding, e l'utente arriva da `.env`.
+
+Il nodo non si aggiorna per due motivi. La documentazione di RabbitMQ non ammette il salto dalla 4.0 alla 4.4: dalla 4.0 e dalla 4.1 si passa prima per la 4.2. Inoltre, fino alla release che porta la 4.4, il manifest non fissava l'hostname del container. Il nodo prende il nome dall'hostname, quindi si chiamava come il container (`rabbit@<id>`), e ogni container ricreato apriva un nodo vuoto nello stesso volume. Da quella release il servizio ha `hostname: rabbitmq`, il nodo si chiama `rabbit@rabbitmq` e si ritrova quando il container viene ricreato. Negli aggiornamenti successivi si potrà quindi seguire il percorso di versioni della documentazione, dopo aver abilitato tutti i feature flag stabili (`rabbitmqctl enable_feature_flag all`).
+
+1. In un momento di poco traffico, controllare le code: `dc exec rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged`. Si prosegue quando `upload.files` e `score.recognition` sono a zero. Le code di scarto `.dead` non si svuotano da sole: se contengono messaggi, leggerli prima (§14.6), perché il nodo nuovo parte senza. Se sull'installazione sono stati aggiunti a mano utenti, vhost o policy, esportarli con `dc exec rabbitmq rabbitmqctl export_definitions /tmp/definizioni.json` e copiarli fuori con `dc cp rabbitmq:/tmp/definizioni.json .`.
+2. Fermare chi produce e chi consuma: `dc stop frontend backend`. Ricontrollare le code. Un messaggio rimasto non è un lavoro perso: il job resta nel database, e la ripresa pianificata lo chiude in errore, con «Riprova» per l'utente, o lo ripubblica.
+3. Togliere il nodo vecchio:
+
+   ```bash
+   dc stop rabbitmq
+   dc rm -f rabbitmq
+   docker volume rm taurus_taurus-rabbit
+   ```
+
+4. Portare `deploy/` alla release nuova e, se `TAURUS_RABBITMQ_VERSION` è fissata in `.env`, aggiornarla. Poi `dc pull rabbitmq` e `dc up -d --wait rabbitmq`. Se al punto 1 sono state esportate delle definizioni, reimportarle ora con `rabbitmqctl import_definitions`.
+5. Verificare la versione (`dc exec rabbitmq rabbitmqctl version`), poi `dc up -d`. Dopo l'avvio del backend, `list_queues` mostra `upload.files`, `score.recognition` e le due code `.dead`. Chiudere con gli smoke test (§8.4), compreso il caricamento di un file.
+
+**Ritorno indietro.** È la stessa procedura, all'indietro: code vuote, frontend e backend fermi, nodo e volume tolti come al punto 3, i file di `deploy/` e `TAURUS_RABBITMQ_VERSION` della release precedente, `dc up -d`. RabbitMQ non supporta il ritorno a una versione precedente sugli stessi dati, quindi anche qui il nodo riparte vuoto.
+
 ## 9. Rollback
 
 ### 9.1 Solo applicazione, senza migration incompatibili
 
 1. Fermare il rollout.
 2. Riportare frontend e backend ai digest precedenti, e il servizio OMR alla versione precedente se era cambiato.
-3. Ripristinare l'eventuale provider Keycloak precedente. Se la release aveva cambiato anche la versione di Keycloak, il provider da solo non basta: il ritorno indietro è quello di §8.5.
+3. Ripristinare l'eventuale provider Keycloak precedente. Se la release aveva cambiato anche la versione di Keycloak, il provider da solo non basta: il ritorno indietro è quello di §8.5. Allo stesso modo, se aveva cambiato la versione maggiore di PostgreSQL o la versione di RabbitMQ, i ritorni indietro sono quelli di §8.6 e §8.7.
 4. Verificare health, login, tenant isolation, coda e storage.
 5. Lasciare aperto l'incidente e conservare log e artefatti.
 

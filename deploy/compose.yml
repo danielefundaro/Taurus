@@ -24,7 +24,7 @@ name: taurus
 
 services:
   postgresql:
-    image: postgres:${TAURUS_POSTGRES_VERSION:-17.0}
+    image: postgres:${TAURUS_POSTGRES_VERSION:-18.6}
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${TAURUS_DB_USERNAME:?impostare TAURUS_DB_USERNAME}
@@ -37,7 +37,11 @@ services:
     # di repliche e alle connessioni di Keycloak.
     command: postgres -c max_connections=${TAURUS_DB_MAX_CONNECTIONS:-200}
     volumes:
-      - taurus-db:/var/lib/postgresql/data
+      # Dalla 18 l'immagine tiene i dati in /var/lib/postgresql/<versione>/docker, e il volume va montato
+      # sulla cartella superiore: con il montaggio su /var/lib/postgresql/data, quello della 17, il
+      # container non parte. Il passaggio da una maggiore all'altra non si fa cambiando il tag: §8.6 del
+      # runbook operativo.
+      - taurus-db:/var/lib/postgresql
       # Eseguiti solo alla prima inizializzazione del volume: creano il database di Keycloak.
       - ./initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
@@ -104,8 +108,12 @@ services:
           memory: ${TAURUS_KEYCLOAK_MEMORY_LIMIT:-1g}
 
   rabbitmq:
-    image: rabbitmq:${TAURUS_RABBITMQ_VERSION:-4.0.7-management-alpine}
+    image: rabbitmq:${TAURUS_RABBITMQ_VERSION:-4.4.0-management-alpine}
     restart: unless-stopped
+    # RabbitMQ tiene i dati del nodo in una cartella con il nome dell'host: senza un nome fisso ogni
+    # container nuovo, per esempio dopo un cambio di immagine, aprirebbe un nodo vuoto nello stesso
+    # volume, senza le code e i messaggi del precedente.
+    hostname: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${TAURUS_RABBITMQ_USERNAME:?impostare TAURUS_RABBITMQ_USERNAME}
       RABBITMQ_DEFAULT_PASS: ${TAURUS_RABBITMQ_PASSWORD:?impostare TAURUS_RABBITMQ_PASSWORD}
@@ -240,9 +248,9 @@ services:
       TAURUS_VAPID_PUBLIC_KEY: ${TAURUS_VAPID_PUBLIC_KEY}
       TAURUS_MAX_UPLOAD_SIZE: ${TAURUS_MAX_UPLOAD_SIZE:-500m}
     # L'unica porta pubblicata, e solo sul loopback: davanti c'è il reverse proxy dell'host, che
-    # termina TLS e inoltra qui.
+    # termina TLS e inoltra qui. Dentro il container nginx gira senza privilegi e ascolta sulla 8080.
     ports:
-      - '127.0.0.1:${TAURUS_HTTP_PORT:-8081}:80'
+      - '127.0.0.1:${TAURUS_HTTP_PORT:-8081}:8080'
     depends_on:
       backend:
         condition: service_healthy
@@ -261,7 +269,7 @@ services:
     restart: unless-stopped
     profiles: [info]
     ports:
-      - '127.0.0.1:${TAURUS_INFO_HTTP_PORT:-8082}:80'
+      - '127.0.0.1:${TAURUS_INFO_HTTP_PORT:-8082}:8080'
     networks: [internal]
     deploy:
       resources:

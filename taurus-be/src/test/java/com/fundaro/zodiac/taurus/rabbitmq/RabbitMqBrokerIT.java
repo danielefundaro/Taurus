@@ -58,7 +58,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 )
 class RabbitMqBrokerIT {
 
-    private static final RabbitMQContainer BROKER = new RabbitMQContainer("rabbitmq:3.13-management-alpine").withReuse(true);
+    private static final RabbitMQContainer BROKER = new RabbitMQContainer("rabbitmq:4.4.0-management-alpine").withReuse(true);
 
     private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
@@ -94,7 +94,9 @@ class RabbitMqBrokerIT {
     void declareQueue() {
         admin = new RabbitAdmin(connectionFactory);
         queueName = "test.broker-" + UUID.randomUUID();
-        admin.declareQueue(new Queue(queueName, false, false, true));
+        // Durevole come le code di produzione: dalla 4.4 RabbitMQ rifiuta per impostazione predefinita le code
+        // non durevoli e non esclusive (`transient_nonexcl_queues`, deprecata). La coda sparisce a fine prova.
+        admin.declareQueue(new Queue(queueName, true, false, true));
     }
 
     @AfterEach
@@ -149,10 +151,10 @@ class RabbitMqBrokerIT {
         // ridichiarato con gli stessi argomenti, o il broker rifiuta il canale.
         DirectExchange exchange = new DirectExchange(DeadLetterQueueConfiguration.DEAD_LETTER_EXCHANGE, true, false);
         admin.declareExchange(exchange);
-        admin.declareQueue(QueueBuilder.nonDurable(deadLetterQueue).autoDelete().build());
+        admin.declareQueue(QueueBuilder.durable(deadLetterQueue).autoDelete().build());
         admin.declareBinding(BindingBuilder.bind(new Queue(deadLetterQueue)).to(exchange).with(workQueue));
         admin.declareQueue(
-            QueueBuilder.nonDurable(workQueue)
+            QueueBuilder.durable(workQueue)
                 .autoDelete()
                 .deadLetterExchange(DeadLetterQueueConfiguration.DEAD_LETTER_EXCHANGE)
                 .deadLetterRoutingKey(workQueue)

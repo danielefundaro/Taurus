@@ -5,7 +5,7 @@ name: taurus
 
 services:
   mailpit:
-    image: axllent/mailpit:v1.31.3
+    image: axllent/mailpit:v1.33.0
     container_name: mailpit
     restart: unless-stopped
     ports:

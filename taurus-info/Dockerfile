@@ -21,16 +21,20 @@ ENV SITE_URL=$SITE_URL \
 
 RUN pnpm build
 
-FROM nginx:1.29-alpine
+# Come il frontend: la linea stabile di nginx senza privilegi, con l'utente nginx (uid 101) e la
+# porta 8080.
+FROM nginxinc/nginx-unprivileged:1.30-alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Fuori da conf.d: i file .conf di quella cartella sono caricati come configurazioni a sé.
 COPY security-headers.conf /etc/nginx/taurus-security-headers.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-EXPOSE 80
+USER 101
+
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -q -O /dev/null http://127.0.0.1/health || exit 1
+  CMD wget -q -O /dev/null http://127.0.0.1:8080/health || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

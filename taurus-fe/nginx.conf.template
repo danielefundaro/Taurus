@@ -9,8 +9,9 @@
 # nessun indirizzo della rete interna dentro il bundle. TLS lo termina il reverse proxy dell'host,
 # che inoltra a questo container le intestazioni `X-Forwarded-*`.
 server {
-    listen 80;
-    listen [::]:80;
+    # La porta di nginx senza privilegi: il compose la pubblica sul loopback dell'host.
+    listen 8080;
+    listen [::]:8080;
     server_name _;
 
     root /usr/share/nginx/html;
@@ -103,7 +104,9 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
         proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Port $server_port;
+        # La porta che ha usato il browser, dichiarata dal reverse proxy dell'host come lo schema: quella
+        # di questo container, 8080, non è mai la porta pubblica.
+        proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
     }
 
     # Gli indirizzi dell'applicazione sono gestiti dal router: ogni percorso sconosciuto torna

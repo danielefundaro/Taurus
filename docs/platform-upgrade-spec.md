@@ -501,6 +501,40 @@ Applicata e verificata il 2026-11-09 sul ramo `upgrade-phase-6`, che parte da `2
   - Passano a Node 26 anche gli altri job rimasti su Node 22: `changes` e `documentation` di `verify.yml`, `documentation` di `docker-publish.yml` e il workflow mensile `cie-trust-anchors`. Con Node 26 i loro script danno lo stesso esito che con Node 22.
 - **Vulnerabilità.** Senza `.trivyignore.yaml`, Trivy 0.76.2 come nella CI non trova vulnerabilità nel lockfile del sito, letto per intero con i suoi 304 pacchetti. Escono da `.trivyignore.yaml` le sei voci del sito, tre di Astro 5.18.2 e tre di sharp 0.34.5. Resta DS-0002 del `Dockerfile`, nginx come root, della fase 7.
 
+### Esito della fase 7
+
+Applicata e verificata il 2026-11-10 sul ramo `upgrade-phase-7`, che parte da `98f2e8e`. Le versioni sono le ultime pubblicate da almeno sette giorni, come chiede la decisione 7; le date sono quelle di Docker Hub e delle release su GitHub.
+
+- **Versioni.**
+  - nginx 1.30.6, del 2026-10-19, in `nginxinc/nginx-unprivileged:1.30-alpine`, per frontend e sito informativo.
+  - PostgreSQL 18.6, l'ultima della 18, di agosto 2026; RabbitMQ 4.4.0, del 2026-10-19, nella variante `management-alpine`. Anche i test del backend, `restore-test.sh` e `deploy/.env.example` usano queste due versioni.
+  - Nei compose di sviluppo: Prometheus 3.13.5 LTS, del 2026-10-21; Grafana 13.3.0, del 2026-10-27; SonarQube Community Build 26.10, del 2026-10-29; Mailpit 1.33.0, del 2026-10-31, anche nell'IT delle e-mail del provider. SonarQube 26.11, del 2026-11-05, e Mailpit 1.33.1, del 2026-11-07, sono uscite da meno di sette giorni. Dependabot non legge i compose di sviluppo: arriveranno con il prossimo aggiornamento a mano.
+  - Dev container su `mcr.microsoft.com/devcontainers/java:3-25-trixie`, con Java 25 e Node 26.
+- **nginx senza privilegi.** Frontend e sito partono da `nginxinc/nginx-unprivileged`: nginx gira con l'utente `nginx` (uid 101) e ascolta sulla porta 8080 del container.
+  - Nell'immagine `/usr/share/nginx/html` resta di root. Il Dockerfile del frontend ripulisce la cartella e copia l'applicazione come root, poi passa all'utente 101. `assets/config.json`, che l'entrypoint riscrive all'avvio dalle variabili d'ambiente, appartiene a nginx; il resto dell'applicazione non è scrivibile dal processo.
+  - I compose pubblicano la 8080 del container sulla stessa porta dell'host di prima: il reverse proxy non cambia. I controlli di salute dei Dockerfile interrogano la 8080.
+  - `validate-deploy-manifest.sh` controlla che il frontend pubblichi la 8080 del container, e `pnpm test:image` del sito che nginx non giri come root.
+- **`X-Forwarded-Port` verso Keycloak.** Il blocco `/auth/` del frontend inoltrava `$server_port`, la porta su cui ascolta il container. Con la 8080 Keycloak costruiva indirizzi come `https://taurus.esempio.it:8080/auth/realms/...`. Ora inoltra la porta dichiarata dal reverse proxy dell'host, come già fa con lo schema, e l'esempio del reverse proxy la imposta. Con Keycloak 26.8.2 dietro l'immagine nuova e le intestazioni del reverse proxy, l'issuer è `https://taurus.esempio.it/auth/realms/master`.
+- **PostgreSQL 18.** Il volume si monta su `/var/lib/postgresql`, come chiede l'immagine della 18, e `validate-deploy-manifest.sh` controlla il punto di montaggio esatto. La procedura del runbook operativo (§8.6) è stata provata con `deploy/compose.yml`, in un progetto Compose di prova:
+  - dati di partenza sulla 17.0: tre schemi di tenant da 5000 righe, 240 righe in `databasechangelog` e il database di Keycloak con 800 utenti;
+  - il container della 18 si rifiuta di partire sia con il solo tag cambiato sia con il montaggio nuovo sul volume della 17, con il messaggio citato nel runbook, e non tocca i dati;
+  - `pg_dumpall` in 1 secondo, 1,5 MB; ripristino in 2 secondi, con i soli due errori attesi sul ruolo che esegue il ripristino;
+  - dopo `vacuumdb` dati identici, accesso a Keycloak e accesso del ruolo `taurus` con le password di prima;
+  - ritorno indietro alla 17.0 con la copia del volume: dati identici.
+- **Servizi di sviluppo.** `services.yml` tiene i dati in volumi anonimi. Con la 18 il container ricreato riceve un volume nuovo, perché cambia il punto di montaggio: il database riparte vuoto e i dati della 17 restano in un volume orfano. Il runbook operativo (§5.5) descrive come portarli. L'avvio completo di `services.yml`, in una copia senza nomi fissi dei container, con un'altra sottorete e senza porte pubblicate, porta tutti e cinque i servizi a `healthy` in 75 secondi: PostgreSQL 18.6 con i database `taurus` e `taurus_keycloak`, Keycloak con il realm importato e il provider caricato, RabbitMQ con il nodo `rabbit@rabbitmq`, il servizio OMR e Mailpit.
+- **RabbitMQ.**
+  - *Difetto trovato.* I compose non fissavano l'hostname del container. Il nodo prende il nome dall'hostname, quindi si chiamava `rabbit@<id del container>`, e ogni container ricreato apriva un nodo vuoto nello stesso volume. Provato sul manifest di produzione: dopo `up --force-recreate` il vhost creato prima non c'era più e nel volume restavano due cartelle di nodo. Con `hostname: rabbitmq`, ora nel compose di produzione e in quello di sviluppo, il vhost resta dopo la ricreazione. `validate-deploy-manifest.sh` controlla l'hostname.
+  - *Salto dalla 4.0.* La documentazione di RabbitMQ non ammette il passaggio diretto dalla 4.0 alla 4.4. In una prova la 4.4.0 è partita sui dati di una 4.0.7 con tutti i feature flag abilitati, ha migrato i metadati a Khepri e ha mantenuto il vhost, ma non è un percorso supportato. Il runbook (§8.7) segue la decisione 11: code svuotate, nodo nuovo con la 4.4. Il ritorno alla 4.0.7 con il manifest precedente parte sano, con un nodo nuovo.
+  - *Code non durevoli.* Dalla 4.4 RabbitMQ rifiuta per impostazione predefinita le code non durevoli e non esclusive, una funzione deprecata (`transient_nonexcl_queues`). `RabbitMqBrokerIT` le usava per le sue prove e falliva in 5 test su 5; ora le dichiara durevoli e a cancellazione automatica. Le code di produzione sono già durevoli (`DeadLetterQueueConfiguration.workQueue`), e `UploadJobPipelineIT` passa sulla 4.4.0 senza modifiche.
+- **Monitoraggio.**
+  - `promtool check config` di Prometheus 3.13.5 accetta la configurazione di sviluppo così com'è.
+  - Grafana 13 non ha più i pannelli Angular. Alla prima apertura la dashboard JVM (Micrometer) migra da sé `graph` in `timeseries` e `singlestat` in `stat`. Il plugin `grafana-piechart-panel`, Angular e non usato dalla dashboard, esce da `GF_INSTALL_PLUGINS`.
+  - Con il provisioning del repository Grafana parte senza errori, con la sorgente Prometheus predefinita e la dashboard. Aperta con Playwright, la dashboard disegna 28 pannelli, senza «Panel plugin not found».
+  - SonarQube 26.10 non è stato avviato: cambia solo il tag.
+- **JHipster Control Center.** `jhipster-control-center.yml` è tolto (decisione 12). Nel realm di sviluppo resta il client `taurus-control-center`, che serviva solo a lui: toglierlo è un cambio del realm, da fare a parte.
+- **Dev container.** L'immagine `devcontainers/java:3-25-trixie` ha l'utente `vscode`, che `USER` rende esplicito nel Dockerfile. Le due feature di prima, `docker-in-docker` e `docker-from-docker`, non si possono installare insieme: resta `ghcr.io/devcontainers/features/docker-in-docker:2`. La build con Docker dà l'utente `vscode`, OpenJDK 25.0.5 di Microsoft, Node 26.13.0 e npm 11.20.0. La feature si installa solo con la CLI dei dev container o con un editor, e non è stata provata.
+- **Vulnerabilità.** Trivy 0.76.2 come nella CI, senza le due voci DS-0002, non segnala configurazioni in nessuno dei cinque Dockerfile: le voci escono da `.trivyignore.yaml`. Restano le 28 voci di Pillow della fase 2.
+
 ### Stato dei lavori
 
 Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che parte da `84ae3b8`. I commit sono sei, uno per modulo e due per il backend:
@@ -589,6 +623,18 @@ Fase 6 verificata il 2026-11-09 sul ramo `upgrade-phase-6`, che parte da `22aed0
 - `Build the info site with Node 26 in CI`: il job `info-site` di `verify.yml`;
 - `Run the repository scripts with Node 26 in CI`: i job `changes` e `documentation` di `verify.yml`, il job `documentation` di `docker-publish.yml` e `cie-trust-anchors.yml`;
 - `Record phase 6 of the platform upgrade`: `.trivyignore.yaml`, il commento sulle maggiori di Astro in `.github/dependabot.yml`, `AGENTS.md`, `README.md`, il Runbook operativo, questa specifica e il catalogo.
+
+La pull request è la [#167](https://github.com/danielefundaro/Taurus/pull/167), unita su `main` il 2026-11-09 con il merge `98f2e8e`. La fase 6 è chiusa.
+
+Fase 7 verificata il 2026-11-10 sul ramo `upgrade-phase-7`, che parte da `98f2e8e` (vedi [Esito della fase 7](#esito-della-fase-7)). I commit sono sette:
+
+- `Serve the frontend with unprivileged nginx`: `Dockerfile` e `nginx.conf.template` del frontend;
+- `Serve the info site with unprivileged nginx`: `Dockerfile`, `nginx.conf`, `docker-compose.yml`, smoke test dell'immagine e README del sito;
+- `Update the development services`: i compose di `taurus-be/src/main/docker`, con la rimozione di `jhipster-control-center.yml`, e le immagini dei test del backend, con le code durevoli di `RabbitMqBrokerIT`;
+- `Move the dev container to Java 25`: il dev container del backend;
+- `Test the provider e-mails with Mailpit 1.33`: l'IT delle e-mail del provider;
+- `Update PostgreSQL and RabbitMQ in the production manifest`: `deploy/compose.yml`, `.env.example` e README del deploy, `validate-deploy-manifest.sh` e `restore-test.sh`;
+- `Record phase 7 of the platform upgrade`: `.trivyignore.yaml`, il Runbook operativo, il Runbook di test, questa specifica e il catalogo.
 
 #### Verifiche eseguite
 
@@ -700,6 +746,20 @@ Fase 6 verificata il 2026-11-09 sul ramo `upgrade-phase-6`, che parte da `22aed0
 | Repository | Trivy 0.76.2 come nella CI sul sito, senza `.trivyignore.yaml` | nessuna vulnerabilità nel lockfile, letto per intero: 304 pacchetti, fra cui astro 7.4.5, sharp 0.35.5 e vite 8.3.5; DS-0002 del `Dockerfile` |
 | Repository | Trivy 0.76.2 come nella CI su tutto il repository, con il `.trivyignore.yaml` senza le voci del sito e il repository Maven locale | nessuna segnalazione, codice di uscita 0 |
 | Repository | gli script dei job `changes`, `documentation` e `cie-trust-anchors` con Node 26.13.0 | superati: moduli coinvolti calcolati, catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori e con lo stesso esito di Node 22.11.0, `features.md` uguale a quello generato, bundle della CIE in regola |
+| Servizi | `scripts/ops/validate-deploy-manifest.sh` | manifest valido; con la porta 80 del frontend, con il volume di PostgreSQL su `/var/lib/postgresql/data` o senza l'hostname di RabbitMQ il controllo fallisce, come deve |
+| Servizi | procedura del Runbook operativo §8.6 su `deploy/compose.yml`, da PostgreSQL 17.0 a 18.6, e ritorno indietro | dati identici dopo l'aggiornamento e dopo il ritorno; la 18 non parte sul volume della 17, né con il solo tag né con il montaggio nuovo |
+| Servizi | RabbitMQ con il manifest di produzione: ricreazione del container senza e con `hostname`, avvio della 4.4.0 sui dati della 4.0.7, ritorno alla 4.0.7 | senza hostname il vhost si perde, con l'hostname resta; la 4.4.0 parte e migra a Khepri, percorso non supportato; la 4.0.7 riparte sana con un nodo nuovo |
+| Servizi | avvio di `services.yml` in una copia senza nomi fissi, con un'altra sottorete e senza porte | cinque servizi `healthy` in 75 secondi; PostgreSQL 18.6 con il volume su `/var/lib/postgresql`, nodo `rabbit@rabbitmq`, realm importato con il provider |
+| Servizi | `promtool check config` di Prometheus 3.13.5; Grafana 13.3.0 con il provisioning, dashboard JVM aperta con Playwright | configurazione valida; 28 pannelli, quelli Angular migrati a `timeseries` e `stat`, nessun plugin mancante |
+| Frontend | immagine costruita e avviata con un Keycloak 26.8.2 di prova | nginx con l'utente 101; `/health`, intestazioni di sicurezza e CSP; `config.json` scritto dall'entrypoint; controllo di salute `healthy`; issuer di Keycloak senza porta attraverso il proxy |
+| Sito informativo | `pnpm test:image` con `TAURUS_REQUIRE_DOCKER=1` | superato, compreso il controllo dell'utente non root |
+| Backend | dev container costruito con Docker, `VARIANT` 25-trixie e Node 26 | utente `vscode`, OpenJDK 25.0.5, Node 26.13.0 |
+| Backend | `./mvnw verify -Dtaurus.test.requireDocker=true`, Java 25.0.5, prima della correzione di `RabbitMqBrokerIT` | 1225 test unitari superati; 279 IT con 5 errori, tutti in `RabbitMqBrokerIT`, sulle code non durevoli rifiutate dalla 4.4 |
+| Backend | `./mvnw verify -Dtaurus.test.requireDocker=true` dopo la correzione | 1225 test unitari e 279 IT superati in 23 minuti, compresi `RabbitMqBrokerIT` e `UploadJobPipelineIT` su RabbitMQ 4.4.0 e le migrazioni su PostgreSQL 18.6; soglie di copertura rispettate |
+| Provider Keycloak | `./mvnw verify` con Mailpit 1.33.0 | 32 test unitari e 13 IT superati, compreso `EmailDeliveryIT` |
+| Servizi | `scripts/ops/restore-test.sh` con PostgreSQL 18.6, contro un database sorgente di prova con due schemi e 240 migrazioni | ripristino verificato: schemi e migrazioni corrispondono all'origine |
+| Repository | Trivy 0.76.2 come nella CI, con `.trivyignore.yaml` senza le voci DS-0002 | nessuna segnalazione, codice di uscita 0 |
+| Repository | i controlli del job `documentation` con la fase 7, Node 26.13.0 | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento; moduli coinvolti: tutti e cinque |
 
 Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta. Dopo il merge di `fix-a11y-defects` non sono stati ripetuti né axe né la suite end to end: le due correzioni sono state verificate con axe sul loro ramo, con PrimeNG 19.0.10, e sul ramo unito le coprono i test unitari.
 
@@ -805,12 +865,14 @@ Risolto il 2026-11-06.
 - `ToggleButtonRoleDirective`, aggiunta nella fase 0: con PrimeNG 21 diventa `ToggleButtonDisabledDirective` e aggiunge solo `aria-disabled`; da togliere quando PrimeNG lo scriverà da sé, verificandolo con la suite di accessibilità.
 - `Dockerfile`: `node:26-alpine` e nginx senza root sulla porta 8080.
 - `docs/llms-full.md` rigenerato per PrimeNG 21.
+- Fatto nella fase 7: nginx 1.30 senza privilegi sulla porta 8080 e la porta pubblica inoltrata a Keycloak (vedi [Esito della fase 7](#esito-della-fase-7)).
 - Fatto nella fase 5: Angular 21 e PrimeNG 21, le API deprecate, Tailwind 4, le librerie, la direttiva dei ToggleButton, Node 26 nel `Dockerfile` e nella CI, le correzioni trovate dalla suite end to end e `docs/llms-full.md` di PrimeNG 21 (vedi [Avanzamento della fase 5](#avanzamento-della-fase-5)).
 
 ### Sito informativo
 
 - `package.json`, `packageManager` pnpm 12, lockfile; adeguamenti di Astro 6 e 7; `Dockerfile` come il frontend.
 - Fatto nella fase 6: Astro 7.4.5, passando dalla 6.4.8, pnpm 12.17.0 e TypeScript 6.0.3; `Dockerfile` su `node:26-alpine` senza corepack e `pnpm-workspace.yaml` tolto. Il codice non ha richiesto adeguamenti (vedi [Esito della fase 6](#esito-della-fase-6)).
+- Fatto nella fase 7: nginx 1.30 senza privilegi sulla porta 8080, con il controllo dell'utente nello smoke test dell'immagine.
 
 ### Servizio OMR
 
@@ -824,6 +886,7 @@ Risolto il 2026-11-06.
 
 - `deploy/compose.yml`, `taurus-be/src/main/docker/*.yml`: nuove immagini, volume di PostgreSQL, porte di nginx; rimozione di `jhipster-control-center.yml`.
 - `deploy/reverse-proxy.example.conf`: la porta pubblicata resta la stessa, cambia solo quella interna del container.
+- Fatto nella fase 7: PostgreSQL 18.6 con il volume su `/var/lib/postgresql`, RabbitMQ 4.4.0 con l'hostname fisso, Prometheus 3.13, Grafana 13.3, SonarQube 26.10, Mailpit 1.33 e il dev container per Java 25; `jhipster-control-center.yml` tolto; i controlli nuovi di `validate-deploy-manifest.sh`; le procedure di aggiornamento nel Runbook operativo (§5.5, §8.6 e §8.7). `reverse-proxy.example.conf` non cambia.
 
 ## Autorizzazioni e isolamento tenant
 

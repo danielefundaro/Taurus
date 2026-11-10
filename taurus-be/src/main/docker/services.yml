@@ -64,8 +64,7 @@ services:
 #      rabbitmq:
 #        condition: service_started
 #    ports:
-#      - 80:80
-#      - 443:443
+#      - 127.0.0.1:8081:8080
 #    networks:
 #      taurus-network:
 #        ipv4_address: 172.28.0.6

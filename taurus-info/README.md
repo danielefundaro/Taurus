@@ -45,7 +45,7 @@ L'output statico viene scritto in `dist/`.
 docker compose up --build
 ```
 
-Il sito è disponibile su `http://localhost:8088`; l'health check risponde su `/health`.
+Il sito è disponibile su `http://localhost:8088`; l'health check risponde su `/health`. Nel container nginx gira senza privilegi, con l'utente `nginx` (uid 101), e ascolta sulla porta `8080`: un `docker run` a mano pubblica quella, per esempio con `-p 127.0.0.1:8088:8080`.
 
 Per una build esplicita:
 

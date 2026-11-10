@@ -10,6 +10,8 @@
 # spring-webmvc, tolte lo stesso giorno nella fase 4b con Spring Boot 4.1.2.
 # Quelle del frontend sono tolte il 2026-11-08 nella fase 5, con Angular 21 e ngx-extended-pdf-viewer 31.
 # Quelle del sito informativo sono tolte il 2026-11-09 nella fase 6, con Astro 7.4.5 e sharp 0.35.5.
+# Le due DS-0002 sono tolte il 2026-11-10 nella fase 7: frontend e sito su nginx senza privilegi, dev
+# container con l'utente vscode.
 
 vulnerabilities:
   # Servizio OMR: Pillow 12.3.0. La correzione è solo nella 13.0.0, ma homr 0.7.0, ultima versione,
@@ -125,16 +127,4 @@ vulnerabilities:
   - id: GHSA-78g4-xqwv-q3g8
     paths: ["taurus-omr/requirements.txt"]
     statement: "pillow 12.3.0: corretto dalla 13.0.0, bloccata da homr 0.7.0 (Pillow<13), fase 2"
-    expired_at: 2027-01-05
-
-misconfigurations:
-  # Immagini che girano come root: nginx senza privilegi sulla porta 8080 (decisione 8) e dev container
-  # con utente non root, entrambi nella fase 7.
-  - id: DS-0002
-    paths: ["taurus-fe/Dockerfile", "taurus-info/Dockerfile"]
-    statement: "nginx come root: nginxinc/nginx-unprivileged sulla porta 8080, fase 7"
-    expired_at: 2027-01-05
-  - id: DS-0002
-    paths: ["taurus-be/.devcontainer/Dockerfile"]
-    statement: "dev container come root: immagine devcontainers/java per Java 25 con utente non root, fase 7"
     expired_at: 2027-01-05

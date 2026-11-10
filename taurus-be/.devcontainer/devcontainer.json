@@ -1,19 +1,17 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
-// https://github.com/microsoft/vscode-dev-containers/tree/v0.209.6/containers/java
+// For format details, see https://aka.ms/devcontainer.json. For the image, see:
+// https://github.com/devcontainers/images/tree/main/src/java
 {
   "name": "Taurus",
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
-      // Update the VARIANT arg to pick a Java version: 17, 19
-      // Append -bullseye or -buster to pin to an OS version.
-      // Use the -bullseye variants on local arm64/Apple Silicon.
-      "VARIANT": "17-bullseye",
+      // Java 25, the backend's version, on Debian 13: 25-trixie or 25-bookworm.
+      "VARIANT": "25-trixie",
       // Options
       // maven and gradle wrappers are used by default, we don't need them installed globally
       // "INSTALL_MAVEN": "true",
       // "INSTALL_GRADLE": "false",
-      "NODE_VERSION": "22.11.0"
+      "NODE_VERSION": "26"
     }
   },
 
@@ -37,8 +35,9 @@
 
   // Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
   "remoteUser": "vscode",
+  // Docker inside the container, for Testcontainers and services.yml: the two old features
+  // (docker-in-docker and docker-from-docker) cannot be installed together.
   "features": {
-    "docker-in-docker": "latest",
-    "docker-from-docker": "latest"
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   }
 }
