@@ -30,7 +30,9 @@ onnxruntime==1.31.1
 opencv-python-headless==4.14.0.94
 opentelemetry-api==1.45.2
 packaging==26.3
-pillow==12.3.0
+# homr 0.7.0 declares Pillow<13, but Pillow 13 fixes 28 vulnerabilities and changes none of the functions homr uses:
+# the Dockerfile installs this file with --no-deps and accepts only that conflict in pip check.
+pillow==13.0.0
 protobuf==7.36.2
 pyclipper==1.4.0
 pydantic==2.14.2

@@ -11,6 +11,6 @@ Il servizio esegue i motori come programmi separati e non modificati. I sorgenti
 | Dati Tesseract (`eng`, `ita`) | 4.1.0 | Apache-2.0 | https://github.com/tesseract-ocr/tessdata/tree/4.1.0 | lettura dei testi in Audiveris |
 | music21 | 10.5.2 | BSD-3-Clause | https://github.com/cuthbertLab/music21 | conversione MIDI → MusicXML |
 | FastAPI, Starlette, Uvicorn | vedi `requirements.txt` | MIT, BSD-3-Clause | https://github.com/fastapi/fastapi | API HTTP |
-| Pillow | 12.3.0 | MIT-CMU | https://github.com/python-pillow/Pillow | lettura delle immagini |
+| Pillow | 13.0.0 | MIT-CMU | https://github.com/python-pillow/Pillow | lettura delle immagini |
 
 Le versioni esatte di tutte le dipendenze Python sono in `requirements.txt`; le impronte SHA-256 di modelli e dati sono in `models.sha256` e quella del pacchetto Audiveris nel `Dockerfile`.
