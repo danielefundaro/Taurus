@@ -13,6 +13,8 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 Bozza del 2026-11-02, approvata il 2026-11-06 con tutte le scelte di [Decisioni](#decisioni). Le versioni obiettivo sono le ultime stabili a quella data, lette dai registri ufficiali (Maven Central, npm, PyPI, GitHub, endoflife.date).
 
+Applicata dalla fase 0 alla fase 8, l'ultima verificata il 2026-11-10 (vedi [Esito della fase 8](#esito-della-fase-8)). Le versioni rimaste indietro sono in [Eccezioni](#eccezioni-alla-versione-più-recente); da qui in avanti gli aggiornamenti arrivano da Dependabot (decisione 7).
+
 ## Problema
 
 - **CI bloccata.** Trivy segnala 9 vulnerabilità nel backend, 38 nel frontend, 14 nel sito informativo e 29 nel servizio OMR, di cui 8 `CRITICAL`. Fra queste: un'esecuzione di codice remoto in Astro, un aggiramento dell'autenticazione degli endpoint Actuator di Spring Boot, vulnerabilità XSS nel compilatore di Angular e certificati compromessi in `certifi`.
@@ -248,6 +250,8 @@ Le fasi maggiori richiedono settimane. Nel frattempo la fase 0 sblocca la pipeli
 
 Le voci di `.trivyignore.yaml` vengono tolte dalla fase che risolve la vulnerabilità.
 
+Dopo l'aggiornamento il file resta, senza voci, con le stesse regole. Una voce nuova serve solo quando la correzione non si può applicare subito: ha il motivo, l'aggiornamento che la toglierà e una scadenza di al massimo 60 giorni, e la pull request di quell'aggiornamento la toglie.
+
 ## Eccezioni alla versione più recente
 
 | Componente | Versione scelta | Più recente | Motivo |
@@ -261,7 +265,7 @@ Le voci di `.trivyignore.yaml` vengono tolte dalla fase che risolve la vulnerabi
 | Java del provider Keycloak | 21, quella dell'immagine di Keycloak 26.8.2 | 25 | il provider gira nella JVM di Keycloak |
 | Prometheus | 3.13 LTS | 3.15 | la 3.15 esce dal supporto il 06/11/2026; la LTS è supportata fino a luglio 2027 |
 | Karma | 6.4 | — | deprecato senza successore diretto: decisione 6 |
-| Jasmine nei test del frontend | 4.6.1 durante i test; 6.3 nel `package.json` | 7.0 | karma-jasmine 5.1.0, ultima versione, dipende da `jasmine-core` ^4.1 e carica la propria copia, la 4.6.1; quella del `package.json` serve a `karma-jasmine-html-reporter`. Forzando la versione con `overrides`, Jasmine 7 non parte con la patch di zone.js (`Cannot assign to read only property 'describe'`) e Jasmine 6 ferma la suite dopo 112 test, su una promise rifiutata senza gestione. Si risolve con la migrazione a Vitest della decisione 6 |
+| Jasmine nei test del frontend | 4.6.1 durante i test; 6.3 nel `package.json` | 7.0 | karma-jasmine 5.1.0, ultima versione, dipende da `jasmine-core` ^4.1 e carica la propria copia, la 4.6.1; quella del `package.json` serve a `karma-jasmine-html-reporter`. Forzando la versione con `overrides`, Jasmine 7 non parte con la patch di zone.js (`Cannot assign to read only property 'describe'`) e Jasmine 6 ferma la suite dopo 112 test, su una promise rifiutata senza gestione. Dependabot esclude dalla 7 `jasmine-core` e `@types/jasmine`, che restano alla 6. Si risolve con la migrazione a Vitest della decisione 6 |
 
 ## Fasi
 
@@ -555,6 +559,44 @@ Applicato e verificato il 2026-11-10 sul ramo `upgrade-omr-pillow-13`, che parte
 - **Vulnerabilità.** Trivy 0.76.2 come nella CI non trova vulnerabilità nel servizio OMR. Escono da `.trivyignore.yaml` le 28 voci di Pillow, e il file resta senza voci.
 - **Quando si ricontrolla.** A ogni versione nuova di homr. Il filtro di `pip check` nomina la 0.7.0: una versione nuova che dichiari ancora `Pillow<13` ferma la build, e la prova si ripete. Quando homr accetta Pillow 13, il Dockerfile torna a installare con le dipendenze ed escono il filtro e il commento in `requirements.txt`.
 
+### Esito della fase 8
+
+Applicata e verificata il 2026-11-10 sul ramo `upgrade-phase-8`, che parte da `3524479`. La fase chiude l'aggiornamento.
+
+- **`.trivyignore.yaml`.** Il file resta senza voci, e le regole dell'intestazione valgono anche dopo l'aggiornamento (decisione 13). Una voce entra solo quando la correzione non si può applicare subito: ha il motivo, l'aggiornamento che la toglierà e una scadenza di al massimo 60 giorni. Il commento del job `security` in `verify.yml` e il Runbook di test (§8.7) dicono lo stesso.
+- **Dependabot.**
+  - Esclude dalla 7 `jasmine-core` e `@types/jasmine`, come chiedono le [Eccezioni](#eccezioni-alla-versione-più-recente). La regola chiude la [#156](https://github.com/danielefundaro/Taurus/pull/156) e la [#173](https://github.com/danielefundaro/Taurus/pull/173).
+  - I commenti non citano più le fasi.
+- **Aggiornamenti fermi.** Il controllo del primo criterio di accettazione ne ha trovati tre che Dependabot non riusciva a portare.
+  - *Frontend.* La [#172](https://github.com/danielefundaro/Taurus/pull/172), con Angular 21.2.26 e Tailwind 4.3.4, si fermava su `npm ci`. `@angular/platform-browser-dynamic`, deprecato da Angular e non usato dal codice, restava alla 21.2.25, che chiede esattamente `@angular/core` 21.2.25. Dependabot non propone versioni deprecate, quindi ogni patch di Angular si sarebbe fermata allo stesso modo. Il pacchetto esce dal `package.json`. Il lockfile porta Angular 21.2.26, Tailwind 4.3.4 e lightningcss 1.33.0, e nient'altro cambia.
+  - *Servizio OMR.* La [#164](https://github.com/danielefundaro/Taurus/pull/164), python-dateutil 4.0.0, falliva nella build dell'immagine sulla sua base, `078141a`. Sul `main` di oggi l'immagine si costruisce: python-dateutil 4 chiede solo `tzdata`, già fissato, e matplotlib, l'unico pacchetto che lo usa, chiede `>=2.7`. Insieme arriva pip 26.3 nel Dockerfile, che Dependabot non legge.
+  - *Strumenti npm del backend.* Erano fermi a generator-jhipster 9.0.0, Prettier 3.3.3 e lint-staged 15: la [#126](https://github.com/danielefundaro/Taurus/pull/126) e le maggiori [#127](https://github.com/danielefundaro/Taurus/pull/127) e [#128](https://github.com/danielefundaro/Taurus/pull/128).
+    - Ora generator-jhipster 9.4.0, come JHipster nel backend, husky 9.1.7, Prettier 3.9.10, prettier-plugin-java 2.11.0, lint-staged 17.6.0 e prettier-plugin-packagejson 3.1.0. `engines` chiede Node `^22.22.1 || >=24.11.0`, come lint-staged 17 e generator-jhipster 9.4.
+    - Maven e la CI non li usano: servono all'hook di pre-commit e agli script `prettier:*`. Per questo `./mvnw verify` non è stato ripetuto in locale; lo esegue la CI.
+    - `npm audit` scende da 56 avvisi, 3 critici e 19 alti, a 38, 2 critici e 2 alti. Quelli critici e alti vengono tutti da simple-git 3.36.0, che generator-jhipster 9.4.0, ultima versione, fissa esattamente: la correzione è solo nella 4. Il generatore si lancia solo a mano, e Trivy non legge le dipendenze di sviluppo.
+- **Componenti che Dependabot non legge.** Sono tutti all'ultima versione stabile, tranne pip, aggiornato qui:
+  - gitleaks 8.30.1, semgrep 1.183.0 e Trivy 0.76.2 della CI;
+  - Audiveris 5.11.0, homr 0.7.0, RapidOCR 3.10.0 e i dati Tesseract 4.1.0 del servizio OMR;
+  - Maven 3.10.0 e pnpm 12.17.0;
+  - le immagini dei compose di sviluppo.
+
+  semgrep 1.184.0, Mailpit 1.33.1, SonarQube 26.11 e pnpm 12.18.0 sono usciti da meno di sette giorni (decisione 7).
+- **Pull request di Dependabot rimaste.**
+  - La [#165](https://github.com/danielefundaro/Taurus/pull/165) (anyio), la [#168](https://github.com/danielefundaro/Taurus/pull/168) (Tailwind del sito) e la [#169](https://github.com/danielefundaro/Taurus/pull/169) (Maven del backend) hanno la CI verde e si uniscono come sempre.
+  - La [#143](https://github.com/danielefundaro/Taurus/pull/143) e la [#119](https://github.com/danielefundaro/Taurus/pull/119) sono superate: POI 6.0.0 e Angular 21 sono già su `main`.
+  - Le altre, che questa fase contiene o esclude, Dependabot le chiude da sé dopo il merge.
+- **Criteri di accettazione.**
+
+| Criterio | Esito |
+| --- | --- |
+| Ogni componente all'ultima versione stabile o nelle Eccezioni | sì, con questa fase e le tre pull request di Dependabot con la CI verde |
+| Nessun componente fuori supporto | sì. Secondo endoflife.date: Java 25 fino al 2031, Node 26 LTS fino ad aprile 2029, Spring Boot 4.1 fino a luglio 2027, Angular 21 fino a giugno 2027, PostgreSQL 18 fino a novembre 2030, RabbitMQ 4.4 fino a luglio 2027, Python 3.12 fino a ottobre 2028, Ubuntu 24.04 fino a maggio 2029, Prometheus 3.13 LTS e Grafana 13.3 fino a luglio 2027. Keycloak 26.8, nginx 1.30 e Tailwind 4.3 sono le linee correnti. Karma, deprecato, è nelle Eccezioni (decisione 6) |
+| Il job `security` passa con `.trivyignore.yaml` vuoto | sì: CI della #171 e di `main` sul merge `3524479`, e Trivy in locale con le modifiche di questa fase |
+| Verifiche di tutti i moduli e suite end to end; soglie di copertura | CI di `main` verde in tutti gli otto job; i tre moduli toccati qui sono verificati in locale, con le soglie rispettate. La suite end to end è stata eseguita per intero nella fase 5, il 2026-11-08, e poi corretta nella prova instabile. Da allora il frontend è cambiato solo nel `Dockerfile` e in `nginx.conf.template`, provati con l'immagine nella fase 7, e nelle patch di questa fase: la suite non è stata ripetuta |
+| Azioni GitHub fissate per SHA; Dependabot attivo | sì: i 55 riferimenti `uses:` dei tre workflow sono tutti per SHA; Dependabot ha 13 blocchi settimanali e apre le pull request ogni lunedì |
+| Frontend e sito informativo senza root | sì, dalla fase 7 |
+| Runbook operativo: PostgreSQL, RabbitMQ e Keycloak, con il ritorno indietro | sì: §8.5 Keycloak, §8.6 PostgreSQL, §8.7 RabbitMQ e §5.5 per i servizi di sviluppo |
+
 ### Stato dei lavori
 
 Fase 0 verificata e committata il 2026-11-06 sul ramo `update-versions`, che parte da `84ae3b8`. I commit sono sei, uno per modulo e due per il backend:
@@ -662,6 +704,16 @@ Pillow 13 verificato il 2026-11-10 sul ramo `upgrade-omr-pillow-13`, che parte d
 
 - `Update Pillow to 13 in the OMR service`: requisiti, `pyproject.toml`, `Dockerfile` e `THIRD_PARTY_NOTICES.md` del servizio OMR;
 - `Record Pillow 13 in the OMR service`: `.trivyignore.yaml`, `.github/dependabot.yml`, questa specifica e il catalogo.
+
+La pull request è la [#171](https://github.com/danielefundaro/Taurus/pull/171), unita su `main` il 2026-11-10 con il merge `3524479`. La CI è passata in tutti gli otto job, sulla pull request e su `main`: il job `security` passa con `.trivyignore.yaml` senza voci.
+
+Fase 8 verificata il 2026-11-10 sul ramo `upgrade-phase-8`, che parte da `3524479` (vedi [Esito della fase 8](#esito-della-fase-8)). I commit sono cinque:
+
+- `Update Angular and Tailwind in the frontend`: `package.json` e lockfile del frontend, senza `@angular/platform-browser-dynamic`;
+- `Update python-dateutil and pip in the OMR service`: i requisiti e il `Dockerfile` del servizio OMR;
+- `Update the backend npm tools`: `package.json` e lockfile del backend;
+- `Keep the Trivy and Dependabot rules after the platform upgrade`: `.trivyignore.yaml`, `.github/dependabot.yml` e il job `security` di `verify.yml`;
+- `Record phase 8 of the platform upgrade`: il Runbook di test, questa specifica e il catalogo.
 
 #### Verifiche eseguite
 
@@ -795,6 +847,22 @@ Pillow 13 verificato il 2026-11-10 sul ramo `upgrade-omr-pillow-13`, che parte d
 | Repository | Trivy 0.76.2 come nella CI sul servizio OMR, senza `.trivyignore.yaml` | nessuna vulnerabilità |
 | Repository | Trivy 0.76.2 come nella CI su tutto il repository, con `.trivyignore.yaml` senza voci | nessuna segnalazione, codice di uscita 0 |
 | Repository | i controlli del job `documentation` con Pillow 13, Node 26.13.0 | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento; moduli coinvolti: tutti e cinque |
+| Tutti | CI della #171 e di `main` sul merge `3524479` | otto job su otto superati in entrambe, compreso `security` con `.trivyignore.yaml` senza voci |
+| Repository | `.github/dependabot.yml` della fase 8, contro lo schema di SchemaStore con ajv 8.18.0 | valido; il blocco npm del frontend ignora anche `jasmine-core` e `@types/jasmine` dalla 7 |
+| Repository | riferimenti `uses:` dei tre workflow | 55, tutti fissati per SHA del commit |
+| Repository | ultime versioni su GitHub, PyPI, npm, Docker Hub e Maven Central dei componenti che Dependabot non legge | tutti all'ultima versione stabile tranne pip 26.2.2, la 26.3 è del 2026-11-02; più recenti, ma da meno di sette giorni: semgrep 1.184.0, Mailpit 1.33.1, SonarQube 26.11, pnpm 12.18.0 |
+| Repository | date di fine supporto su endoflife.date | nessun componente fuori supporto; la prima scadenza è Angular 21, a giugno 2027 |
+| Servizio OMR | CI della #164 | fallita sulla build dell'immagine, sulla base `078141a`; test e Trivy superati |
+| Servizio OMR | `python -m pytest` in `python:3.12-slim` con python-dateutil 4.0.0 | 71 superati, 6 saltati: i test di accuratezza; `pip check` senza conflitti |
+| Servizio OMR | `docker build` con pip 26.3 e python-dateutil 4.0.0, e `tests/test_accuracy.py` sull'immagine con le restrizioni di `omr.yml` | build riuscita; nell'immagine pip 26.3, python-dateutil 4.0.0 e tzdata 2026.6, `pip check` con la sola riga di homr su Pillow; 6 test su 6 in 5 minuti, con gli stessi numeri della fase 2 |
+| Frontend | CI della #172 | fallita su `npm ci`: `@angular/platform-browser-dynamic` 21.2.25 chiede `@angular/core` 21.2.25 |
+| Frontend | lockfile senza `@angular/platform-browser-dynamic`, risolto con `npm install --before=2026-11-03T23:59:59Z` dopo aver tolto le voci con il nome esatto dei pacchetti aggiornati | Angular 21.2.26, Tailwind 4.3.4 e lightningcss 1.33.0; nessun'altra versione cambia; `npm audit` uguale a prima, 18 avvisi moderati |
+| Frontend | `npm install`, `npm ls --all`, `npm run check:tour-anchors`, `npm run test:coverage`, `npm run build` con Node 26.13.0 | lockfile invariato dall'installazione; 757 test su 757, copertura sopra la baseline (statements 64,62%, branches 54,54%, lines 66,67%); build riuscita con i due soliti avvisi di budget CSS |
+| Backend | `npm install` degli strumenti nuovi con Node 26.13.0, `lint-staged --version`, `jhipster --version`, `lint-staged --debug` senza file in stage | installati; lint-staged 17.6.0 e generator-jhipster 9.4.0; lint-staged carica `.lintstagedrc.cjs` |
+| Backend | `prettier --end-of-line auto --check` sui file degli script `prettier:*`, con gli strumenti vecchi e con i nuovi | nessun errore dei plugin; file non formattati 865 con i vecchi e 872 con i nuovi: il codice non è tenuto formattato con Prettier e nessun controllo lo chiede |
+| Backend | `npm audit --package-lock-only` prima e dopo | da 56 avvisi (3 critici, 19 alti) a 38 (2 critici, 2 alti), tutti da simple-git 3.36.0 fissato da generator-jhipster 9.4.0 |
+| Repository | Trivy 0.76.2 come nella CI su tutto il repository, con le modifiche della fase 8 | nessuna segnalazione, codice di uscita 0 |
+| Repository | i controlli del job `documentation` con la fase 8, Node 26.13.0 | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento; moduli coinvolti: tutti e cinque |
 
 Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta. Dopo il merge di `fix-a11y-defects` non sono stati ripetuti né axe né la suite end to end: le due correzioni sono state verificate con axe sul loro ramo, con PrimeNG 19.0.10, e sul ramo unito le coprono i test unitari.
 
@@ -882,7 +950,8 @@ Risolto il 2026-11-06.
 - `.github/workflows/*.yml`: azioni alle nuove versioni maggiori, fissate per SHA come già dalla fase 0; Trivy con `version` esplicita e le dipendenze Maven risolte prima della scansione; gitleaks e semgrep aggiornati. Fatto nella fase 1. Java 25 nei job `backend` e `security` è arrivato con la fase 4a; Node 26 è arrivato con le fasi 5 e 6: dalla 6 lo usano tutti i job, e il job `info-site` prende la versione di pnpm da `packageManager`.
 - `.github/dependabot.yml`: nuovo (decisione 7), nella fase 1. Nella fase 5 ignora anche le maggiori di `@primeuix/themes` e PrimeIcons (decisione 5).
 - `.gitleaks.toml`: due test del backend nell'allowlist, falsi positivi di gitleaks 8.30 (fase 1).
-- `.trivyignore.yaml`: nuovo nella fase 0, vuoto alla fine della fase 8.
+- `.trivyignore.yaml`: nuovo nella fase 0, senza voci da Pillow 13. Nella fase 8 le regole dell'intestazione diventano permanenti (decisione 13).
+- `.github/dependabot.yml`: nella fase 8 esclude Jasmine 7 e i suoi tipi (Eccezioni), e i commenti non citano più le fasi.
 - `AGENTS.md` e `README.md`: Java 25, Node.js 26, pnpm 12, Angular 21.
 
 ### Backend
@@ -891,7 +960,7 @@ Risolto il 2026-11-06.
 - Codice: Jackson 3, Hibernate 7, Spring Security 7, Testcontainers 2 e le API rimosse in Spring Boot 4, guidate dalle note di migrazione ufficiali e da OpenRewrite dove disponibile.
 - `Dockerfile`: immagini Temurin 25 e `--no-install-recommends`.
 - Configurazione: proprietà rinominate da Spring Boot 4, segnalate all'avvio da `spring-boot-properties-migrator`, che si toglie a fine fase.
-- Fatto nella fase 4a: Spring Boot 3.5.16, JHipster 8.12, librerie e plugin, `java.version` 25, rimozione di Spring Cloud, immagini Temurin 25 di Jib e del `Dockerfile`, API deprecate. Fatto nella fase 4b: Spring Boot 4.0 e 4.1 con JHipster 9.4, il codice e la configurazione, Undertow, gli starter rinominati, `liquibase-hibernate7` e le API deprecate di Spring Boot 4, tranne `@Temporal` su due campi `java.util.Date`.
+- Fatto nella fase 4a: Spring Boot 3.5.16, JHipster 8.12, librerie e plugin, `java.version` 25, rimozione di Spring Cloud, immagini Temurin 25 di Jib e del `Dockerfile`, API deprecate. Fatto nella fase 4b: Spring Boot 4.0 e 4.1 con JHipster 9.4, il codice e la configurazione, Undertow, gli starter rinominati, `liquibase-hibernate7` e le API deprecate di Spring Boot 4, tranne `@Temporal` su due campi `java.util.Date`. Fatto nella fase 8: gli strumenti npm del `package.json`, con generator-jhipster 9.4.0.
 
 ### Frontend
 
@@ -901,6 +970,7 @@ Risolto il 2026-11-06.
 - `Dockerfile`: `node:26-alpine` e nginx senza root sulla porta 8080.
 - `docs/llms-full.md` rigenerato per PrimeNG 21.
 - Fatto nella fase 7: nginx 1.30 senza privilegi sulla porta 8080 e la porta pubblica inoltrata a Keycloak (vedi [Esito della fase 7](#esito-della-fase-7)).
+- Fatto nella fase 8: Angular 21.2.26 e Tailwind 4.3.4; esce `@angular/platform-browser-dynamic`, deprecato e non usato.
 - Fatto nella fase 5: Angular 21 e PrimeNG 21, le API deprecate, Tailwind 4, le librerie, la direttiva dei ToggleButton, Node 26 nel `Dockerfile` e nella CI, le correzioni trovate dalla suite end to end e `docs/llms-full.md` di PrimeNG 21 (vedi [Avanzamento della fase 5](#avanzamento-della-fase-5)).
 
 ### Sito informativo
@@ -912,6 +982,7 @@ Risolto il 2026-11-06.
 ### Servizio OMR
 
 - `requirements.txt`, `requirements-test.txt`, `requirements-accuracy.txt` aggiornati insieme, come chiede l'intestazione del file; `models.sha256` invariato salvo nuovi modelli di homr.
+- Fatto nella fase 8: python-dateutil 4.0.0 e pip 26.3 nel `Dockerfile`.
 - Pillow 13.0.0 nonostante il limite `<13` di homr 0.7.0: il `Dockerfile` installa `requirements.txt` con `--no-deps` e accetta in `pip check` solo quel conflitto (vedi [Pillow 13 nel servizio OMR](#pillow-13-nel-servizio-omr)).
 
 ### Provider Keycloak
@@ -962,6 +1033,8 @@ Ogni fase esegue le verifiche complete del suo modulo, come in `AGENTS.md`:
 - Riconoscimento di una parte e lettura del testo con il servizio OMR aggiornato.
 
 ## Criteri di accettazione
+
+Verificati il 2026-11-10 nella fase 8: vedi [Esito della fase 8](#esito-della-fase-8).
 
 - Ogni componente dell'inventario è all'ultima versione stabile del momento dell'implementazione o è elencato in [Eccezioni](#eccezioni-alla-versione-più-recente).
 - Nessun componente in uso è fuori supporto.
