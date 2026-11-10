@@ -42,7 +42,13 @@ RUN apt-get update \
 COPY requirements.txt models.sha256 /opt/taurus-omr/
 RUN python3 -m venv /opt/venv \
     && pip install --no-cache-dir --upgrade "pip==26.2.2" \
-    && pip install --no-cache-dir -r /opt/taurus-omr/requirements.txt \
+    # requirements.txt pins every package, so nothing is resolved here. --no-deps lets Pillow 13 in although homr
+    # 0.7.0 declares Pillow<13 (see requirements.txt); pip check must report that conflict and nothing else.
+    && pip install --no-cache-dir --no-deps -r /opt/taurus-omr/requirements.txt \
+    && if ! pip check > /tmp/pip-check.txt; then \
+        ! grep -v -i '^homr 0\.7\.0 has requirement pillow<13' /tmp/pip-check.txt; \
+    fi \
+    && rm -f /tmp/pip-check.txt \
     && homr --init \
     && sha256sum -c /opt/taurus-omr/models.sha256 \
     && apt-get purge -y --auto-remove curl \

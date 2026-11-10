@@ -231,9 +231,8 @@ updates:
       default-days: 7
     ignore:
       # I limiti che homr 0.7.0 dichiara sulle librerie fissate qui (decisione 9 ed Eccezioni).
-      # Dependabot non li ricava da solo: legge i file fissati, non le dipendenze di homr.
-      - dependency-name: pillow
-        versions: ['>=13']
+      # Dependabot non li ricava da solo: legge i file fissati, non le dipendenze di homr. Pillow non
+      # c'è: la 13 è installata nonostante il limite `<13` di homr (vedi requirements.txt).
       - dependency-name: opencv-python-headless
         versions: ['>=5']
       - dependency-name: musicxml

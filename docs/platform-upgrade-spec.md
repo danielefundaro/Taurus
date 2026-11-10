@@ -105,7 +105,7 @@ Inventario del 02/11/2026. «Salto» indica il tipo di aggiornamento: patch e mi
 
 | Componente | Attuale | Obiettivo | Salto | Note |
 | --- | --- | --- | --- | --- |
-| Pillow | 12.3.0 | 13.0.x | maggiore | 28 CVE, 5 `CRITICAL`; homr 0.7.0 richiede `Pillow<13`: [Eccezioni](#eccezioni-alla-versione-più-recente) |
+| Pillow | 12.3.0 | 13.0.x | maggiore | 28 CVE, 5 `CRITICAL`; homr 0.7.0 dichiara `Pillow<13`: [Pillow 13 nel servizio OMR](#pillow-13-nel-servizio-omr) |
 | certifi | 2026.7.22 | 2026.10.x | — | radici emSign compromesse (`CRITICAL`) |
 | FastAPI, Starlette, Pydantic, python-multipart, ONNX Runtime | varie | ultime | minor | |
 | opencv-python-headless | 4.14 | 5.0 | maggiore | solo se homr lo accetta: decisione 9 |
@@ -224,6 +224,8 @@ Frontend e sito informativo usano la linea stabile di nginx (le versioni pari, o
 
 Audiveris 5.11.0, ultima versione, pubblica pacchetti solo per Ubuntu 22.04 e 24.04. Il servizio resta quindi su Ubuntu 24.04 e sul suo Python 3.12, supportato per la sicurezza fino al 2028. Tutte le librerie Python salgono all'ultima versione che homr 0.7.0 accetta. Se homr limita una maggiore, come OpenCV 5 o music21 10, resta la versione più recente ammessa e la si elenca in [Eccezioni](#eccezioni-alla-versione-più-recente). Il passaggio a Ubuntu 26.04 si fa quando esce il pacchetto di Audiveris. Prima del rilascio servono i test di accuratezza sul corpus in `accuracy/`.
 
+Pillow fa eccezione, deciso il 2026-11-10: la 13 corregge 28 vulnerabilità e non cambia le funzioni che homr usa. Si installa quindi nonostante il limite `<13` di homr 0.7.0, con i test di accuratezza a garanzia (vedi [Pillow 13 nel servizio OMR](#pillow-13-nel-servizio-omr)).
+
 ### 10. PostgreSQL 18 con dump e ripristino
 
 Il passaggio da 17 a 18 è una maggiore: i file dei dati non sono compatibili. La procedura è un `pg_dumpall` dal 17 e un ripristino nel 18, con il backend e Keycloak fermi. È più lenta di `pg_upgrade`, ma è la stessa per ogni installazione e non richiede entrambe le versioni nello stesso container. L'immagine `postgres:18` cambia anche il punto di montaggio del volume, da `/var/lib/postgresql/data` a `/var/lib/postgresql`: il compose va adattato. La procedura e il ritorno indietro vanno nel runbook operativo. Gli ambienti di sviluppo possono ricreare il volume.
@@ -254,7 +256,6 @@ Le voci di `.trivyignore.yaml` vengono tolte dalla fase che risolve la vulnerabi
 | Angular, CLI e CDK; keycloak-angular | 21.2; 21.0 | 22.2; 22.0 | PrimeNG 21 chiede Angular 21. Angular 21 è in LTS fino a giugno 2027. Si aggiornano nell'evolutiva successiva della decisione 5 |
 | PrimeNG, `@primeuix/themes`, PrimeIcons | 21.1.10, 2.0.3, 7.0.0 | 22.1.4, 3.1.0, 8.0.2 | dalla 22 PrimeUI License. Dopo la 21.1.10 non sono uscite versioni gratuite di PrimeNG 21. Si aggiornano nell'evolutiva successiva della decisione 5 |
 | Python e Ubuntu del servizio OMR | 3.12 / 24.04 | 3.15 / 26.04 | Audiveris non ha pacchetti per Ubuntu 26.04 |
-| Pillow del servizio OMR | 12.3.0 | 13.0.0 | homr 0.7.0, ultima versione, richiede `Pillow<13`; le 28 CVE corrette solo dalla 13 restano in `.trivyignore.yaml` finché homr non accetta la 13 |
 | opencv-python-headless del servizio OMR | 4.14.0.94 | 5.0.0.93 | homr 0.7.0 richiede `<5`: decisione 9 |
 | musicxml del servizio OMR | 1.4 | 1.6.3 | homr 0.7.0 richiede `==1.4`: decisione 9 |
 | Java del provider Keycloak | 21, quella dell'immagine di Keycloak 26.8.2 | 25 | il provider gira nella JVM di Keycloak |
@@ -288,7 +289,7 @@ Applicata e verificata il 2026-11-06 sul ramo `update-versions`; i commit per mo
 - Backend: pgjdbc 42.7.14, amqp-client 5.37.1, commons-beanutils 1.11.0 e `--no-install-recommends` nel Dockerfile. Resta la CVE di Actuator, corretta da Spring Boot 3.5.12 (fase 4). Nei test, la cache dei contesti di Spring è limitata a 8: senza limite gli IT esaurivano l'heap, un difetto già presente prima della fase 0 (vedi [Memoria esaurita negli IT del backend](#memoria-esaurita-negli-it-del-backend)).
 - Frontend: Angular 19.2.25 e strumenti di build 19.2.27, ultime della 19, che correggono 9 delle 18 segnalazioni di Angular; PrimeNG e `@primeng/themes` 19.1.4; postcss 8.5 e le dipendenze transitive del lockfile. Restano le altre 9 di Angular, corrette solo dalla 20.3, e quella di `ngx-extended-pdf-viewer` (fase 5). Il lockfile porta anche Playwright 1.65 ed ESLint 9.39, dentro gli intervalli del `package.json`: i browser di Playwright vanno reinstallati. In PrimeNG 19.1 ToggleButton ha perso il ruolo di pulsante, che `ToggleButtonRoleDirective` gli restituisce (vedi [Suite end to end](#suite-end-to-end)).
 - Sito informativo: devalue, js-yaml, source-map-js, svgo e vite alle versioni corrette. Restano Astro e sharp 0.34, l'ultima linea che Astro 5 accetta (fase 6).
-- Servizio OMR: certifi 2026.10.23. Pillow resta alla 12.3.0 per il vincolo di homr (vedi [Eccezioni](#eccezioni-alla-versione-più-recente)).
+- Servizio OMR: certifi 2026.10.23. Pillow resta alla 12.3.0 per il vincolo di homr (vedi [Pillow 13 nel servizio OMR](#pillow-13-nel-servizio-omr)).
 - Dockerfile: restano le immagini nginx e il dev container che girano come root (fase 7).
 - CI: le sette azioni GitHub che usavano un tag (`actions/checkout`, `setup-node`, `setup-java`, `setup-python`, `upload-artifact`, `attest-build-provenance` e `pnpm/action-setup`, 29 riferimenti) sono fissate per SHA del commit a cui portava il loro tag maggiore, con la versione in commento: nessuna versione cambia. Le segnalava semgrep (vedi [Stato dei lavori](#stato-dei-lavori)).
 
@@ -533,7 +534,26 @@ Applicata e verificata il 2026-11-10 sul ramo `upgrade-phase-7`, che parte da `9
   - SonarQube 26.10 non è stato avviato: cambia solo il tag.
 - **JHipster Control Center.** `jhipster-control-center.yml` è tolto (decisione 12). Nel realm di sviluppo resta il client `taurus-control-center`, che serviva solo a lui: toglierlo è un cambio del realm, da fare a parte.
 - **Dev container.** L'immagine `devcontainers/java:3-25-trixie` ha l'utente `vscode`, che `USER` rende esplicito nel Dockerfile. Le due feature di prima, `docker-in-docker` e `docker-from-docker`, non si possono installare insieme: resta `ghcr.io/devcontainers/features/docker-in-docker:2`. La build con Docker dà l'utente `vscode`, OpenJDK 25.0.5 di Microsoft, Node 26.13.0 e npm 11.20.0. La feature si installa solo con la CLI dei dev container o con un editor, e non è stata provata.
-- **Vulnerabilità.** Trivy 0.76.2 come nella CI, senza le due voci DS-0002, non segnala configurazioni in nessuno dei cinque Dockerfile: le voci escono da `.trivyignore.yaml`. Restano le 28 voci di Pillow della fase 2.
+- **Vulnerabilità.** Trivy 0.76.2 come nella CI, senza le due voci DS-0002, non segnala configurazioni in nessuno dei cinque Dockerfile: le voci escono da `.trivyignore.yaml`. Restano le 28 voci di Pillow della fase 2, tolte poi con [Pillow 13 nel servizio OMR](#pillow-13-nel-servizio-omr).
+
+### Pillow 13 nel servizio OMR
+
+Applicato e verificato il 2026-11-10 sul ramo `upgrade-omr-pillow-13`, che parte da `ec7297b`, prima di chiudere la fase 8. Le 28 vulnerabilità di Pillow 12.3.0 erano le ultime voci di `.trivyignore.yaml`. homr 0.7.0, ancora l'ultima versione, dichiara sempre `Pillow<13`: la prova è stata installare Pillow 13 nonostante il limite e misurare il riconoscimento sul corpus.
+
+- **Cosa usano di Pillow.**
+  - homr usa solo `Image.open`, `Image.fromarray` e il tipo `Image.Image`.
+  - RapidOCR usa `Image.open`, `new`, `fromarray` e `blend`, `ImageOps`, `ImageDraw` e `ImageFont`.
+  - Il servizio usa `Image.open`, `new`, `convert`, `split`, `alpha_composite` e `save`, con `MAX_IMAGE_PIXELS` e l'avviso e l'errore delle immagini troppo grandi.
+
+  Le note di rilascio della 13.0.0, del 2026-10-16, non cambiano nessuna di queste funzioni. Le modifiche incompatibili riguardano i PNG a 16 bit, i tag TIFF duplicati, le icone ICO, `ImageColor.getcolor()` e alcune API di `ImageCms` ed `ExifTags`. La 13 toglie Python 3.10 e pubblica i pacchetti per Python 3.12.
+- **Installazione.** Pillow 13.0.0 in `requirements.txt`, `requirements-test.txt`, `requirements-accuracy.txt` e `pyproject.toml`.
+  - Il resolver di pip rifiuta la 13 insieme a homr 0.7.0. Il Dockerfile installa quindi `requirements.txt` con `--no-deps`, possibile perché il file fissa già ogni pacchetto.
+  - Dopo l'installazione `pip check` deve segnalare il limite di homr 0.7.0 su Pillow e nient'altro: ogni altro conflitto, compreso un pacchetto mancante, ferma la build. Il filtro è stato provato a parte con un conflitto in più e con un limite su Pillow di un altro pacchetto.
+  - I test non installano homr: `requirements-test.txt` si installa come prima.
+- **Dependabot.** Esce la regola che escludeva Pillow 13. Le versioni nuove di Pillow arrivano come le altre librerie del servizio, e la CI le prova con i test di accuratezza sull'immagine costruita.
+- **Riconoscimento.** I test di accuratezza sull'immagine costruita, con le restrizioni di `omr.yml`, passano 6 su 6 in 4 minuti, con gli stessi numeri della fase 2: 132 battute su 151 con Audiveris (87%) e 124 con homr (82%), segni di struttura 15 e 6 su 26, nomi delle parti 6 su 6.
+- **Vulnerabilità.** Trivy 0.76.2 come nella CI non trova vulnerabilità nel servizio OMR. Escono da `.trivyignore.yaml` le 28 voci di Pillow, e il file resta senza voci.
+- **Quando si ricontrolla.** A ogni versione nuova di homr. Il filtro di `pip check` nomina la 0.7.0: una versione nuova che dichiari ancora `Pillow<13` ferma la build, e la prova si ripete. Quando homr accetta Pillow 13, il Dockerfile torna a installare con le dipendenze ed escono il filtro e il commento in `requirements.txt`.
 
 ### Stato dei lavori
 
@@ -635,6 +655,13 @@ Fase 7 verificata il 2026-11-10 sul ramo `upgrade-phase-7`, che parte da `98f2e8
 - `Test the provider e-mails with Mailpit 1.33`: l'IT delle e-mail del provider;
 - `Update PostgreSQL and RabbitMQ in the production manifest`: `deploy/compose.yml`, `.env.example` e README del deploy, `validate-deploy-manifest.sh` e `restore-test.sh`;
 - `Record phase 7 of the platform upgrade`: `.trivyignore.yaml`, il Runbook operativo, il Runbook di test, questa specifica e il catalogo.
+
+La pull request è la [#170](https://github.com/danielefundaro/Taurus/pull/170), unita su `main` il 2026-11-10 con il merge `ec7297b`. La fase 7 è chiusa.
+
+Pillow 13 verificato il 2026-11-10 sul ramo `upgrade-omr-pillow-13`, che parte da `ec7297b`, prima di chiudere la fase 8 (vedi [Pillow 13 nel servizio OMR](#pillow-13-nel-servizio-omr)). I commit sono due:
+
+- `Update Pillow to 13 in the OMR service`: requisiti, `pyproject.toml`, `Dockerfile` e `THIRD_PARTY_NOTICES.md` del servizio OMR;
+- `Record Pillow 13 in the OMR service`: `.trivyignore.yaml`, `.github/dependabot.yml`, questa specifica e il catalogo.
 
 #### Verifiche eseguite
 
@@ -760,6 +787,14 @@ Fase 7 verificata il 2026-11-10 sul ramo `upgrade-phase-7`, che parte da `98f2e8
 | Servizi | `scripts/ops/restore-test.sh` con PostgreSQL 18.6, contro un database sorgente di prova con due schemi e 240 migrazioni | ripristino verificato: schemi e migrazioni corrispondono all'origine |
 | Repository | Trivy 0.76.2 come nella CI, con `.trivyignore.yaml` senza le voci DS-0002 | nessuna segnalazione, codice di uscita 0 |
 | Repository | i controlli del job `documentation` con la fase 7, Node 26.13.0 | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento; moduli coinvolti: tutti e cinque |
+| Servizio OMR | `python -m pytest` in `python:3.12-slim` con Pillow 13.0.0 | 71 superati, 6 saltati: i test di accuratezza |
+| Servizio OMR | `pip install --dry-run -r requirements-accuracy.txt` in `python:3.12-slim` | dipendenze del rendering del corpus risolte con Pillow 13.0.0, senza conflitti |
+| Servizio OMR | `docker build` dell'immagine, con `--no-deps` e il filtro di `pip check` | riuscita in un minuto e mezzo; nell'immagine Pillow 13.0.0 e l'utente `omr`; `pip check` segnala solo il limite di homr su Pillow |
+| Servizio OMR | il filtro di `pip check` in `ubuntu:24.04`, con uscite di prova | passa con l'uscita vuota e con la sola riga di homr; fallisce con un conflitto in più e con un limite su Pillow di un altro pacchetto, e in una catena con `set -e` ferma la build mostrando la riga in più |
+| Servizio OMR | `tests/test_accuracy.py` sull'immagine con Pillow 13.0.0, con le restrizioni di `omr.yml` | 6 test su 6 in 4 minuti: 132 battute su 151 con Audiveris (87%) e 124 con homr (82%), segni di struttura 15 e 6 su 26, nomi delle parti 6 su 6, come nella fase 2 |
+| Repository | Trivy 0.76.2 come nella CI sul servizio OMR, senza `.trivyignore.yaml` | nessuna vulnerabilità |
+| Repository | Trivy 0.76.2 come nella CI su tutto il repository, con `.trivyignore.yaml` senza voci | nessuna segnalazione, codice di uscita 0 |
+| Repository | i controlli del job `documentation` con Pillow 13, Node 26.13.0 | superati: catalogo valido, 11 e 13 test superati, catalogo degli errori senza errori, `features.md` uguale a quello generato, nessun disallineamento; moduli coinvolti: tutti e cinque |
 
 Non ripetuta dopo la correzione: l'intera `npm run e2e`. La direttiva tocca solo attributi ARIA, e la suite di accessibilità è stata ripetuta. Dopo il merge di `fix-a11y-defects` non sono stati ripetuti né axe né la suite end to end: le due correzioni sono state verificate con axe sul loro ramo, con PrimeNG 19.0.10, e sul ramo unito le coprono i test unitari.
 
@@ -877,6 +912,7 @@ Risolto il 2026-11-06.
 ### Servizio OMR
 
 - `requirements.txt`, `requirements-test.txt`, `requirements-accuracy.txt` aggiornati insieme, come chiede l'intestazione del file; `models.sha256` invariato salvo nuovi modelli di homr.
+- Pillow 13.0.0 nonostante il limite `<13` di homr 0.7.0: il `Dockerfile` installa `requirements.txt` con `--no-deps` e accetta in `pip check` solo quel conflitto (vedi [Pillow 13 nel servizio OMR](#pillow-13-nel-servizio-omr)).
 
 ### Provider Keycloak
 
@@ -952,4 +988,5 @@ Ogni fase esegue le verifiche complete del suo modulo, come in `AGENTS.md`:
 - **Licenza di Liquibase 5.** Mitigazione: verifica prima della fase 4, con l'ultima 4.x come ripiego.
 - **Fine del supporto della linea 21.** Angular 21 riceve solo correzioni critiche e di sicurezza fino a giugno 2027, e dopo la 21.1.10 non sono uscite versioni gratuite di PrimeNG 21: un difetto o una vulnerabilità di PrimeNG va aggirato nell'applicazione, come con la direttiva dei ToggleButton, o corretto con una patch propria, che la licenza MIT permette. Mitigazione: l'evolutiva successiva della decisione 5, da fare prima di giugno 2027.
 - **Eccezioni che diventano permanenti.** Mitigazione: scadenza obbligatoria in `.trivyignore.yaml`.
+- **Pillow oltre il limite di homr.** homr non è provato dai suoi autori con Pillow 13, e con `--no-deps` pip non impedisce più una combinazione che homr non accetta. Mitigazione: i test di accuratezza della CI sull'immagine costruita, a ogni aggiornamento del servizio; il filtro di `pip check`, che ferma la build su ogni altro conflitto; il ricontrollo a ogni versione nuova di homr.
 - **Modifiche in corso su altri rami.** Una fase lunga entra in conflitto con le funzionalità sviluppate nel frattempo. Mitigazione: fasi piccole, rilasciate appena pronte, e Dependabot per non accumulare di nuovo ritardo.
