@@ -268,7 +268,7 @@ jobs:
           scanners: vuln,misconfig,secret
           severity: HIGH,CRITICAL
           ignore-unfixed: true
-          # Eccezioni a scadenza, ciascuna con la fase che la risolve: docs/platform-upgrade-spec.md, decisione 13.
+          # Eccezioni a scadenza, di norma nessuna: le regole sono nell'intestazione del file.
           trivyignores: .trivyignore.yaml
           # Esplicita: senza, l'azione usa la versione predefinita della sua release.
           version: v0.76.2

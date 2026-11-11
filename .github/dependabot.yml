@@ -44,9 +44,8 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      # Le maggiori di Spring Boot si fanno a mano, una per volta (decisione 2): prima la 3.5, poi la
-      # 4.0 e la 4.1. springdoc-openapi segue la maggiore di Spring Boot: la 3 è la linea per Spring
-      # Boot 4.
+      # Le maggiori di Spring Boot si fanno a mano, una per volta (decisione 2). springdoc-openapi
+      # segue la maggiore di Spring Boot: la 3 è la linea per Spring Boot 4.
       - dependency-name: 'org.springframework.boot:*'
         update-types: ['version-update:semver-major']
       - dependency-name: 'org.springdoc:*'
@@ -130,7 +129,7 @@ updates:
         update-types: ['version-update:semver-major']
       # Seguono Angular e PrimeNG e si aggiornano con loro: TypeScript (Angular 21 chiede `>=5.9 <6.0`,
       # come nelle Eccezioni), zone.js (Angular 21 chiede `~0.15.0 || ~0.16.0`) e
-      # tailwindcss-primeui (la 0.6 va con Tailwind 4 e i temi nuovi della fase 5). TypeScript non
+      # tailwindcss-primeui (la 0.6 va con Tailwind 4 e i temi di PrimeNG 21). TypeScript non
       # segue semver e nelle versioni 0.x la minor è una maggiore: restano solo le patch.
       - dependency-name: typescript
         update-types: ['version-update:semver-major', 'version-update:semver-minor']
@@ -138,6 +137,13 @@ updates:
         update-types: ['version-update:semver-major', 'version-update:semver-minor']
       - dependency-name: tailwindcss-primeui
         update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      # Jasmine resta alla 6, con i suoi tipi: la 7 non parte con la patch di zone.js e karma-jasmine
+      # 5.1 carica comunque la propria 4.6 (Eccezioni). Si tolgono con il passaggio a Vitest
+      # (decisione 6).
+      - dependency-name: jasmine-core
+        versions: ['>=7']
+      - dependency-name: '@types/jasmine'
+        versions: ['>=7']
     groups:
       frontend-npm-minor-patch:
         update-types: [minor, patch]
@@ -151,8 +157,8 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      # Solo Node LTS, cioè le maggiori pari: la 26 è l'obiettivo delle fasi 5 e 6. Le dispari non
-      # diventano mai LTS e la 24 è più vecchia dell'obiettivo. Escluderle serve anche per `cooldown`:
+      # Solo Node LTS, cioè le maggiori pari: oggi la 26. Le dispari non diventano mai LTS e la 24 è
+      # più vecchia di quella in uso. Escluderle serve anche per `cooldown`:
       # i tag delle LTS si ripubblicano spesso e restano in attesa, quelli delle dispari finite no.
       - dependency-name: node
         versions: ['>=23, <26', '>=27, <28']

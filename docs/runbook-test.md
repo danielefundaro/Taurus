@@ -401,7 +401,7 @@ Dependabot aggiorna le azioni GitHub, non le immagini lanciate con `docker run` 
 
 La ricerca dei segreti attraversa tutta la storia del repository. Le eccezioni vivono in `.gitleaks.toml` e sono soltanto valori di prova, di sviluppo e di documentazione: una credenziale vera non va aggiunta lì, va ruotata.
 
-Le vulnerabilità che Trivy ignora sono in `.trivyignore.yaml`, una per voce, con il file, il motivo, la fase dell'[aggiornamento della piattaforma](platform-upgrade-spec.md) che la risolve e una scadenza di 60 giorni. Una voce scaduta torna a far fallire il controllo: si rinnova solo con una nuova motivazione nella pull request.
+Le vulnerabilità che Trivy ignora sono in `.trivyignore.yaml`, che di norma non ha voci. Una voce serve solo quando la correzione non si può applicare subito: ha il file, il motivo, l'aggiornamento che la toglierà e una scadenza di al massimo 60 giorni, come chiede la decisione 13 dell'[aggiornamento della piattaforma](platform-upgrade-spec.md#13-sblocco-immediato-della-ci). Una voce scaduta torna a far fallire il controllo: si rinnova solo con una nuova motivazione nella pull request.
 
 ### 8.8 Manifest di produzione
 
