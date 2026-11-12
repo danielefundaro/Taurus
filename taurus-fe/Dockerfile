@@ -23,7 +23,7 @@ RUN npm run build -- --configuration production
 # =========================
 # La linea stabile di nginx, nella variante senza privilegi: gira con l'utente nginx (uid 101) e
 # ascolta sulla porta 8080, perché un utente senza privilegi non può aprire le porte sotto la 1024.
-FROM nginxinc/nginx-unprivileged:1.30-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 
 # Pulizia contenuto default: la cartella è di root, come i file dell'applicazione copiati sotto.
 USER root
