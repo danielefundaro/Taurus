@@ -1019,7 +1019,7 @@ Al 2026-11-05 i tre blocchi sono implementati insieme; la verifica manuale resta
 - Le ancore del feed calendario sono nel componente condiviso `calendar-feed-panel`, usato dal profilo e dalla pagina dei feed degli amministratori.
 - Con l'interruttore applicativo spento anche la voce **Guida di questa pagina** scompare.
 - Il componente di sovrapposizione è lo stesso della guida introduttiva: per la guida di pagina salta il benvenuto, non salva e mostra **Indietro** dalla seconda tappa.
-- Pesi misurati il 2026-11-05 rispetto a `9316cce`: bundle iniziale +0,38 kB stimati in trasferimento (limite 1 kB); chunk del catalogo delle pagine 7,8 kB compressi (limite 20 kB); chunk della guida introduttiva da 7,46 a 7,61 kB compressi, per la logica della guida di pagina nel componente condiviso.
+- Pesi misurati il 2026-11-05 rispetto a `5b1540d`: bundle iniziale +0,38 kB stimati in trasferimento (limite 1 kB); chunk del catalogo delle pagine 7,8 kB compressi (limite 20 kB); chunk della guida introduttiva da 7,46 a 7,61 kB compressi, per la logica della guida di pagina nel componente condiviso.
 
 ## Piano di rilascio
 
