@@ -13,7 +13,7 @@ Lo stato corrente è pubblicato nel [Catalogo funzionalità](features.md).
 
 Bozza del 2026-11-02, approvata il 2026-11-06 con tutte le scelte di [Decisioni](#decisioni). Le versioni obiettivo sono le ultime stabili a quella data, lette dai registri ufficiali (Maven Central, npm, PyPI, GitHub, endoflife.date).
 
-Applicata dalla fase 0 alla fase 8, l'ultima verificata il 2026-11-10 (vedi [Esito della fase 8](#esito-della-fase-8)). Le versioni rimaste indietro sono in [Eccezioni](#eccezioni-alla-versione-più-recente); da qui in avanti gli aggiornamenti arrivano da Dependabot (decisione 7).
+Applicata dalla fase 0 alla fase 8, l'ultima verificata il 2026-11-10 e unita su `main` il 2026-11-11: l'aggiornamento è concluso (vedi [Esito della fase 8](#esito-della-fase-8)). Le versioni rimaste indietro sono in [Eccezioni](#eccezioni-alla-versione-più-recente); da qui in avanti gli aggiornamenti arrivano da Dependabot (decisione 7).
 
 ## Problema
 
@@ -714,6 +714,8 @@ Fase 8 verificata il 2026-11-10 sul ramo `upgrade-phase-8`, che parte da `352447
 - `Update the backend npm tools`: `package.json` e lockfile del backend;
 - `Keep the Trivy and Dependabot rules after the platform upgrade`: `.trivyignore.yaml`, `.github/dependabot.yml` e il job `security` di `verify.yml`;
 - `Record phase 8 of the platform upgrade`: il Runbook di test, questa specifica e il catalogo.
+
+La pull request è la [#175](https://github.com/danielefundaro/Taurus/pull/175), unita su `main` il 2026-11-11 con il merge `18213ed`. La CI di `main` è passata in tutti gli otto job, `security` compreso con `.trivyignore.yaml` senza voci. Dopo il merge Dependabot ha chiuso da sé le pull request che la fase contiene o esclude: la [#126](https://github.com/danielefundaro/Taurus/pull/126), la [#127](https://github.com/danielefundaro/Taurus/pull/127), la [#128](https://github.com/danielefundaro/Taurus/pull/128), la [#156](https://github.com/danielefundaro/Taurus/pull/156), la [#164](https://github.com/danielefundaro/Taurus/pull/164), la [#172](https://github.com/danielefundaro/Taurus/pull/172), la [#173](https://github.com/danielefundaro/Taurus/pull/173) e la [#174](https://github.com/danielefundaro/Taurus/pull/174). Ha sostituito la #165 e la #169 con la [#178](https://github.com/danielefundaro/Taurus/pull/178) e la [#177](https://github.com/danielefundaro/Taurus/pull/177), che portano anche gli aggiornamenti usciti nel frattempo, e ha aperto la [#176](https://github.com/danielefundaro/Taurus/pull/176). Da qui le pull request di Dependabot seguono il flusso ordinario della decisione 7. La fase 8 è chiusa, e con lei l'aggiornamento.
 
 #### Verifiche eseguite
 
