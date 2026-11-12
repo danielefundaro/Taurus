@@ -2,7 +2,7 @@
 
 La funzionalità calcola quanto spetta a ciascun socio che ha presenziato a un evento, a partire dal compenso dell'evento, dalle spese, dagli eventuali pagamenti fissi e dalla quota trattenuta per la cassa dell'associazione, e consente di liquidare le quote generando i movimenti economici corrispondenti.
 
-Si appoggia interamente alle entità già esistenti: le presenze sono quelle registrate sull'evento (`calendar_event_presence`), il compenso e le spese sono il preventivo descritto in [Gestione economica, cassa e conti correnti](financial-management-spec.md), e la liquidazione produce un normale movimento di uscita dello stesso modulo. Le convenzioni di interfaccia seguono il [Taurus Layout Standard](taurus-layout-standard.md), gli errori lo [Standard degli errori applicativi](application-errors-standard.md) e le notifiche lo [Stile editoriale delle notifiche interne](notification-editorial-style.md).
+Si appoggia interamente alle entità già esistenti: le presenze sono quelle registrate sull'evento (`calendar_event_presence`), il compenso e le spese sono il preventivo descritto in [Gestione economica, cassa e conti correnti](financial-management-spec.md), e la liquidazione produce un normale movimento di uscita dello stesso modulo. Le convenzioni di interfaccia seguono il [Taurus Layout Standard](taurus-layout-standard.md), gli errori lo [Standard degli errori applicativi](application-errors-standard.md) le notifiche lo [Stile editoriale delle notifiche interne](notification-editorial-style.md) e l'attivazione per tenant le regole di [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md).
 
 ## Stato del documento
 
@@ -23,7 +23,8 @@ La prima versione deve permettere di:
 - ridurre la quota di un singolo presente con un fattore motivato, valido per quell'evento;
 - stabilire per un singolo presente un pagamento fisso motivato al posto della quota, sottratto dalla base dell'evento e ammesso anche su un evento senza compenso;
 - liquidare a un socio il totale delle quote maturate, o una parte, con un solo movimento di uscita;
-- mantenere tracciabilità, isolamento tenant e coerenza con i saldi del modulo economico.
+- mantenere tracciabilità, isolamento tenant e coerenza con i saldi del modulo economico;
+- attivare o disattivare la funzionalità per singolo tenant, indipendentemente dalla gestione economica.
 
 ## Fuori scope
 
@@ -54,7 +55,7 @@ La prima versione deve permettere di:
 | Liquidazione | un solo movimento di uscita per operazione, con il dettaglio per evento nelle righe |
 | Liquidazione parziale | ammessa: ogni riga può essere liquidata per un importo inferiore al dovuto |
 | Ruoli | gli stessi del modulo economico: Super Admin, Admin e Tesoriere |
-| Flag tenant | `FINANCE`, perché la funzionalità vive dentro la gestione economica |
+| Flag tenant | `EVENT_PAYOUTS`, dedicato e spento per impostazione predefinita, effettivo soltanto con `FINANCE` e `CALENDAR` attivi |
 
 Le scelte alternative valutate e scartate, con il motivo, sono raccolte in [Decisioni chiuse](#decisioni-chiuse).
 
@@ -251,6 +252,38 @@ A differenza del fattore, il pagamento fisso cambia la quota degli altri present
 
 Le quote di un socio sono dati economici del tenant: restano visibili soltanto a chi amministra la cassa. La consultazione delle proprie quote da parte del socio è un'evoluzione facoltativa, non inclusa nella prima versione.
 
+I ruoli non bastano: ogni operazione richiede anche la funzionalità effettiva per il tenant, come descritto nella sezione seguente.
+
+## Attivazione per tenant
+
+La funzionalità è configurabile per tenant con un flag dedicato, secondo le regole di [Funzionalità configurabili per tenant](tenant-feature-flags-spec.md): il super amministratore la attiva o la disattiva dalla pagina di dettaglio del tenant. Un tenant può quindi usare la gestione economica senza la ripartizione dei compensi.
+
+| Aspetto | Valore |
+| --- | --- |
+| Funzionalità | `EVENT_PAYOUTS`, checkbox **Compensi ai presenti** nel gruppo **Estensioni** |
+| Descrizione della checkbox | «Ripartizione del compenso degli eventi fra i presenti, pagamenti fissi e liquidazioni.» |
+| Colonna | `public.tenant.event_payouts_enabled BOOLEAN NOT NULL DEFAULT FALSE` |
+| Capacità applicativa | sempre disponibile dopo il deploy |
+| Dipendenze tenant | `FINANCE` e `CALENDAR` |
+| Stato effettivo | `event_payouts_enabled` AND `finance_enabled` AND `calendar_enabled` |
+| Campo nelle funzionalità correnti | `eventPayoutsEnabled` in `GET /api/tenant-features/current` |
+| Codice d'errore | `error.tenantFeature.eventPayouts.disabled` |
+
+Servono entrambe le dipendenze: le quote nascono dalle presenze e dal preventivo e consuntivo degli eventi, che appartengono al Calendario, e la liquidazione è un movimento di Economia. La migration aggiunge la colonna con `DEFAULT FALSE` e non attiva la funzionalità per nessun tenant esistente: prima del rilascio nessuno la usa, quindi non c'è un comportamento da preservare.
+
+Quando la funzionalità non è effettiva, per il flag spento o per una dipendenza spenta:
+
+- la scheda `Compensi` della pagina Economia e il pulsante `Ripartisci compenso` del dettaglio evento non compaiono; la scheda è incorporata nella pagina condivisa di Economia, quindi la disattivazione la fa sparire senza riportare l'utente alla dashboard;
+- gli endpoint `/api/finance/payouts/**` rispondono `403 tenantFeature.eventPayouts.disabled`;
+- le notifiche `PAYOUT_*` non vengono prodotte né consegnate, perché `NotificationFeaturePolicy` le associa a `EVENT_PAYOUTS`;
+- parametri, fattori, pagamenti fissi e righe di liquidazione restano nello schema del tenant;
+- i movimenti generati dalle liquidazioni restano normali movimenti di Economia, visibili e modificabili; la loro eliminazione logica continua a eliminare le righe di liquidazione collegate, perché la regola appartiene al modulo economico e non dipende dal flag;
+- la categoria di sistema `Compensi ai presenti`, creata in ogni schema tenant come le altre categorie di sistema, resta utilizzabile per i movimenti registrati a mano.
+
+Alla riattivazione le quote vengono ricalcolate sui dati correnti — presenze, preventivo, consuntivo, parametri, fattori e pagamenti fissi — e confrontate con quanto già liquidato, esponendo gli eventuali scostamenti; le notifiche non prodotte durante la disattivazione non vengono recuperate.
+
+La [specifica dei flag tenant](tenant-feature-flags-spec.md) descrive soltanto i flag implementati: all'implementazione di questa funzionalità va aggiornata con il nuovo flag in elenco, colonne, modelli, risposta delle funzionalità correnti, enum e dipendenze, codici d'errore, checkbox, notifiche e piano di test.
+
 ## Modello dati
 
 Le tabelle appartengono allo schema del tenant e non contengono `tenant_code`, come il resto del modulo economico. La migration va inclusa in `tenant-master.xml`.
@@ -292,7 +325,7 @@ L'eliminazione logica del movimento di liquidazione elimina anche le righe colle
 
 ## API REST
 
-Gli endpoint vivono sotto `/api/finance/payouts/**`, già coperti dalla regola di sicurezza del modulo economico su `/api/finance/**`. Il flag tenant `FINANCE` non si applica per percorso ma per controller, con `@RequiresTenantFeature(TenantFeature.FINANCE)` come su `FinanceResource`: il nuovo controller deve portare la stessa annotazione.
+Gli endpoint vivono sotto `/api/finance/payouts/**`, già coperti dalla regola di sicurezza del modulo economico su `/api/finance/**`. Il flag tenant non si applica per percorso ma per controller: il nuovo controller porta `@RequiresTenantFeature(TenantFeature.EVENT_PAYOUTS)`, che include già `FINANCE` e `CALENDAR` fra le dipendenze, come fa `WEB_PUSH_REMINDERS` con le proprie.
 
 ### Parametri
 
@@ -347,7 +380,7 @@ La simulazione non genera notifiche: è una lettura.
 
 ### Collocazione
 
-Una nuova scheda `Compensi` nella sezione Economia, con tre viste: **Simulazione** di un evento, **Quote per socio** e **Parametri**. Dalla pagina dell'evento, un pulsante `Ripartisci compenso` apre direttamente la simulazione di quell'evento.
+Una nuova scheda `Compensi` nella sezione Economia, con tre viste: **Simulazione** di un evento, **Quote per socio** e **Parametri**. Dalla pagina dell'evento, un pulsante `Ripartisci compenso` apre direttamente la simulazione di quell'evento. Scheda e pulsante compaiono soltanto quando `eventPayoutsEnabled` è vero nel `TenantFeatureService` del frontend, e senza la funzionalità effettiva il frontend non chiama gli endpoint dei compensi.
 
 ### Simulazione in tempo reale
 
@@ -375,7 +408,7 @@ Elenco delle versioni in ordine di decorrenza, con percentuale, passo, autore e 
 
 ## Sicurezza e isolamento
 
-Valgono le regole del modulo economico: autorizzazione esplicita prima della catena generica, tenant ricavato dal token, identificativi risolti nello schema corrente. Il Tesoriere legge dell'evento soltanto i dati necessari alla ripartizione e non acquisisce il generico aggiornamento dell'evento; l'assegnazione di un fattore o di un pagamento fisso non passa dall'endpoint operativo dell'evento.
+Valgono le regole del modulo economico: autorizzazione esplicita prima della catena generica, tenant ricavato dal token, identificativi risolti nello schema corrente. Dopo il ruolo, l'interceptor dei flag verifica che `EVENT_PAYOUTS` sia effettiva per il tenant della richiesta. Il Tesoriere legge dell'evento soltanto i dati necessari alla ripartizione e non acquisisce il generico aggiornamento dell'evento; l'assegnazione di un fattore o di un pagamento fisso non passa dall'endpoint operativo dell'evento.
 
 Le operazioni che toccano più dati sono transazionali: la creazione della liquidazione scrive movimento e righe in un'unica transazione e, se una riga è invalida, non lascia il movimento orfano.
 
@@ -410,12 +443,18 @@ Metriche utili: eventi con quote non ancora liquidate, totale dovuto per tenant,
 - rifiuto del pagamento fisso senza motivo o non positivo, e della richiesta con fattore e pagamento fisso insieme o con nessuno dei due;
 - liquidazione che supera il residuo dovuto, liquidazione vuota, liquidazione con più soci;
 - liquidazione parziale che lascia il residuo corretto;
-- eliminazione del movimento che riporta le quote fra quelle dovute.
+- eliminazione del movimento che riporta le quote fra quelle dovute;
+- stato effettivo di `EVENT_PAYOUTS` falso con il flag spento o con Economia o Calendario spenti;
+- notifiche `PAYOUT_*` soppresse quando la funzionalità non è effettiva.
 
 ### Integration test PostgreSQL
 
 - vincoli e indici univoci delle tre tabelle, incluso il vincolo che alterna fattore e pagamento fisso;
 - isolamento per schema tenant;
+- `403 tenantFeature.eventPayouts.disabled` su ogni endpoint dei compensi con la funzionalità non effettiva, con il tenant A spento e il tenant B acceso nella stessa esecuzione;
+- migration che aggiunge `event_payouts_enabled` spento per tutti i tenant esistenti;
+- dati conservati durante la disattivazione e quote ricalcolate alla riattivazione;
+- eliminazione di un movimento di liquidazione a funzionalità spenta, che elimina comunque le righe collegate;
 - atomicità della liquidazione;
 - coerenza fra righe di liquidazione e movimento eliminato logicamente.
 
@@ -427,7 +466,10 @@ Metriche utili: eventi con quote non ancora liquidate, totale dovuto per tenant,
 - il campo del fattore rifiuta i valori superiori a uno;
 - il campo del pagamento fisso rifiuta i valori non positivi, e un presente non può avere insieme fattore e pagamento fisso;
 - stati particolari resi come riquadri informativi;
-- l'anteprima del passo non salva nulla.
+- l'anteprima del passo non salva nulla;
+- scheda `Compensi` e pulsante `Ripartisci compenso` assenti, senza chiamate agli endpoint dei compensi, quando la funzionalità non è effettiva;
+- disattivazione mentre la scheda è aperta: la scheda sparisce e l'utente resta nella pagina Economia;
+- checkbox **Compensi ai presenti** nel gruppo Estensioni del dettaglio tenant, che richiede Economia e Calendario.
 
 ## Criteri di accettazione
 
@@ -449,7 +491,9 @@ Metriche utili: eventi con quote non ancora liquidate, totale dovuto per tenant,
 - una liquidazione parziale lascia dovuto il residuo;
 - l'eliminazione del movimento riporta le quote fra quelle dovute;
 - nessun dato attraversa il confine dello schema tenant;
-- la simulazione non salva nulla finché non si liquida.
+- la simulazione non salva nulla finché non si liquida;
+- la funzionalità è spenta per impostazione predefinita, si attiva per singolo tenant ed è effettiva soltanto con Economia e Calendario attivi;
+- disattivarla nasconde scheda e pulsante, blocca gli endpoint con `403` e conserva tutti i dati, che tornano disponibili alla riattivazione.
 
 ## Decisioni chiuse
 
@@ -460,3 +504,4 @@ Metriche utili: eventi con quote non ancora liquidate, totale dovuto per tenant,
 5. **Visibilità per il socio.** Il socio non vede le proprie quote in questa versione. Resta un'evoluzione possibile, da decidere insieme a che cosa mostrare: il solo importo o anche il calcolo.
 6. **Pagamento fisso.** Aggiunto il 2026-11-12: un presente può ricevere un importo stabilito al posto della quota, alternativo al fattore. L'importo si sottrae dalla base insieme alle spese, e il presente esce dalla divisione del netto. È ammesso anche su un evento senza compenso: ciò che la base non copre resta a carico della cassa come disavanzo, dichiarato e mai implicito. Diversamente dal fattore, cambia la quota degli altri presenti.
 7. **Riduzione della quota di cassa.** Decisa il 2026-11-12: la quota di cassa si calcola sempre sull'intera base, non sulla base al netto dei pagamenti fissi. Quando la base non copre spese, pagamenti fissi e quota di cassa, la cassa rinuncia per prima: la quota si riduce a `B − S − P` se positivo, altrimenti a zero. La regola vale anche senza pagamenti fissi, quando le sole spese erodono la quota di cassa.
+8. **Attivazione per tenant.** Decisa il 2026-11-12: la funzionalità ha un flag tenant dedicato, `EVENT_PAYOUTS`, spento per impostazione predefinita e dipendente da `FINANCE` e `CALENDAR`. Sostituisce la scelta iniziale di legarla al solo flag `FINANCE`, con cui ogni tenant con la gestione economica avrebbe ricevuto anche la ripartizione dei compensi.

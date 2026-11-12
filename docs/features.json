@@ -174,7 +174,8 @@
         "docs/application-errors-standard.md",
         "docs/financial-management-spec.md",
         "docs/notification-editorial-style.md",
-        "docs/taurus-layout-standard.md"
+        "docs/taurus-layout-standard.md",
+        "docs/tenant-feature-flags-spec.md"
       ],
       "modules": ["taurus-be", "taurus-fe"],
       "evidence": {
@@ -184,7 +185,7 @@
       },
       "release": null,
       "lastVerifiedOn": "2026-11-12",
-      "notes": "Decisioni approvate il 2026-10-19: quota dei presenti calcolata da compenso, spese e percentuale di cassa e arrotondata per difetto a un passo comune; parametri datati anche retroattivi; fattore motivato fra zero e uno che riduce la sola quota del presente; preventivo per la quota simulata e consuntivo per la quota reale, unica liquidabile; residuo alla cassa; liquidazione come movimento di uscita unico per socio. Integrazione approvata il 2026-11-12: pagamento fisso motivato per presente, alternativo al fattore, sottratto dalla base insieme alle spese e liquidabile senza attendere l'incasso; il presente esce dalla divisione del netto; ammesso anche su eventi senza compenso, con disavanzo a carico della cassa. Quota di cassa sempre calcolata sull'intera base e ridotta a base meno spese meno pagamenti fissi, fino a zero, quando la base non basta a coprirla. Implementazione non ancora pianificata."
+      "notes": "Decisioni approvate il 2026-10-19: quota dei presenti calcolata da compenso, spese e percentuale di cassa e arrotondata per difetto a un passo comune; parametri datati anche retroattivi; fattore motivato fra zero e uno che riduce la sola quota del presente; preventivo per la quota simulata e consuntivo per la quota reale, unica liquidabile; residuo alla cassa; liquidazione come movimento di uscita unico per socio. Integrazione approvata il 2026-11-12: pagamento fisso motivato per presente, alternativo al fattore, sottratto dalla base insieme alle spese e liquidabile senza attendere l'incasso; il presente esce dalla divisione del netto; ammesso anche su eventi senza compenso, con disavanzo a carico della cassa. Quota di cassa sempre calcolata sull'intera base e ridotta a base meno spese meno pagamenti fissi, fino a zero, quando la base non basta a coprirla. Flag tenant dedicato EVENT_PAYOUTS, spento per impostazione predefinita e dipendente da Economia e Calendario, al posto del solo FINANCE. Implementazione non ancora pianificata."
     },
     {
       "id": "event-preparation",
