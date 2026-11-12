@@ -9,7 +9,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 | `board-role` | [Ruolo direttivo](board-role-spec.md) | feature | approved | implemented | Keycloak, BE, FE | 0 | [12](#board-role-evidenze) | non rilasciata | 2026-11-05 |
 | `documentation-implementation-alignment` | [Governance e allineamento tra documentazione e implementazione](documentation-implementation-alignment-spec.md) | standard | approved | implemented | Repository | 0 | [1](#documentation-implementation-alignment-evidenze) | non rilasciata | 2026-10-23 |
 | `email-layout-standard` | [Aspetto unificato delle e-mail](email-layout-standard.md) | standard | approved | implemented | Keycloak, BE | 0 | [4](#email-layout-standard-evidenze) | non rilasciata | 2026-11-03 |
-| `event-payout-shares` | [Ripartizione dei compensi ai presenti](event-payout-shares-spec.md) | feature | approved | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-10-23 |
+| `event-payout-shares` | [Ripartizione dei compensi ai presenti](event-payout-shares-spec.md) | feature | approved | not-planned | BE, FE | 0 | 0 | non rilasciata | 2026-11-12 |
 | `event-preparation` | [Preparazione operativa dell'evento](event-preparation-spec.md) | feature | approved | implemented | BE, FE | [2](#event-preparation-evidenze) | [16](#event-preparation-evidenze) | non rilasciata | 2026-10-28 |
 | `external-calendar-feed` | [Feed calendario esterno in sola lettura](external-calendar-feed-spec.md) | feature | approved | implemented | BE, FE | [5](#external-calendar-feed-evidenze) | [13](#external-calendar-feed-evidenze) | non rilasciata | 2026-10-29 |
 | `financial-management` | [Gestione economica, cassa e conti correnti](financial-management-spec.md) | feature | approved | implemented | BE, FE | [2](#financial-management-evidenze) | [8](#financial-management-evidenze) | non rilasciata | 2026-10-27 |
@@ -84,7 +84,7 @@ Fonte: [`docs/features.json`](features.json). Rigenerare con `node scripts/docs/
 - Implementazione: nessuna
 - Migrazioni: nessuna
 - Test: nessuna
-- Note: Decisioni approvate il 2026-10-19: quota dei presenti calcolata da compenso, spese e percentuale di cassa e arrotondata per difetto a un passo comune; parametri datati anche retroattivi; fattore motivato fra zero e uno che riduce la sola quota del presente; preventivo per la quota simulata e consuntivo per la quota reale, unica liquidabile; residuo alla cassa; liquidazione come movimento di uscita unico per socio. Implementazione non ancora pianificata.
+- Note: Decisioni approvate il 2026-10-19: quota dei presenti calcolata da compenso, spese e percentuale di cassa e arrotondata per difetto a un passo comune; parametri datati anche retroattivi; fattore motivato fra zero e uno che riduce la sola quota del presente; preventivo per la quota simulata e consuntivo per la quota reale, unica liquidabile; residuo alla cassa; liquidazione come movimento di uscita unico per socio. Integrazione approvata il 2026-11-12: pagamento fisso motivato per presente, alternativo al fattore, sottratto dalla base insieme alle spese e liquidabile senza attendere l'incasso; il presente esce dalla divisione del netto; ammesso anche su eventi senza compenso, con disavanzo a carico della cassa. Quota di cassa sempre calcolata sull'intera base e ridotta a base meno spese meno pagamenti fissi, fino a zero, quando la base non basta a coprirla. Implementazione non ancora pianificata.
 
 <a id="event-preparation-evidenze"></a>
 ### Preparazione operativa dell'evento
