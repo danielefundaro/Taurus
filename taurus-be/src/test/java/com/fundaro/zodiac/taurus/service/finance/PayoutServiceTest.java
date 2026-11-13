@@ -24,6 +24,7 @@ import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.AdjustmentReques
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.EventLineDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.EventPayoutDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.MemberPayoutsDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.SettingDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.SettingRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.SettlementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.SettlementLineRequest;
@@ -50,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -555,12 +557,36 @@ class PayoutServiceTest {
     }
 
     @Test
+    void namesTheAuthorsOfTheVersionsInsteadOfTheirIdentityIds() {
+        settings.getFirst().setInsertBy("kc-anna");
+        settings.add(setting(11L, LocalDate.of(2026, 6, 1), "15", "5"));
+        settings.getLast().setInsertBy("kc-bruno");
+        settings.add(setting(12L, LocalDate.of(2026, 9, 1), "10", "5"));
+        settings.getLast().setInsertBy("kc-gone");
+        settings.add(setting(13L, LocalDate.of(2026, 10, 1), "10", "5"));
+        anna.setKeycloakId("kc-anna");
+        bruno.setKeycloakId("kc-bruno");
+        // An erased row with the same identity as Bruno does not hide the active member.
+        Users erased = user(99L, "Utente", "rimosso");
+        erased.setKeycloakId("kc-bruno");
+        erased.setDeleted(true);
+        when(userRepository.findAllByKeycloakIdIn(Set.of("kc-anna", "kc-bruno", "kc-gone"))).thenReturn(List.of(erased, anna, bruno));
+
+        List<SettingDTO> result = service.findSettings(authentication());
+
+        assertThat(result).extracting(SettingDTO::createdByName).containsExactly("Anna Bianchi", "Bruno Conti", null, null);
+    }
+
+    @Test
     void createsAVersionAndNotifiesIt() {
         when(settingRepository.save(any(PayoutSetting.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        anna.setKeycloakId("user-1");
+        when(userRepository.findAllByKeycloakIdIn(Set.of("user-1"))).thenReturn(List.of(anna));
 
-        service.createSetting(new SettingRequest(LocalDate.of(2026, 9, 1), new BigDecimal("12.5"), new BigDecimal("5")), authentication());
+        SettingDTO created = service.createSetting(new SettingRequest(LocalDate.of(2026, 9, 1), new BigDecimal("12.5"), new BigDecimal("5")), authentication());
 
         NotificationCommand notice = notice();
+        assertThat(created.createdByName()).isEqualTo("Anna Bianchi");
         assertThat(notice.operation()).isEqualTo("PAYOUT_SETTING_CREATED");
         assertThat(notice.title()).isEqualTo("Economia: parametri dei compensi creati");
         assertThat(notice.message()).isEqualTo(

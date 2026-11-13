@@ -26,12 +26,13 @@ public final class PayoutDtos {
     ) {
     }
 
+    /** A dated version of the parameters; the author is the name of the member who created it, never the identity id. */
     public record SettingDTO(
         Long id,
         LocalDate validFrom,
         BigDecimal associationSharePercent,
         BigDecimal roundingStep,
-        String createdBy,
+        String createdByName,
         ZonedDateTime createdAt
     ) {
     }
