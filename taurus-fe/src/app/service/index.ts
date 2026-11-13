@@ -27,6 +27,7 @@ export * from './notification-preferences.service';
 export * from './notification-presentation.service';
 export * from './onboarding.service';
 export * from './operational-dashboard.service';
+export * from './payout.service';
 export * from './preferences.service';
 export * from './printer.service';
 export * from './push-notification.service';

@@ -1,0 +1,44 @@
+<app-dialog-shell #shell [heading]="heading" subtitle="I parametri valgono dalla decorrenza finché non subentra una versione successiva." confirmLabel="Salva versione" [invalidCount]="invalidCount" (cancel)="cancel()" (confirm)="save()">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-form-field class="md:col-span-2" label="Decorrenza" forId="payout-valid-from" required [error]="shell.validationAttempted ? validFromError : undefined" hint="Può essere anteriore a oggi, per correggere un periodo già trascorso.">
+            <p-datepicker inputId="payout-valid-from" [(ngModel)]="validFrom" dateFormat="dd/mm/yy" appendTo="body" (ngModelChange)="onValidFromChange()" />
+        </app-form-field>
+        <app-form-field label="Quota di cassa" forId="payout-percent" required [error]="shell.validationAttempted ? percentError : undefined" hint="Percentuale della base dell’evento che resta all’associazione.">
+            <p-inputnumber inputId="payout-percent" [(ngModel)]="associationSharePercent" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="2" [min]="0" [max]="100" suffix=" %" locale="it-IT" />
+        </app-form-field>
+        <app-form-field label="Passo di arrotondamento" forId="payout-step" [error]="shell.validationAttempted ? stepError : undefined" hint="Le quote si arrotondano per difetto al passo; il resto va alla cassa.">
+            <p-inputnumber inputId="payout-step" [(ngModel)]="roundingStep" mode="currency" currency="EUR" locale="it-IT" [min]="0" />
+        </app-form-field>
+        <div class="md:col-span-2 flex flex-wrap gap-2" role="group" aria-label="Passi proposti">
+            @for (option of stepOptions; track option.value) {
+                <p-button [label]="option.label" size="small" [outlined]="roundingStep !== option.value" severity="secondary" (onClick)="roundingStep = option.value" />
+            }
+        </div>
+    </div>
+
+    @if (affectedEvents.length) {
+        <div class="mt-5">
+            <app-inline-alert
+                severity="warn"
+                heading="Eventi già liquidati ricalcolati"
+                [detail]="
+                    'Con questa decorrenza ' +
+                    (affectedEvents.length === 1 ? 'un evento già liquidato ricade' : affectedEvents.length + ' eventi già liquidati ricadono') +
+                    ' nel nuovo calcolo. Ciò che è stato pagato non cambia: la differenza comparirà come scostamento, senza conguagli automatici.'
+                "
+            />
+            <ul class="list-none p-0 m-0 mt-3 flex flex-col gap-2">
+                @for (event of affectedEvents; track event.eventId) {
+                    <li class="flex justify-between gap-4">
+                        <span
+                            >{{ event.eventName }} <small class="text-muted-color">{{ event.eventDate | date: 'dd/MM/yyyy' }}</small></span
+                        >
+                        <span>{{ event.settledAmount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }} liquidati</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    } @else if (retroactive && !affectedLoading) {
+        <p class="text-muted-color text-sm mt-4 mb-0">Decorrenza anteriore a oggi: nessun evento già liquidato ricade nel nuovo calcolo.</p>
+    }
+</app-dialog-shell>

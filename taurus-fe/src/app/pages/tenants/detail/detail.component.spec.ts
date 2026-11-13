@@ -65,7 +65,15 @@ describe('Tenant DetailComponent', () => {
         expect(modules[0]).toBe('Calendario');
         expect(modules).toContain('Inventario');
         expect(modules).toContain('Preferenze notifiche');
-        expect(extensions).toEqual(['Feed calendario esterno', 'Preparazione evento', 'QR code inventario', 'Fogli di affidamento', 'Firma elettronica', 'Promemoria eventi Web Push']);
+        expect(extensions).toEqual([
+            'Feed calendario esterno',
+            'Preparazione evento',
+            'QR code inventario',
+            'Fogli di affidamento',
+            'Firma elettronica',
+            'Compensi ai presenti',
+            'Promemoria eventi Web Push'
+        ]);
         expect(modules.length + extensions.length).toBe(component['tenantFeatures'].length);
     });
 
@@ -83,6 +91,24 @@ describe('Tenant DetailComponent', () => {
         expect(consequence).toContain('Preparazione evento (per dipendenza)');
         expect(consequence).toContain('Promemoria eventi Web Push (per dipendenza)');
         expect(consequence).not.toContain('Preferenze notifiche');
+    });
+
+    it('offers the shares of the participants among the extensions, requiring finance and calendar', () => {
+        const { component, confirmService } = create();
+        const payouts = component['tenantFeatures'].find((item) => item.feature === TenantFeature.EVENT_PAYOUTS)!;
+
+        expect(payouts.label).toBe('Compensi ai presenti');
+        expect(payouts.dependencies).toEqual(['financeEnabled', 'calendarEnabled']);
+        component.tenant = tenant({ financeEnabled: true, calendarEnabled: false, eventPayoutsEnabled: true });
+        expect(component['featureStatus'](payouts)).toBe('Richiede un’altra funzionalità');
+        component.tenant.calendarEnabled = true;
+        expect(component['featureStatus'](payouts)).toBe('Disponibile');
+
+        const enabled = { financeEnabled: true, calendarEnabled: true, eventPayoutsEnabled: true };
+        component['originalFeatureValues'] = { ...enabled };
+        component.tenant = tenant({ ...enabled, financeEnabled: false });
+        component.save();
+        expect(confirmService.confirmReversible.calls.mostRecent().args[0].consequence).toContain('Compensi ai presenti (per dipendenza)');
     });
 
     it('asks every module of the Web Push reminders before calling them available', () => {

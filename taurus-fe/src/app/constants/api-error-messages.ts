@@ -172,6 +172,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'tenantFeature.inventoryLoanSheet.disabled': 'La funzionalità Fogli di affidamento non è disponibile per questo tenant',
     'tenantFeature.inventorySignature.disabled': 'La funzionalità Firma elettronica non è disponibile per questo tenant',
     'tenantFeature.calendar.disabled': 'La funzionalità Calendario non è disponibile per questo tenant',
+    'tenantFeature.eventPayouts.disabled': 'La funzionalità Compensi ai presenti non è disponibile per questo tenant',
 
     // Users and tenants
     'user.limit.exceeded': 'Raggiunto il numero massimo di utenti del tenant ({maximum})',
@@ -416,6 +417,8 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'finance.movement.notFound': 'Movimento non trovato',
     'finance.movement.categoryDirection': 'La categoria non è compatibile con la direzione del movimento',
     'finance.movement.versionConflict': 'Il movimento è stato modificato da un altro utente: ricaricalo prima di salvare',
+    'finance.movement.payoutSettlement':
+        'Il movimento liquida compensi ai presenti: per cambiarne importo o direzione eliminalo e genera una nuova liquidazione',
     'finance.event.notFound': 'Evento non trovato',
     'finance.year.notFound': 'Esercizio non trovato',
     'finance.transfer.sameAccount': 'Il conto di origine e quello di destinazione devono essere diversi',
@@ -429,6 +432,23 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'finance.report.invalidPeriod': 'La data iniziale deve precedere la data finale',
     'finance.report.unsupportedFormat': 'Formato di esportazione non supportato',
     'finance.report.generationFailed': 'Impossibile generare il rendiconto: riprovare',
+
+    // Shares of the participants
+    'payout.setting.notFound': 'Versione dei parametri non trovata',
+    'payout.setting.dateExists': 'Esiste già una versione dei parametri con questa decorrenza',
+    'payout.setting.inUse':
+        "La versione è l'unica applicabile ad alcuni eventi con presenti: crea prima una versione con decorrenza anteriore",
+    'payout.setting.notConfigured': "Nessuna versione dei parametri dei compensi è applicabile alla data dell'evento",
+    'payout.preview.invalid': 'Parametri di anteprima non validi',
+    'payout.user.notFound': 'Utente non trovato',
+    'payout.adjustment.reasonRequired': 'Il motivo del fattore o del pagamento fisso è obbligatorio',
+    'payout.adjustment.valueRequired': 'Indicare un fattore oppure un pagamento fisso',
+    'payout.adjustment.factorOutOfRange': 'Il fattore deve essere compreso fra 0 e 1',
+    'payout.adjustment.fixedAmountNotPositive': 'Il pagamento fisso deve essere maggiore di zero',
+    'payout.adjustment.userNotPresent': "L'utente non risulta presente all'evento",
+    'payout.settlement.empty': 'La liquidazione non contiene righe',
+    'payout.settlement.multipleUsers': 'Una liquidazione riguarda un solo socio',
+    'payout.settlement.amountExceedsDue': "L'importo da liquidare supera il residuo dovuto per l'evento",
 
     // Event preparation
     'eventPreparation.event.notFound': 'Evento non trovato',

@@ -1,0 +1,444 @@
+<div class="section-heading">
+    <div>
+        <h2>Compensi ai presenti</h2>
+        <p>Il compenso dell’evento, tolte spese, pagamenti fissi e quota di cassa, si divide fra i presenti.</p>
+    </div>
+    <p-selectbutton [options]="views" [ngModel]="view" (ngModelChange)="changeView($event)" optionLabel="label" optionValue="value" [allowEmpty]="false" aria-label="Vista dei compensi" />
+</div>
+
+@switch (view) {
+    @case ('simulation') {
+        <div class="payout-event-picker">
+            <label for="payout-event">Evento</label>
+            <p-select
+                inputId="payout-event"
+                [options]="eventOptions"
+                [ngModel]="eventId"
+                (ngModelChange)="selectEvent($event)"
+                optionLabel="eventName"
+                optionValue="eventId"
+                placeholder="Scegli un evento"
+                [filter]="true"
+                filterBy="eventName"
+                [showClear]="true"
+            />
+        </div>
+
+        @if (!eventId) {
+            <app-empty-state icon="pi pi-calculator" heading="Scegli un evento" message="La simulazione mostra dove vanno i soldi dell’evento e quanto spetta a ciascun presente." compact />
+        } @else if (notConfiguredMessage) {
+            <app-inline-alert severity="warn" heading="Parametri non configurati" [detail]="notConfiguredMessage" actionLabel="Configura i parametri" (action)="changeView('settings')" />
+        } @else if (simulation) {
+            <div class="payout-parameters" [class.payout-parameters--preview]="simulation.preview">
+                <div class="payout-indicator">
+                    <small>Quota di cassa</small>
+                    <p-inputnumber
+                        inputId="payout-preview-percent"
+                        [ngModel]="sharePercentInput"
+                        (ngModelChange)="onPercentPreview($event)"
+                        mode="decimal"
+                        [minFractionDigits]="0"
+                        [maxFractionDigits]="2"
+                        [min]="0"
+                        [max]="100"
+                        suffix=" %"
+                        locale="it-IT"
+                        ariaLabel="Quota di cassa"
+                        [inputStyle]="{ width: '6rem' }"
+                    />
+                </div>
+                <div class="payout-indicator">
+                    <small id="payout-step-label">Passo di arrotondamento</small>
+                    <p-selectbutton [options]="stepOptions" [ngModel]="simulation.roundingStep" (ngModelChange)="onStepPreview($event)" optionLabel="label" optionValue="value" [allowEmpty]="false" size="small" aria-labelledby="payout-step-label" />
+                </div>
+                <div class="payout-indicator">
+                    <small>Decorrenza dei parametri</small>
+                    <strong>{{ simulation.settingValidFrom | date: 'dd/MM/yyyy' }}</strong>
+                </div>
+                @if (simulation.preview) {
+                    <div class="payout-preview-actions">
+                        <p-tag severity="info" value="Anteprima non salvata" icon="pi pi-eye" />
+                        <p-button label="Ripristina" icon="pi pi-undo" size="small" severity="secondary" [text]="true" (onClick)="resetPreview()" />
+                        <p-button label="Salva in una nuova versione" icon="pi pi-save" size="small" [outlined]="true" (onClick)="savePreviewAsVersion()" />
+                    </div>
+                }
+            </div>
+
+            @if (notices.length) {
+                <div class="payout-notices">
+                    @for (notice of notices; track notice.key) {
+                        <app-inline-alert [severity]="notice.severity" [heading]="notice.heading" [detail]="notice.detail" [actionLabel]="notice.actionLabel" [actionLink]="notice.actionLink" (action)="onNoticeAction(notice)" />
+                    }
+                </div>
+            }
+
+            <div class="payout-bars" [class.payout-bars--loading]="simulationLoading">
+                @for (bar of bars; track bar.key) {
+                    <section class="payout-bar" [attr.aria-label]="'Ripartizione ' + bar.label.toLowerCase()">
+                        <header class="payout-bar__head">
+                            <strong>{{ bar.label }}</strong>
+                            <span>Base {{ bar.base | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</span>
+                        </header>
+                        @if (bar.empty) {
+                            <div class="payout-bar__empty">{{ bar.emptyMessage }}</div>
+                        } @else {
+                            <div class="payout-bar__track">
+                                @for (segment of bar.segments; track segment.key) {
+                                    @if (segment.amount > 0) {
+                                        <span
+                                            class="payout-segment"
+                                            [ngClass]="'payout-segment--' + segment.key"
+                                            [style.width.%]="segment.width"
+                                            [pTooltip]="segment.label + ': ' + (segment.amount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT')"
+                                            tooltipPosition="top"
+                                        ></span>
+                                    }
+                                }
+                                @if (bar.deficit > 0) {
+                                    <span class="payout-bar__deficit" [style.left.%]="bar.baseLine" [style.width.%]="bar.deficitWidth"></span>
+                                    <span class="payout-bar__base-line" [style.left.%]="bar.baseLine" aria-hidden="true"></span>
+                                }
+                            </div>
+                            <ul class="payout-legend">
+                                @for (segment of bar.segments; track segment.key) {
+                                    <li>
+                                        <span class="payout-swatch" [ngClass]="'payout-segment--' + segment.key" aria-hidden="true"></span>
+                                        <span>{{ segment.label }}</span>
+                                        <strong>{{ segment.amount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+                                        @if (segment.percent !== null) {
+                                            <small>{{ segment.percent | number: '1.0-1' : 'it-IT' }}%</small>
+                                        }
+                                        @if (segment.full !== undefined) {
+                                            <small class="payout-legend__note">piena {{ segment.full | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</small>
+                                        }
+                                    </li>
+                                }
+                                @if (bar.deficit > 0) {
+                                    <li class="payout-legend__deficit">
+                                        <span class="payout-swatch payout-swatch--deficit" aria-hidden="true"></span>
+                                        <span>Disavanzo a carico della cassa</span>
+                                        <strong>{{ bar.deficit | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </section>
+                }
+            </div>
+
+            @if (presentCount || simulation.lines.length) {
+                <p-table [value]="simulation.lines" dataKey="userId" [loading]="simulationLoading" styleClass="payout-lines">
+                    <ng-template #header>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Fattore o fisso</th>
+                            <th class="text-right">Quota simulata</th>
+                            <th class="text-right">Quota reale</th>
+                            <th class="text-right">Già liquidato</th>
+                            <th class="text-right">Residuo</th>
+                            <th aria-label="Azioni"></th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-line>
+                        <tr>
+                            <td>
+                                <button type="button" class="payout-name" (click)="openEventMember(line.userId)" pTooltip="Quote del socio">{{ line.name }}</button>
+                                @if (!line.present) {
+                                    <p-tag class="ml-2" severity="secondary" value="Non presente" />
+                                }
+                                @if (line.reason) {
+                                    <small class="payout-reason">{{ line.reason }}</small>
+                                }
+                            </td>
+                            <td>
+                                @if (editing?.userId === line.userId) {
+                                    <div class="payout-editor">
+                                        <p-selectbutton [options]="adjustmentModes" [(ngModel)]="editing!.mode" optionLabel="label" optionValue="value" [allowEmpty]="false" size="small" aria-label="Tipo di ripartizione" />
+                                        @if (editing!.mode === 'FACTOR') {
+                                            <p-inputnumber
+                                                [(ngModel)]="editing!.factor"
+                                                mode="decimal"
+                                                [minFractionDigits]="0"
+                                                [maxFractionDigits]="3"
+                                                [min]="0"
+                                                [max]="1"
+                                                [step]="0.1"
+                                                locale="it-IT"
+                                                ariaLabel="Fattore"
+                                                placeholder="0,5"
+                                                [inputStyle]="{ width: '6rem' }"
+                                            />
+                                            <small class="payout-hint">La riduzione resta alla cassa: non va agli altri presenti.</small>
+                                            @if (editAttempted && factorError) {
+                                                <small class="payout-error">{{ factorError }}</small>
+                                            }
+                                        }
+                                        @if (editing!.mode === 'FIXED') {
+                                            <p-inputnumber [(ngModel)]="editing!.fixedAmount" mode="currency" currency="EUR" locale="it-IT" [min]="0" ariaLabel="Pagamento fisso" [inputStyle]="{ width: '8rem' }" />
+                                            <small class="payout-hint">Si sottrae dalla base: riduce le quote degli altri presenti.</small>
+                                            @if (editAttempted && fixedAmountError) {
+                                                <small class="payout-error">{{ fixedAmountError }}</small>
+                                            }
+                                        }
+                                        @if (editing!.mode !== 'NONE') {
+                                            <input pInputText [(ngModel)]="editing!.reason" maxlength="255" placeholder="Motivo" aria-label="Motivo" />
+                                            @if (editAttempted && reasonError) {
+                                                <small class="payout-error">{{ reasonError }}</small>
+                                            }
+                                        }
+                                    </div>
+                                } @else if (line.kind === 'FIXED') {
+                                    <p-tag severity="warn" value="Fisso" />
+                                    <span class="ml-2">{{ line.fixedAmount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</span>
+                                } @else if (line.factor !== null && line.factor !== undefined) {
+                                    <span>Fattore {{ line.factor | number: '1.0-3' : 'it-IT' }}</span>
+                                } @else if (line.present) {
+                                    <span class="text-muted-color">Quota piena</span>
+                                } @else {
+                                    <span class="text-muted-color">—</span>
+                                }
+                            </td>
+                            <td class="text-right text-muted-color">{{ line.simulatedShare | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                            <td class="text-right payout-real">
+                                <strong>{{ line.realShare | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+                                @if (line.kind === 'FIXED') {
+                                    <small class="block text-muted-color">fisso</small>
+                                }
+                            </td>
+                            <td class="text-right">{{ line.settled | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                            <td class="text-right">
+                                {{ line.due | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}
+                                @if (line.deviation > 0) {
+                                    <small class="block negative">scostamento {{ line.deviation | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</small>
+                                }
+                            </td>
+                            <td>
+                                <div class="flex justify-end gap-1">
+                                    @if (editing?.userId === line.userId) {
+                                        <p-button icon="pi pi-check" [text]="true" [rounded]="true" ariaLabel="Salva" [loading]="savingAdjustment" (onClick)="saveEdit(line)" />
+                                        <p-button icon="pi pi-times" [text]="true" [rounded]="true" severity="secondary" ariaLabel="Annulla" (onClick)="cancelEdit()" />
+                                    } @else if (line.present) {
+                                        <p-button
+                                            icon="pi pi-pencil"
+                                            [text]="true"
+                                            [rounded]="true"
+                                            severity="secondary"
+                                            ariaLabel="Modifica fattore o pagamento fisso"
+                                            pTooltip="Fattore o pagamento fisso"
+                                            [disabled]="!!editing"
+                                            (onClick)="startEdit(line)"
+                                        />
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template #footer>
+                        <tr>
+                            <td colspan="2">Totale quote</td>
+                            <td class="text-right">{{ simulation.planned.sharesTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                            <td class="text-right">{{ simulation.actual.sharesTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                            <td class="text-right" rowspan="2">{{ simulation.settledTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                            <td class="text-right" rowspan="2">{{ simulation.dueTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                            <td rowspan="2"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">Pagamenti fissi</td>
+                            <td class="text-right">{{ simulation.planned.fixedPayments | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                            <td class="text-right">{{ simulation.actual.fixedPayments | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            }
+        } @else {
+            <app-list-loading-skeleton />
+        }
+    }
+
+    @case ('members') {
+        <div class="filter-grid">
+            <div>
+                <label for="payout-from">Dal</label>
+                <p-datepicker inputId="payout-from" [(ngModel)]="memberFilters.from" dateFormat="dd/mm/yy" [showClear]="true" />
+            </div>
+            <div>
+                <label for="payout-to">Al</label>
+                <p-datepicker inputId="payout-to" [(ngModel)]="memberFilters.to" dateFormat="dd/mm/yy" [showClear]="true" />
+            </div>
+            <div class="filter-actions">
+                <p-button label="Applica" icon="pi pi-filter" (onClick)="applyMemberFilters()" />
+                <p-button label="Azzera" icon="pi pi-filter-slash" severity="secondary" [outlined]="true" (onClick)="resetMemberFilters()" />
+            </div>
+        </div>
+
+        @if (member) {
+            <div class="payout-member">
+                <div class="payout-member__head">
+                    <div>
+                        <p-button icon="pi pi-arrow-left" label="Tutti i soci" [text]="true" size="small" severity="secondary" (onClick)="closeMember()" />
+                        <h3>{{ member.name }}</h3>
+                    </div>
+                    <div class="payout-member__totals">
+                        <div>
+                            <small>Da liquidare</small><strong>{{ member.dueTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+                        </div>
+                        <div>
+                            <small>Già liquidato</small><strong>{{ member.settledTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+                        </div>
+                        @if (member.deviationTotal > 0) {
+                            <div>
+                                <small>Scostamento</small><strong class="negative">{{ member.deviationTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="payout-member__toolbar">
+                    <p-selectbutton [options]="memberStatuses" [(ngModel)]="memberStatus" (ngModelChange)="onMemberStatusChange()" optionLabel="label" optionValue="value" [allowEmpty]="false" size="small" aria-label="Stato delle quote" />
+                    <p-button label="Seleziona tutto il dovuto" icon="pi pi-check-square" size="small" severity="secondary" [outlined]="true" [disabled]="!member.dueTotal" (onClick)="selectAllDue()" />
+                </div>
+
+                <p-table [value]="rows" [(selection)]="selectedRows" [loading]="memberLoading" dataKey="line.eventId" [rowSelectable]="isSelectable">
+                    <ng-template #header>
+                        <tr>
+                            <th style="width: 3rem" aria-label="Selezione"></th>
+                            <th>Evento</th>
+                            <th>Tipo</th>
+                            <th class="text-right">Quota reale</th>
+                            <th class="text-right">Già liquidato</th>
+                            <th class="text-right">Residuo</th>
+                            <th>Stato</th>
+                            <th class="text-right">Da liquidare</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-row>
+                        <tr>
+                            <td><p-tableCheckbox [value]="row" [disabled]="row.line.due <= 0" /></td>
+                            <td>
+                                <strong>{{ row.line.eventName }}</strong>
+                                <small class="block text-muted-color">{{ row.line.eventDate | date: 'dd/MM/yyyy' }}</small>
+                                @if (row.line.reason) {
+                                    <small class="payout-reason">{{ row.line.reason }}</small>
+                                }
+                            </td>
+                            <td>
+                                @if (row.line.kind === 'FIXED') {
+                                    <p-tag severity="warn" value="Fisso" />
+                                } @else if (row.line.factor !== null && row.line.factor !== undefined) {
+                                    Quota × {{ row.line.factor | number: '1.0-3' : 'it-IT' }}
+                                } @else {
+                                    Quota
+                                }
+                            </td>
+                            <td class="text-right">{{ row.line.realShare | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                            <td class="text-right">{{ row.line.settled | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                            <td class="text-right">{{ row.line.due | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                            <td><p-tag [value]="lineStatus(row.line).label" [severity]="lineStatus(row.line).severity" /></td>
+                            <td class="text-right">
+                                @if (selectedRows.includes(row)) {
+                                    <p-inputnumber [(ngModel)]="row.amount" mode="currency" currency="EUR" locale="it-IT" [min]="0" [ariaLabel]="'Importo da liquidare per ' + row.line.eventName" [inputStyle]="{ width: '8rem' }" />
+                                    @if (amountError(row)) {
+                                        <small class="payout-error block">{{ amountError(row) }}</small>
+                                    }
+                                } @else {
+                                    <span class="text-muted-color">—</span>
+                                }
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template #emptymessage>
+                        <tr>
+                            <td colspan="8">Nessuna quota nel periodo.</td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+
+                <div class="payout-settle-bar">
+                    <span
+                        >{{ selectedRows.length === 1 ? '1 evento selezionato' : selectedRows.length + ' eventi selezionati' }} · <strong>{{ selectedTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong></span
+                    >
+                    <p-button label="Genera movimento" icon="pi pi-wallet" [disabled]="selectionInvalid" [loading]="settling" (onClick)="openSettlement()" />
+                </div>
+            </div>
+        } @else {
+            <p-table [value]="members" [loading]="membersLoading" dataKey="userId">
+                <ng-template #header>
+                    <tr>
+                        <th>Socio</th>
+                        <th class="text-right">Eventi</th>
+                        <th class="text-right">Da liquidare</th>
+                        <th class="text-right">Già liquidato</th>
+                        <th class="text-right">Scostamento</th>
+                        <th aria-label="Azioni"></th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-summary>
+                    <tr>
+                        <td>
+                            <strong>{{ summary.name }}</strong>
+                        </td>
+                        <td class="text-right">{{ summary.eventCount }}</td>
+                        <td class="text-right">{{ summary.dueTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                        <td class="text-right">{{ summary.settledTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                        <td class="text-right" [class.negative]="summary.deviationTotal > 0">{{ summary.deviationTotal | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</td>
+                        <td class="text-right">
+                            <p-button label="Quote" icon="pi pi-arrow-right" iconPos="right" [text]="true" size="small" (onClick)="openMember(summary.userId)" />
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="6">Nessun socio con presenze nel periodo.</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        }
+    }
+
+    @case ('settings') {
+        <div class="payout-settings-head">
+            <p>Percentuale di cassa e passo valgono dalla decorrenza finché non subentra una versione successiva; un evento usa la versione vigente alla sua data.</p>
+            <p-button label="Nuova versione" icon="pi pi-plus" (onClick)="openSetting()" />
+        </div>
+        @if (settingsLoaded && !settings.length) {
+            <app-empty-state
+                icon="pi pi-sliders-h"
+                heading="Nessuna versione dei parametri"
+                message="Senza parametri la simulazione non è calcolabile: crea la prima versione con una decorrenza anteriore ai primi eventi da ripartire."
+                actionLabel="Crea la prima versione"
+                (action)="openSetting()"
+                compact
+            />
+        } @else {
+            <p-table [value]="settings" [loading]="settingsLoading" dataKey="id">
+                <ng-template #header>
+                    <tr>
+                        <th>Decorrenza</th>
+                        <th class="text-right">Quota di cassa</th>
+                        <th class="text-right">Passo</th>
+                        <th>Creata da</th>
+                        <th>Creata il</th>
+                        <th aria-label="Azioni"></th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-setting>
+                    <tr>
+                        <td>
+                            <strong>{{ setting.validFrom | date: 'dd/MM/yyyy' }}</strong>
+                        </td>
+                        <td class="text-right">{{ setting.associationSharePercent | number: '1.0-2' : 'it-IT' }}%</td>
+                        <td class="text-right">{{ setting.roundingStep ? (setting.roundingStep | currency: 'EUR' : 'symbol' : '1.0-2' : 'it-IT') : 'Nessuno' }}</td>
+                        <td>{{ setting.createdBy ?? '—' }}</td>
+                        <td>{{ setting.createdAt ? (setting.createdAt | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+                        <td>
+                            <div class="flex justify-end gap-1">
+                                <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" severity="secondary" ariaLabel="Modifica versione" (onClick)="openSetting(setting)" />
+                                <p-button icon="pi pi-trash" [text]="true" [rounded]="true" severity="danger" ariaLabel="Elimina versione" (onClick)="deleteSetting(setting)" />
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        }
+    }
+}

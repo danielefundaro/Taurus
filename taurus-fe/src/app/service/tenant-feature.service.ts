@@ -30,6 +30,8 @@ export class TenantFeatureService {
     readonly inventoryLoanSheetEnabled = computed(() => this.features()?.inventoryLoanSheetEnabled === true);
     /** Firma elettronica dei fogli e delle prese visione: richiede i fogli di affidamento. */
     readonly inventorySignatureEnabled = computed(() => this.features()?.inventorySignatureEnabled === true);
+    /** Compensi ai presenti: effettiva soltanto con Economia e Calendario, come calcola il backend. */
+    readonly eventPayoutsEnabled = computed(() => this.features()?.eventPayoutsEnabled === true);
     readonly current = this.features.asReadonly();
     readonly capabilities = this.capabilityState.asReadonly();
 
@@ -91,6 +93,8 @@ export class TenantFeatureService {
                 return this.inventorySignatureEnabled();
             case TenantFeature.CALENDAR:
                 return this.calendarEnabled();
+            case TenantFeature.EVENT_PAYOUTS:
+                return this.eventPayoutsEnabled();
         }
     }
 
@@ -110,7 +114,8 @@ export class TenantFeatureService {
             scorePlaybackEnabled: false,
             inventoryLoanSheetEnabled: false,
             inventorySignatureEnabled: false,
-            calendarEnabled: false
+            calendarEnabled: false,
+            eventPayoutsEnabled: false
         };
     }
 

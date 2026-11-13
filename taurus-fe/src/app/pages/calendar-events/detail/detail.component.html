@@ -300,6 +300,10 @@
                 [routerLink]="['/finance']" [queryParams]="{ section: 'movements', eventId: event.id }" />
             <p-button label="Registra movimento" icon="pi pi-plus" [routerLink]="['/finance']"
                 [queryParams]="{ action: 'new', eventId: event.id }" />
+            @if (eventPayoutsEnabled()) {
+            <p-button label="Ripartisci compenso" icon="pi pi-users" severity="secondary" [outlined]="true"
+                [routerLink]="['/finance']" [queryParams]="{ tab: 'payouts', event: event.id }" />
+            }
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>

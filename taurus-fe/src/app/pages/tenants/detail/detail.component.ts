@@ -58,6 +58,13 @@ export class DetailComponent extends DetailPageBase implements OnInit {
             dependencies: ['inventoryLoanSheetEnabled']
         },
         {
+            key: 'eventPayoutsEnabled',
+            feature: TenantFeature.EVENT_PAYOUTS,
+            label: 'Compensi ai presenti',
+            description: 'Ripartizione del compenso degli eventi fra i presenti, pagamenti fissi e liquidazioni.',
+            dependencies: ['financeEnabled', 'calendarEnabled']
+        },
+        {
             key: 'webPushRemindersEnabled',
             feature: TenantFeature.WEB_PUSH_REMINDERS,
             label: 'Promemoria eventi Web Push',
@@ -303,4 +310,5 @@ type TenantFeatureField =
     | 'scorePlaybackEnabled'
     | 'inventoryLoanSheetEnabled'
     | 'inventorySignatureEnabled'
-    | 'calendarEnabled';
+    | 'calendarEnabled'
+    | 'eventPayoutsEnabled';
