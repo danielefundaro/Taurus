@@ -15,7 +15,9 @@ import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementAttachment;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
+import com.fundaro.zodiac.taurus.domain.finance.EventPayoutSettlement;
 import com.fundaro.zodiac.taurus.repository.finance.AccountingYearRepository;
+import com.fundaro.zodiac.taurus.repository.finance.EventPayoutSettlementRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialAccountRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialCategoryRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementAttachmentRepository;
@@ -107,6 +109,7 @@ public class FinanceService {
     private final MediaService mediaService;
     private final FinanceMetrics metrics;
     private TenantFeatureService tenantFeatureService;
+    private EventPayoutSettlementRepository payoutSettlementRepository;
 
     public FinanceService(
         AccountingYearRepository yearRepository,
@@ -133,6 +136,11 @@ public class FinanceService {
     @Autowired(required = false)
     void setTenantFeatureService(TenantFeatureService value) {
         tenantFeatureService = value;
+    }
+
+    @Autowired(required = false)
+    void setPayoutSettlementRepository(EventPayoutSettlementRepository value) {
+        payoutSettlementRepository = value;
     }
 
     /** Without the calendar the economics of the events leave the dashboard and the year, and no movement gets a new event. */
@@ -386,11 +394,28 @@ public class FinanceService {
         return toMovementDto(movement);
     }
 
+    /**
+     * The expense that settles the shares of a member (docs/event-payout-shares-spec.md): an ordinary movement, created
+     * without the notice of a movement registered by hand, because the settlement has a notice of its own. The caller
+     * checks the tenant and writes the settlement lines in the same transaction.
+     */
+    public MovementDTO createPayoutMovement(MovementRequest request, String actor) {
+        FinancialMovement movement = new FinancialMovement();
+        movement.initializeAudit(actor);
+        movement.setNature(FinancialMovementNature.ORDINARY);
+        applyMovement(movement, request, actor);
+        movementRepository.save(movement);
+        recalculateFollowingYears(movement.getAccountingYear().getYear(), actor);
+        metrics.record(Entity.MOVEMENT, Operation.CREATED);
+        return toMovementDto(movement);
+    }
+
     public MovementDTO updateMovement(long id, MovementRequest request, AbstractAuthenticationToken token) {
         tenant(token);
         String actor = actor(token);
         FinancialMovement movement = requiredMovement(id);
         requireCurrentVersion(movement, request.version());
+        requireSettlementAmount(movement, request);
         int oldYear = movement.getAccountingYear().getYear();
         if (movement.getNature() == FinancialMovementNature.TRANSFER) {
             updateTransferPair(movement, request, actor);
@@ -417,6 +442,7 @@ public class FinanceService {
             target.touchAudit(actor);
         });
         movementRepository.saveAll(targets);
+        releasePayoutSettlements(targets.stream().map(FinancialMovement::getId).toList(), actor);
         recalculateFollowingYears(year, actor);
         metrics.record(movement.getNature() == FinancialMovementNature.TRANSFER ? Entity.TRANSFER : Entity.MOVEMENT, Operation.DELETED);
     }
@@ -1360,6 +1386,38 @@ public class FinanceService {
             HttpStatus.CONFLICT,
             "Il movimento è stato modificato da un altro utente: ricaricalo prima di salvare",
             "finance.movement.versionConflict"
+        );
+    }
+
+    /**
+     * The lines of a deleted settlement are deleted with it, whatever the state of the shares feature: the shares they
+     * paid are due again, as a deleted movement contributes to nothing.
+     */
+    private void releasePayoutSettlements(List<Long> movementIds, String actor) {
+        if (payoutSettlementRepository == null || movementIds.isEmpty()) return;
+        List<EventPayoutSettlement> settlements = payoutSettlementRepository.findAllByMovementIdInAndDeletedFalse(movementIds);
+        if (settlements.isEmpty()) return;
+        settlements.forEach(settlement -> {
+            settlement.setDeleted(true);
+            settlement.touchAudit(actor);
+        });
+        payoutSettlementRepository.saveAll(settlements);
+        LOG.info("finance: eliminate {} righe di liquidazione dei compensi con il movimento {}", settlements.size(), movementIds);
+    }
+
+    /**
+     * A settlement movement keeps the amount and the direction of its lines: changing them would make the movement and
+     * the shares it paid disagree. Everything else stays editable, and the movement can still be deleted.
+     */
+    private void requireSettlementAmount(FinancialMovement movement, MovementRequest request) {
+        if (payoutSettlementRepository == null) return;
+        boolean sameAmount = request.amount() != null && request.amount().compareTo(movement.getAmount()) == 0;
+        if (sameAmount && request.direction() == movement.getDirection()) return;
+        if (payoutSettlementRepository.findAllByMovementIdAndDeletedFalse(movement.getId()).isEmpty()) return;
+        throw error(
+            HttpStatus.CONFLICT,
+            "Il movimento liquida compensi ai presenti: per cambiarne importo o direzione eliminalo e genera una nuova liquidazione",
+            "finance.movement.payoutSettlement"
         );
     }
 

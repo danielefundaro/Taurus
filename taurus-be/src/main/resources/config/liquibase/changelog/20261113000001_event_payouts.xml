@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet id="20261113000001-1" author="taurus">
+    <comment>Dated parameters, factors and fixed payments, and settlements of the shares of the participants.</comment>
+    <sql>
+      CREATE TABLE payout_setting
+      (
+        id                        BIGSERIAL PRIMARY KEY,
+        valid_from                DATE                     NOT NULL,
+        association_share_percent NUMERIC(5, 2)            NOT NULL,
+        rounding_step             NUMERIC(19, 4)           NOT NULL DEFAULT 0,
+        deleted                   BOOLEAN                  NOT NULL DEFAULT FALSE,
+        insert_date               TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        insert_by                 VARCHAR(255)             NOT NULL DEFAULT 'system',
+        edit_date                 TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        edit_by                   VARCHAR(255)             NOT NULL DEFAULT 'system',
+        entity_version            BIGINT                   NOT NULL DEFAULT 0,
+        CONSTRAINT ck_payout_setting_percent CHECK (association_share_percent &gt;= 0 AND association_share_percent &lt;= 100),
+        CONSTRAINT ck_payout_setting_step CHECK (rounding_step &gt;= 0)
+      );
+      CREATE UNIQUE INDEX uq_payout_setting_valid_from ON payout_setting (valid_from) WHERE deleted = FALSE;
+
+      CREATE TABLE event_payout_adjustment
+      (
+        id             BIGSERIAL PRIMARY KEY,
+        event_id       BIGINT                   NOT NULL REFERENCES calendar_event (id) ON DELETE RESTRICT,
+        user_id        BIGINT                   NOT NULL REFERENCES app_user (id) ON DELETE RESTRICT,
+        factor         NUMERIC(6, 3),
+        fixed_amount   NUMERIC(19, 4),
+        reason         VARCHAR(255)             NOT NULL,
+        deleted        BOOLEAN                  NOT NULL DEFAULT FALSE,
+        insert_date    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        insert_by      VARCHAR(255)             NOT NULL DEFAULT 'system',
+        edit_date      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        edit_by        VARCHAR(255)             NOT NULL DEFAULT 'system',
+        entity_version BIGINT                   NOT NULL DEFAULT 0,
+        CONSTRAINT ck_event_payout_adjustment_kind CHECK ((factor IS NULL) &lt;&gt; (fixed_amount IS NULL)),
+        CONSTRAINT ck_event_payout_adjustment_factor CHECK (factor IS NULL OR (factor &gt;= 0 AND factor &lt;= 1)),
+        CONSTRAINT ck_event_payout_adjustment_fixed CHECK (fixed_amount IS NULL OR fixed_amount &gt; 0),
+        CONSTRAINT ck_event_payout_adjustment_reason CHECK (length(btrim(reason)) &gt; 0)
+      );
+      CREATE UNIQUE INDEX uq_event_payout_adjustment_event_user
+        ON event_payout_adjustment (event_id, user_id) WHERE deleted = FALSE;
+
+      CREATE TABLE event_payout_settlement
+      (
+        id                  BIGSERIAL PRIMARY KEY,
+        movement_id         BIGINT                   NOT NULL REFERENCES financial_movement (id) ON DELETE RESTRICT,
+        event_id            BIGINT                   NOT NULL REFERENCES calendar_event (id) ON DELETE RESTRICT,
+        user_id             BIGINT                   NOT NULL REFERENCES app_user (id) ON DELETE RESTRICT,
+        amount              NUMERIC(19, 4)           NOT NULL,
+        event_name_snapshot VARCHAR(255),
+        deleted             BOOLEAN                  NOT NULL DEFAULT FALSE,
+        insert_date         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        insert_by           VARCHAR(255)             NOT NULL DEFAULT 'system',
+        edit_date           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        edit_by             VARCHAR(255)             NOT NULL DEFAULT 'system',
+        entity_version      BIGINT                   NOT NULL DEFAULT 0,
+        CONSTRAINT ck_event_payout_settlement_amount CHECK (amount &gt; 0)
+      );
+      CREATE INDEX idx_event_payout_settlement_user_event ON event_payout_settlement (user_id, event_id);
+      CREATE INDEX idx_event_payout_settlement_movement ON event_payout_settlement (movement_id);
+      CREATE INDEX idx_event_payout_settlement_event ON event_payout_settlement (event_id) WHERE deleted = FALSE;
+
+      -- The default category of the settlements. A tenant that already has an active category with this name keeps
+      -- its own, which the settlements then use.
+      INSERT INTO financial_category (name, description, direction, system_defined, display_order)
+      SELECT 'Compensi ai presenti', 'Quote e pagamenti fissi liquidati ai presenti degli eventi', 'EXPENSE', TRUE, 140
+      WHERE NOT EXISTS (
+        SELECT 1 FROM financial_category
+        WHERE lower(name) = lower('Compensi ai presenti') AND deleted = FALSE AND active = TRUE
+      );
+    </sql>
+    <rollback>
+      <sql>
+        DROP TABLE event_payout_settlement;
+        DROP TABLE event_payout_adjustment;
+        DROP TABLE payout_setting;
+      </sql>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

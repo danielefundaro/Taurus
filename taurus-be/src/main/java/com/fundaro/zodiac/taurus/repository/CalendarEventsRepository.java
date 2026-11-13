@@ -70,4 +70,34 @@ public interface CalendarEventsRepository extends CatalogRepository<CalendarEven
         @Param("from") Date from,
         @Param("to") Date to
     );
+
+    /** The events where the user is among the present ones: the shares of a member come from these. */
+    @Query("""
+        select distinct e from CalendarEvents e
+        join e.presences presence
+        where e.deleted = false
+          and (e.seriesExcluded = false or e.seriesExcluded is null)
+          and presence.user.id = :userId
+        """)
+    List<CalendarEvents> findAllWithPresentUser(@Param("userId") Long userId);
+
+    /** The events with at least one present user: the members with shares come from these. */
+    @Query("""
+        select distinct e from CalendarEvents e
+        join e.presences presence
+        where e.deleted = false
+          and (e.seriesExcluded = false or e.seriesExcluded is null)
+        """)
+    List<CalendarEvents> findAllWithPresences();
+
+    /** How many events with present users start in the period: a version of the shares parameters may apply to them. */
+    @Query("""
+        select count(distinct e.id) from CalendarEvents e
+        join e.presences presence
+        where e.deleted = false
+          and (e.seriesExcluded = false or e.seriesExcluded is null)
+          and e.startDate >= :from
+          and e.startDate < :to
+        """)
+    long countWithPresencesBetween(@Param("from") Date from, @Param("to") Date to);
 }

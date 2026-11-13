@@ -16,4 +16,6 @@ public interface FinancialCategoryRepository extends JpaRepository<FinancialCate
     boolean existsByNameIgnoreCaseAndDeletedFalseAndActiveTrue(String name);
 
     boolean existsByNameIgnoreCaseAndIdNotAndDeletedFalseAndActiveTrue(String name, Long id);
+
+    Optional<FinancialCategory> findFirstByNameIgnoreCaseAndDeletedFalseAndActiveTrueOrderByIdAsc(String name);
 }

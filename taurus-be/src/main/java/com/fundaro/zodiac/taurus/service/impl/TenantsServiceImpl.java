@@ -200,6 +200,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         if (dto.getInventoryLoanSheetEnabled() == null) dto.setInventoryLoanSheetEnabled(false);
         if (dto.getInventorySignatureEnabled() == null) dto.setInventorySignatureEnabled(false);
         if (dto.getCalendarEnabled() == null) dto.setCalendarEnabled(false);
+        if (dto.getEventPayoutsEnabled() == null) dto.setEventPayoutsEnabled(false);
     }
 
     private void preserveOmittedFeatureFlags(TenantsDTO dto, Tenants previous) {
@@ -222,6 +223,7 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
         if (dto.getInventorySignatureEnabled() == null)
             dto.setInventorySignatureEnabled(previous.getInventorySignatureEnabled());
         if (dto.getCalendarEnabled() == null) dto.setCalendarEnabled(previous.getCalendarEnabled());
+        if (dto.getEventPayoutsEnabled() == null) dto.setEventPayoutsEnabled(previous.getEventPayoutsEnabled());
     }
 
     /**
@@ -261,7 +263,8 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
             Map.entry("scorePlayback", Boolean.TRUE.equals(tenant.getScorePlaybackEnabled())),
             Map.entry("inventoryLoanSheet", Boolean.TRUE.equals(tenant.getInventoryLoanSheetEnabled())),
             Map.entry("inventorySignature", Boolean.TRUE.equals(tenant.getInventorySignatureEnabled())),
-            Map.entry("calendar", Boolean.TRUE.equals(tenant.getCalendarEnabled()))
+            Map.entry("calendar", Boolean.TRUE.equals(tenant.getCalendarEnabled())),
+            Map.entry("eventPayouts", Boolean.TRUE.equals(tenant.getEventPayoutsEnabled()))
         );
     }
 
@@ -278,7 +281,8 @@ public class TenantsServiceImpl extends CommonOpenSearchServiceImpl<Tenants, Ten
             Map.entry("scorePlayback", Boolean.TRUE.equals(tenant.getScorePlaybackEnabled())),
             Map.entry("inventoryLoanSheet", Boolean.TRUE.equals(tenant.getInventoryLoanSheetEnabled())),
             Map.entry("inventorySignature", Boolean.TRUE.equals(tenant.getInventorySignatureEnabled())),
-            Map.entry("calendar", Boolean.TRUE.equals(tenant.getCalendarEnabled()))
+            Map.entry("calendar", Boolean.TRUE.equals(tenant.getCalendarEnabled())),
+            Map.entry("eventPayouts", Boolean.TRUE.equals(tenant.getEventPayoutsEnabled()))
         );
     }
 }

@@ -21,6 +21,8 @@ public class NotificationFeaturePolicy {
         if ("ONBOARDING_IMPORT".equals(aggregateType)) result.add(TenantFeature.ONBOARDING_IMPORT);
         // Requests, outcomes and reminders of the acts of the loan sheets, for the signers and the administrators.
         if ("SIGNATURE_ACT".equals(aggregateType)) result.add(TenantFeature.INVENTORY_SIGNATURE);
+        // Parameters, factors, fixed payments and settlements of the shares of the participants.
+        if ("EVENT_PAYOUT".equals(aggregateType)) result.add(TenantFeature.EVENT_PAYOUTS);
         if ("EVENT_PREPARATION".equals(aggregateType)) {
             result.add(TenantFeature.EVENT_PREPARATION);
             if ("FINANCE_FOLLOW_UP".equals(operation)) result.add(TenantFeature.FINANCE);

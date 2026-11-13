@@ -14,7 +14,8 @@ public enum TenantFeature {
     SCORE_PLAYBACK("scorePlayback"),
     INVENTORY_LOAN_SHEET("inventoryLoanSheet"),
     INVENTORY_SIGNATURE("inventorySignature"),
-    CALENDAR("calendar");
+    CALENDAR("calendar"),
+    EVENT_PAYOUTS("eventPayouts");
 
     private final String errorKey;
 
@@ -36,6 +37,8 @@ public enum TenantFeature {
             case INVENTORY_SIGNATURE -> List.of(INVENTORY_LOAN_SHEET);
             case WEB_PUSH_REMINDERS -> List.of(NOTIFICATION_PREFERENCES, CALENDAR);
             case EXTERNAL_CALENDAR_FEED, EVENT_PREPARATION -> List.of(CALENDAR);
+            // The shares come from the presences and the budget of the events, and are paid with a finance movement.
+            case EVENT_PAYOUTS -> List.of(FINANCE, CALENDAR);
             default -> List.of();
         };
     }

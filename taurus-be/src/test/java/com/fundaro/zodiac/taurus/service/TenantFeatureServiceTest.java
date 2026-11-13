@@ -149,6 +149,36 @@ class TenantFeatureServiceTest {
     }
 
     @Test
+    void chainsTheSharesOfTheParticipantsToTheFinanceAndTheCalendar() {
+        Tenants tenant = tenant("A", true, false);
+        tenant.setEventPayoutsEnabled(true);
+        when(repository.findByCodeAndDeletedFalse("A")).thenReturn(Optional.of(tenant));
+
+        TenantContext.run("A", () -> {
+            assertThat(service.current().eventPayoutsEnabled()).isTrue();
+
+            tenant.setFinanceEnabled(false);
+            assertThat(service.current().eventPayoutsEnabled()).isFalse();
+            assertThatThrownBy(() -> service.requireEnabled(TenantFeature.EVENT_PAYOUTS))
+                .extracting(error -> ((RequestAlertException) error).getErrorKey())
+                .isEqualTo("tenantFeature.eventPayouts.disabled");
+
+            tenant.setFinanceEnabled(true);
+            tenant.setCalendarEnabled(false);
+            assertThat(service.isEnabled(TenantFeature.EVENT_PAYOUTS)).isFalse();
+
+            tenant.setCalendarEnabled(true);
+            tenant.setEventPayoutsEnabled(false);
+            assertThat(service.isEnabled(TenantFeature.EVENT_PAYOUTS)).isFalse();
+            assertThat(service.isEnabled(TenantFeature.FINANCE)).isTrue();
+        });
+
+        assertThat(service.capabilities().get(TenantFeature.EVENT_PAYOUTS).available()).isTrue();
+        assertThat(service.capabilities().get(TenantFeature.EVENT_PAYOUTS).dependencies())
+            .containsExactly(TenantFeature.FINANCE, TenantFeature.CALENDAR);
+    }
+
+    @Test
     void chainsTheElectronicSignatureToTheLoanSheetAndTheLoanSheetToTheInventory() {
         Tenants tenant = tenant("A", false, true);
         tenant.setInventoryLoanSheetEnabled(true);
@@ -196,6 +226,7 @@ class TenantFeatureServiceTest {
         assertThat(tenant.getInventoryLoanSheetEnabled()).isFalse();
         assertThat(tenant.getInventorySignatureEnabled()).isFalse();
         assertThat(tenant.getCalendarEnabled()).isFalse();
+        assertThat(tenant.getEventPayoutsEnabled()).isFalse();
     }
 
     private static Tenants tenant(String code, boolean finance, boolean inventory) {

@@ -36,4 +36,12 @@ class NotificationFeaturePolicyTest {
             .containsExactly(TenantFeature.CALENDAR);
         assertThat(policy.requiredFeatures(NotificationSource.CONTENT, "TRACCIA", "NUOVA_TRACCIA")).isEmpty();
     }
+
+    @Test
+    void tiesTheNoticesOfTheSharesToTheirOwnFeature() {
+        assertThat(policy.requiredFeatures(NotificationSource.FINANCE, "EVENT_PAYOUT", "PAYOUT_SETTLED"))
+            .containsExactlyInAnyOrder(TenantFeature.FINANCE, TenantFeature.EVENT_PAYOUTS);
+        assertThat(policy.requiredFeatures(NotificationSource.FINANCE, "MOVEMENT", "MOVEMENT_CREATED"))
+            .containsExactly(TenantFeature.FINANCE);
+    }
 }
