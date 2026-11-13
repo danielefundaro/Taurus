@@ -388,6 +388,21 @@ describe('FinancePayoutsComponent', () => {
             expect(payoutService.setAdjustment).not.toHaveBeenCalled();
         });
 
+        it('refuses a fixed payment with more than fifteen integer digits, as the backend does', () => {
+            const { component, payoutService, anna } = editing();
+            component['editing']!.mode = 'FIXED';
+            component['editing']!.reason = 'Ingaggio';
+            component['editing']!.fixedAmount = 1e15;
+
+            component['saveEdit'](anna);
+
+            expect(component['fixedAmountError']).toBe('Indica un importo con al massimo 15 cifre prima della virgola.');
+            expect(payoutService.setAdjustment).not.toHaveBeenCalled();
+
+            component['editing']!.fixedAmount = 999_999_999_999_999;
+            expect(component['fixedAmountError']).toBeUndefined();
+        });
+
         it('sends either the factor or the fixed payment, never both, and simulates again', () => {
             const { component, payoutService, toastService, anna } = editing();
             component['editing']!.mode = 'FACTOR';

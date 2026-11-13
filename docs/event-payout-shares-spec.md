@@ -229,7 +229,7 @@ Il fattore riduce la quota di un singolo presente in un singolo evento: chi ha s
 
 Il pagamento fisso sostituisce la quota di un singolo presente in un singolo evento con un importo stabilito: il professionista ingaggiato per un compenso concordato, il servizio pagato a forfait, la partecipazione a un evento gratuito o di beneficenza. Vale soltanto per quell'evento e non si propaga agli altri.
 
-- l'importo è maggiore di zero, ha due decimali e non è arrotondato al passo;
+- l'importo è maggiore di zero, ha al massimo quindici cifre intere e due decimali, come gli altri importi, e non è arrotondato al passo;
 - è alternativo al fattore: un presente ha un fattore, un pagamento fisso o nessuno dei due;
 - il motivo è obbligatorio, come per il fattore;
 - l'importo si sottrae dalla base insieme alle spese, mentre la quota di cassa resta calcolata sull'intera base: il suo costo ricade sui presenti a quota, che dividono un netto più piccolo, e tocca la cassa soltanto quando il margine non basta a coprirne la quota;
@@ -273,7 +273,7 @@ Servono entrambe le dipendenze: le quote nascono dalle presenze e dal preventivo
 
 Quando la funzionalità non è effettiva, per il flag spento o per una dipendenza spenta:
 
-- la scheda `Compensi` della pagina Economia e il pulsante `Ripartisci compenso` del dettaglio evento non compaiono; la scheda è incorporata nella pagina condivisa di Economia, quindi la disattivazione la fa sparire senza riportare l'utente alla dashboard;
+- la scheda `Compensi` della pagina Economia, la sua tappa nella guida di pagina e il pulsante `Ripartisci compenso` del dettaglio evento non compaiono; la scheda è incorporata nella pagina condivisa di Economia, quindi la disattivazione la fa sparire senza riportare l'utente alla dashboard;
 - gli endpoint `/api/finance/payouts/**` rispondono `403 tenantFeature.eventPayouts.disabled`;
 - le notifiche `PAYOUT_*` non vengono prodotte né consegnate, perché `NotificationFeaturePolicy` le associa a `EVENT_PAYOUTS`;
 - parametri, fattori, pagamenti fissi e righe di liquidazione restano nello schema del tenant;
@@ -343,7 +343,7 @@ Gli endpoint vivono sotto `/api/finance/payouts/**`, già coperti dalla regola d
 
 ### Fattori e pagamenti fissi
 
-- `PUT /api/finance/payouts/events/{eventId}/adjustments/{userId}`, imposta il motivo e, in alternativa, il fattore o il pagamento fisso, e risponde `204`; un fattore pari a `1` non viene salvato e rimuove l'eventuale fattore esistente. Risponde `400` con codice `payout.adjustment.reasonRequired` se manca il motivo, `400` con codice `payout.adjustment.valueRequired` se non indica esattamente uno fra fattore e pagamento fisso, `400` con codice `payout.adjustment.factorOutOfRange` se il fattore non è compreso fra zero e uno, `400` con codice `payout.adjustment.fixedAmountNotPositive` se il pagamento fisso non è maggiore di zero, `404` con codice `finance.event.notFound` o `payout.user.notFound` se evento o utente non esistono, e `409` con codice `payout.adjustment.userNotPresent` se l'utente non risulta presente all'evento;
+- `PUT /api/finance/payouts/events/{eventId}/adjustments/{userId}`, imposta il motivo e, in alternativa, il fattore o il pagamento fisso, e risponde `204`; un fattore pari a `1` non viene salvato e rimuove l'eventuale fattore esistente. Risponde `400` con codice `payout.adjustment.reasonRequired` se manca il motivo, `400` con codice `payout.adjustment.valueRequired` se non indica esattamente uno fra fattore e pagamento fisso, `400` con codice `payout.adjustment.factorOutOfRange` se il fattore non è compreso fra zero e uno, `400` con codice `payout.adjustment.fixedAmountNotPositive` se il pagamento fisso non è maggiore di zero, `400` con codice `validation` e il dettaglio in `fieldErrors` se ha più di quindici cifre intere o più di due decimali, come le righe di liquidazione, `404` con codice `finance.event.notFound` o `payout.user.notFound` se evento o utente non esistono, e `409` con codice `payout.adjustment.userNotPresent` se l'utente non risulta presente all'evento;
 - `DELETE /api/finance/payouts/events/{eventId}/adjustments/{userId}`, riporta il presente alla quota base, senza fattore né pagamento fisso, e risponde `204` anche quando non c'era nulla da rimuovere.
 
 ### Quote e liquidazione
@@ -383,6 +383,8 @@ La simulazione non genera notifiche: è una lettura.
 ### Collocazione
 
 Una nuova scheda `Compensi` nella sezione Economia, con tre viste: **Simulazione** di un evento, **Quote per socio** e **Parametri**. Dalla pagina dell'evento, un pulsante `Ripartisci compenso` apre direttamente la simulazione di quell'evento. Scheda e pulsante compaiono soltanto quando `eventPayoutsEnabled` è vero nel `TenantFeatureService` del frontend, e senza la funzionalità effettiva il frontend non chiama gli endpoint dei compensi.
+
+La [guida di pagina](guided-tour-spec.md) di Economia presenta la scheda con la tappa `page.finance.payouts`, ancorata all'intestazione della scheda (`finance.tabPayouts`), per Gestori e Tesoriere: dice che cosa vi si fa e ricorda di fissare per prima cosa i parametri. Come la scheda, la tappa richiede `EVENT_PAYOUTS` effettiva.
 
 ### Simulazione in tempo reale
 
@@ -443,6 +445,7 @@ Metriche utili: eventi con quote non ancora liquidate, totale dovuto per tenant,
 - selezione della versione dei parametri per data dell'evento, inclusa la decorrenza retroattiva;
 - rifiuto del fattore senza motivo, fuori intervallo o su un utente non presente;
 - rifiuto del pagamento fisso senza motivo o non positivo, e della richiesta con fattore e pagamento fisso insieme o con nessuno dei due;
+- rifiuto, come dato non valido, del pagamento fisso con più di quindici cifre intere o più di due decimali;
 - liquidazione che supera il residuo dovuto, liquidazione vuota, liquidazione con più soci;
 - liquidazione parziale che lascia il residuo corretto;
 - eliminazione del movimento che riporta le quote fra quelle dovute;
@@ -466,7 +469,8 @@ Metriche utili: eventi con quote non ancora liquidate, totale dovuto per tenant,
 - ciascuna barra di ripartizione somma alla propria base, con l'eventuale disavanzo oltre la linea della base;
 - i totali della tabella coincidono con i segmenti omonimi delle barre;
 - il campo del fattore rifiuta i valori superiori a uno;
-- il campo del pagamento fisso rifiuta i valori non positivi, e un presente non può avere insieme fattore e pagamento fisso;
+- il campo del pagamento fisso rifiuta i valori non positivi e quelli con più di quindici cifre intere, e un presente non può avere insieme fattore e pagamento fisso;
+- la guida di pagina di Economia ha la tappa della scheda `Compensi` per Gestori e Tesoriere soltanto con la funzionalità effettiva;
 - stati particolari resi come riquadri informativi;
 - l'anteprima del passo non salva nulla;
 - scheda `Compensi` e pulsante `Ripartisci compenso` assenti, senza chiamate agli endpoint dei compensi, quando la funzionalità non è effettiva;

@@ -5,8 +5,11 @@ import { RoleEnums } from './role.enums';
 // Kept out of `constants/index.ts`: the catalog belongs to the deferred chunk of the guided tour, not to the
 // initial bundle. Texts and paths follow docs/guided-tour-spec.md.
 
-/** Raised when a step is added or changes meaning: it is saved with the progress of each role. 2: the page guides; 3: the legal document detail. */
-export const GUIDED_TOUR_CATALOG_REVISION = 3;
+/**
+ * Raised when a step is added or changes meaning: it is saved with the progress of each role. 2: the page guides; 3: the
+ * legal document detail; 4: the payouts tab of the finance page.
+ */
+export const GUIDED_TOUR_CATALOG_REVISION = 4;
 
 /** No path may exceed it, welcome included. */
 export const GUIDED_TOUR_MAX_STEPS = 10;
