@@ -821,6 +821,17 @@ export const GUIDED_TOUR_PAGES: readonly GuidedTourPageDefinition[] = [
                 title: 'Esercizi',
                 body: "Nella scheda Esercizi trovi il riepilogo annuale, il riporto all'anno corrente e le segnalazioni da controllare.",
                 introducedIn: 2
+            },
+            {
+                id: 'page.finance.payouts',
+                roles: [...MANAGERS, TREASURER],
+                requires: [TenantFeature.EVENT_PAYOUTS],
+                anchors: ['finance.tabPayouts'],
+                icon: 'pi pi-users',
+                title: 'Compensi',
+                body: 'Nella scheda Compensi ripartisci il compenso di un evento fra i presenti, con fattori o pagamenti fissi, e liquidi a ogni socio le quote dovute.',
+                points: [{ text: 'Prima fissa percentuale di cassa e passo in Parametri' }],
+                introducedIn: 4
             }
         ]
     },

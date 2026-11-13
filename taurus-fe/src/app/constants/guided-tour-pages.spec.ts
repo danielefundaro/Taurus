@@ -72,7 +72,7 @@ const STEP_COUNTS: Record<string, [number[], number[]]> = {
         [0, 0, 0, 0, 0, 0, 0]
     ],
     '/finance': [
-        [8, 8, 8, 8, 0, 0, 0],
+        [9, 9, 9, 9, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0]
     ],
     '/instruments': [
@@ -186,6 +186,20 @@ describe('Page guides catalog', () => {
             expect(ids('/finance', role, allOff))
                 .withContext(role)
                 .toEqual([]);
+        }
+    });
+
+    it('shows the payouts tab of the finance page only with the shares of the participants', () => {
+        const withoutPayouts = (feature: TenantFeature) => feature !== TenantFeature.EVENT_PAYOUTS;
+
+        for (const role of [RoleEnums.SUPER_ADMIN, RoleEnums.ADMIN, RoleEnums.BOARD, RoleEnums.TREASURER]) {
+            expect(ids('/finance?tab=payouts', role).at(-1)).withContext(role).toBe('page.finance.payouts');
+            expect(ids('/finance', role, withoutPayouts))
+                .withContext(role)
+                .not.toContain('page.finance.payouts');
+            expect(ids('/finance', role, withoutPayouts))
+                .withContext(role)
+                .toContain('page.finance.years');
         }
     });
 
