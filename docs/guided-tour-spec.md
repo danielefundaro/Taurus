@@ -715,7 +715,7 @@ Le guide di pagina non salvano nulla. Le ragioni:
 - registrare le tappe viste farebbe crescere `seen_steps` oltre il limite di 100 per gli amministratori, che hanno molte pagine;
 - senza scritture il backend resta com'è e la guida non aggiunge dati personali.
 
-Ogni tappa ha comunque `introducedIn`, che vale 2 per le tappe di questa fase, così la [fase 3](#fase-3--novità) potrà segnalare le tappe nuove di una pagina dopo un rilascio. `GUIDED_TOUR_CATALOG_REVISION` passa a 2 con il rilascio della fase 2.
+Ogni tappa ha comunque `introducedIn`, che vale 2 per le tappe di questa fase, così la [fase 3](#fase-3--novità) potrà segnalare le tappe nuove di una pagina dopo un rilascio. `GUIDED_TOUR_CATALOG_REVISION` passa a 2 con il rilascio della fase 2, a 3 con le tappe del dettaglio dei documenti legali e a 4 con la tappa Compensi della guida di Economia: sale a ogni tappa aggiunta o che cambia significato.
 
 ### Catalogo, ancore e caricamento
 
@@ -907,6 +907,9 @@ La pagina ha due viste: quella dell'organizzazione, solo per i gestori, e quella
 | 6 | `page.finance.categories` | — | `finance.tabCategories` | «Nella scheda Categorie classifichi entrate e uscite per i rendiconti.» |
 | 7 | `page.finance.events` | `CALENDAR` | `finance.tabEvents` | «Nella scheda Eventi vedi per ogni evento costi previsti, incassi, spese e risultato.» |
 | 8 | `page.finance.years` | — | `finance.tabYears` | «Nella scheda Esercizi trovi il riepilogo annuale, il riporto all'anno corrente e le segnalazioni da controllare.» |
+| 9 | `page.finance.payouts` | `EVENT_PAYOUTS` | `finance.tabPayouts` | «Nella scheda Compensi ripartisci il compenso di un evento fra i presenti, con fattori o pagamenti fissi, e liquidi a ogni socio le quote dovute.» Punto: «Prima fissa percentuale di cassa e passo in Parametri» |
+
+La tappa 9 è stata aggiunta il 2026-11-13 con la revisione 4 del catalogo (`introducedIn: 4`), insieme alla scheda della [Ripartizione dei compensi ai presenti](event-payout-shares-spec.md). `EVENT_PAYOUTS` è lo stato effettivo, che include già Economia e Calendario: senza la funzionalità la scheda non c'è e la tappa non viene composta.
 
 #### Utenti — `/users` e `/users/:id`, Gestori
 

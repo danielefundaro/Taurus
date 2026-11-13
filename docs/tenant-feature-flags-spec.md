@@ -555,6 +555,7 @@ Alla riattivazione gli hash di conferma vengono rivalutati sui dati correnti. Ta
 Quando la funzionalità non è effettiva, per il flag spento o per una dipendenza spenta:
 
 - la scheda **Compensi** della pagina Economia e il pulsante **Ripartisci compenso** del dettaglio evento non compaiono; se la scheda è aperta, l'utente torna ai movimenti e resta nella pagina Economia;
+- la guida di pagina di Economia salta la tappa della scheda **Compensi** (`page.finance.payouts`);
 - gli endpoint `/api/finance/payouts/**` rispondono `403 tenantFeature.eventPayouts.disabled`;
 - le notifiche `PAYOUT_*` non vengono prodotte né consegnate;
 - parametri, fattori, pagamenti fissi e righe di liquidazione restano nello schema del tenant;
@@ -673,7 +674,7 @@ Principali punti di applicazione:
 | Profilo notifiche | Nascondere preferenze, digest, silenzioso e pausa |
 | Profilo e dettaglio evento | Nascondere configurazione dei promemoria Web Push |
 | Dettaglio evento e dashboard | Non creare workspace o provider di Preparazione evento |
-| Economia e dettaglio evento | Nascondere la scheda Compensi e il pulsante Ripartisci compenso, senza chiamare gli endpoint dei compensi |
+| Economia e dettaglio evento | Nascondere la scheda Compensi, la sua tappa nella guida di pagina e il pulsante Ripartisci compenso, senza chiamare gli endpoint dei compensi |
 
 ## Modifica mentre l'utente è collegato
 
@@ -834,7 +835,7 @@ Non devono essere registrati token o altri dati sensibili. I normali campi di au
 - workspace Preparazione e relativo provider dashboard non creati quando disabilitati;
 - combinazioni padre/figlio, compreso il ripristino automatico dell'efficacia del figlio quando il padre viene riattivato;
 - Calendario spento: menu, topbar, route, dashboard, profilo, dettaglio utente, tour guidato e pagina Economia senza eventi;
-- Compensi ai presenti: scheda e pulsante assenti senza la funzionalità, scheda chiusa sui movimenti quando viene disattivata mentre è aperta, checkbox tra le estensioni con Economia e Calendario come dipendenze.
+- Compensi ai presenti: scheda, pulsante e tappa della guida di Economia assenti senza la funzionalità, scheda chiusa sui movimenti quando viene disattivata mentre è aperta, checkbox tra le estensioni con Economia e Calendario come dipendenze.
 
 ### Test di accettazione multi-tenant
 
