@@ -672,3 +672,12 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
+
+                Additional permission under GNU GPL version 3 section 7
+
+If you modify this Program, or any covered work, by linking or combining it
+with PrimeNG, PrimeIcons or the other libraries that PrimeTek Informatics
+distributes under the PrimeUI License, such as the @primeuix, @primeicons and
+@primeui packages (or a modified version of those libraries), containing parts
+covered by the terms of the PrimeUI License, the licensors of this Program
+grant you additional permission to convey the resulting work.

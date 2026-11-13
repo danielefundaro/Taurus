@@ -83,3 +83,7 @@ Modifiche a autenticazione, isolamento tenant, keystore e dati economici richied
 ## Release
 
 I tag seguono `vMAJOR.MINOR.PATCH`. Il workflow Docker valida il catalogo prima di costruire e pubblicare le immagini backend, frontend e OMR. Una voce passa a `released` nella preparazione della release, indicando come prima release lo stesso tag e la relativa data; correzioni successive restano nelle note di release e non cambiano quel riferimento.
+
+## Licenza
+
+Taurus è distribuito con la [GNU GPL versione 3](LICENSE), con un permesso aggiuntivo della sezione 7 che consente di combinarlo con PrimeNG e le altre librerie PrimeUI, che dalla versione 22 hanno la PrimeUI License invece della MIT. Chi installa Taurus usa quelle librerie con la propria chiave, Community o commerciale: vedi le [note di terze parti del frontend](taurus-fe/THIRD_PARTY_NOTICES.md) e la variabile `TAURUS_PRIMEUI_LICENSE`.
