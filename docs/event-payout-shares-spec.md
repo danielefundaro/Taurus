@@ -406,7 +406,7 @@ Selezionato un socio, l'elenco delle sue quote reali e dei suoi pagamenti fissi 
 
 ### Parametri
 
-Elenco delle versioni in ordine di decorrenza, con percentuale, passo, autore e data di creazione. La creazione di una versione con decorrenza anteriore a oggi avvisa esplicitamente quali eventi già liquidati ricadrebbero nel nuovo calcolo, prima di salvare.
+Elenco delle versioni in ordine di decorrenza, con percentuale, passo, autore e data di creazione. L'autore è il nome e cognome del socio che ha creato la versione, come nelle notifiche, e mai l'identificativo di Keycloak registrato nei campi di audit; se quell'identità non corrisponde a un socio del tenant la cella resta vuota. La creazione di una versione con decorrenza anteriore a oggi avvisa esplicitamente quali eventi già liquidati ricadrebbero nel nuovo calcolo, prima di salvare.
 
 ## Sicurezza e isolamento
 

@@ -150,7 +150,7 @@ public class PayoutService {
     @Transactional(readOnly = true)
     public List<SettingDTO> findSettings(AbstractAuthenticationToken token) {
         tenant(token);
-        return settingRepository.findAllByDeletedFalseOrderByValidFromAsc().stream().map(PayoutService::toSettingDto).toList();
+        return toSettingDtos(settingRepository.findAllByDeletedFalseOrderByValidFromAsc());
     }
 
     public SettingDTO createSetting(SettingRequest request, AbstractAuthenticationToken token) {
@@ -172,7 +172,7 @@ public class PayoutService {
             "/finance?tab=payouts&view=settings",
             token
         );
-        return toSettingDto(setting);
+        return toSettingDtos(List.of(setting)).getFirst();
     }
 
     public SettingDTO updateSetting(long id, SettingRequest request, AbstractAuthenticationToken token) {
@@ -198,7 +198,7 @@ public class PayoutService {
             "/finance?tab=payouts&view=settings",
             token
         );
-        return toSettingDto(setting);
+        return toSettingDtos(List.of(setting)).getFirst();
     }
 
     /** Allowed only when the events with present users that the version covers fall back on an earlier version. */
@@ -842,15 +842,37 @@ public class PayoutService {
         );
     }
 
-    private static SettingDTO toSettingDto(PayoutSetting setting) {
+    private List<SettingDTO> toSettingDtos(List<PayoutSetting> settings) {
+        Map<String, String> authors = authorNames(settings.stream().map(PayoutSetting::getInsertBy).toList());
+        return settings.stream().map(setting -> toSettingDto(setting, authors)).toList();
+    }
+
+    private static SettingDTO toSettingDto(PayoutSetting setting, Map<String, String> authors) {
         return new SettingDTO(
             setting.getId(),
             setting.getValidFrom(),
             setting.getAssociationSharePercent(),
             setting.getRoundingStep(),
-            setting.getInsertBy(),
+            setting.getInsertBy() == null ? null : authors.get(setting.getInsertBy()),
             setting.getInsertDate()
         );
+    }
+
+    /**
+     * The names of the members behind the identity ids recorded as authors. An erased member keeps the placeholder name
+     * of the erasure; an id without a member of the tenant has no name, rather than showing the identity id.
+     */
+    private Map<String, String> authorNames(Collection<String> keycloakIds) {
+        Set<String> ids = keycloakIds.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        Map<String, Users> members = new HashMap<>();
+        for (Users user : userRepository.findAllByKeycloakIdIn(ids)) {
+            // The active member wins over an earlier, deleted row with the same identity.
+            members.merge(user.getKeycloakId(), user, (current, other) -> Boolean.TRUE.equals(current.getDeleted()) ? other : current);
+        }
+        Map<String, String> names = new HashMap<>();
+        members.forEach((id, user) -> names.put(id, userName(user)));
+        return names;
     }
 
     private SettlementDTO toSettlementDto(FinancialMovement movement, List<EventPayoutSettlement> lines) {

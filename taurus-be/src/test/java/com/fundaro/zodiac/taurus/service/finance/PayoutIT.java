@@ -13,6 +13,7 @@ import com.fundaro.zodiac.taurus.service.dto.finance.FinanceDtos.MovementRequest
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.AdjustmentRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.EventLineDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.EventPayoutDTO;
+import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.SettingDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.SettingRequest;
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.SettlementDTO;
 import com.fundaro.zodiac.taurus.service.dto.finance.PayoutDtos.SettlementLineRequest;
@@ -213,6 +214,20 @@ class PayoutIT {
 
         assertThat(transactionExecutor.execute(intruderTenant, () -> payoutService.findSettings(authentication(intruderTenant)))).isEmpty();
         assertThat(transactionExecutor.execute(ownerTenant, () -> payoutService.findSettings(owner()))).hasSize(1);
+    }
+
+    @Test
+    void namesTheAuthorOfAVersionAfterTheMemberOfTheTenant() {
+        users(ownerTenant, 1);
+        String member = prefix() + "1";
+        sql(ownerTenant, "INSERT INTO payout_setting (valid_from, association_share_percent, rounding_step, insert_by) VALUES ('2026-01-01', 10, 1, '" + member + "')");
+        // The token of the tests has no member in the tenant: the version keeps no name rather than the identity id.
+        transactionExecutor.execute(ownerTenant, () ->
+            payoutService.createSetting(new SettingRequest(LocalDate.of(2026, 6, 1), new BigDecimal("20"), new BigDecimal("5")), owner()));
+
+        List<SettingDTO> settings = transactionExecutor.execute(ownerTenant, () -> payoutService.findSettings(owner()));
+
+        assertThat(settings).extracting(SettingDTO::createdByName).containsExactly("Socio " + member, null);
     }
 
     // ---------------------------------------------------------------------------------------------------------------
