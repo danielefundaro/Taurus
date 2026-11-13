@@ -67,6 +67,8 @@ export interface PayoutSettlementRow {
 
 const SIMULATION_DELAY_MS = 300;
 const NOT_CONFIGURED = 'payout.setting.notConfigured';
+/** Primo importo rifiutato per un pagamento fisso: il backend ammette al massimo quindici cifre intere. */
+const FIXED_AMOUNT_LIMIT = 1e15;
 
 const currency = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
 
@@ -288,7 +290,8 @@ export class FinancePayoutsComponent implements OnInit {
     protected get fixedAmountError(): string | undefined {
         if (this.editing?.mode !== 'FIXED') return undefined;
         const amount = this.editing.fixedAmount;
-        return amount === null || amount === undefined || amount <= 0 ? 'Indica un importo maggiore di zero.' : undefined;
+        if (amount === null || amount === undefined || amount <= 0) return 'Indica un importo maggiore di zero.';
+        return amount >= FIXED_AMOUNT_LIMIT ? 'Indica un importo con al massimo 15 cifre prima della virgola.' : undefined;
     }
 
     protected get reasonError(): string | undefined {
