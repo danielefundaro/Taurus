@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { catchError, finalize, first, forkJoin, of, Subscription } from 'rxjs';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { RoleEnums } from '../../constants';
 import { HasRolesDirective, TourAnchorDirective } from '../../directive';
 import { CalendarEvents, CalendarEventsCriteria, InventoryAdminSummary, InventoryAssignmentSummary, InventoryUserSummary, Notices, NoticesCriteria, OperationalDashboard, Page, Tracks, TracksCriteria } from '../../module';
@@ -34,7 +35,7 @@ import { OperationsWidgetComponent } from './components/operations-widget/operat
 
 @Component({
     selector: 'app-dashboard',
-    imports: [DatePipe, ConfirmDialogModule, NotificationsWidgetComponent, StatsWidgetComponent, RecentsWidgetComponent, CalendarEventsWidgetComponent, InventoryWidgetComponent, OperationsWidgetComponent, HasRolesDirective, TourAnchorDirective],
+    imports: [DatePipe, ConfirmDialogModule, PageHeaderComponent, NotificationsWidgetComponent, StatsWidgetComponent, RecentsWidgetComponent, CalendarEventsWidgetComponent, InventoryWidgetComponent, OperationsWidgetComponent, HasRolesDirective, TourAnchorDirective],
     templateUrl: './dashboard.component.html',
     styleUrl: './dashboard.component.scss',
     providers: [KeycloakService, TenantsService, UsersService, AlbumsService, TracksService, CalendarEventsService, InventoryService, UserInventoryService],
