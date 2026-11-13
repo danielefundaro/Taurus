@@ -64,16 +64,16 @@
             <ng-template #header>
                 <tr>
                     <th class="w-12" scope="col">
-                        <p-tableHeaderCheckbox />
+                        <p-table-header-checkbox />
                     </th>
                     <th class="w-10" scope="col"></th>
                     <th pSortableColumn="order" scope="col">
                         Ordine
-                        <p-sortIcon field="order" />
+                        <p-sort-icon field="order" />
                     </th>
                     <th pSortableColumn="name" scope="col">
                         Nome
-                        <p-sortIcon field="name" />
+                        <p-sort-icon field="name" />
                     </th>
                     <th scope="col"></th>
                 </tr>
@@ -81,7 +81,7 @@
             <ng-template #body let-track let-index="rowIndex">
                 <tr [pReorderableRow]="index">
                     <td class="w-12">
-                        <p-tableCheckbox [value]="track" />
+                        <p-table-checkbox [value]="track" />
                     </td>
                     <td class="w-10">
                         @if (canReorder()) {

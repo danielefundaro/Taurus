@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { SelectButtonModule } from 'primeng/selectbutton';
@@ -8,6 +8,7 @@ import { ToggleButtonDisabledDirective } from './toggle-button-disabled.directiv
 @Component({
     standalone: true,
     imports: [FormsModule, SelectButtonModule, ToggleButtonModule, ToggleButtonDisabledDirective],
+    changeDetection: ChangeDetectionStrategy.Eager,
     template: `
         <p-togglebutton id="solo" [(ngModel)]="solo" onLabel="S" offLabel="S" [ariaLabel]="soloLabel" [disabled]="locked" />
         <p-selectbutton id="layout" aria-label="Vista elenco" [(ngModel)]="layout" [options]="options" [disabled]="layoutLocked" />

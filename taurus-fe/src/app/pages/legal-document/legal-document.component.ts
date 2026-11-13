@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { first, Subscription } from 'rxjs';
@@ -21,6 +21,7 @@ const TYPE_LABELS: Record<LegalDocumentType, string> = { TERMS: 'Termini di util
     standalone: true,
     imports: [ImportsModule, LegalTextComponent],
     templateUrl: './legal-document.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './legal-document.component.scss'
 })
 export class LegalDocumentComponent implements OnInit, OnDestroy {

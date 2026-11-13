@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { delay, finalize, first } from 'rxjs';
@@ -13,6 +13,7 @@ import { ConfirmService, KeycloakService, TenantFeatureService, TenantsService, 
     imports: [ImportsModule],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [TenantsService]
 })
 export class DetailComponent extends DetailPageBase implements OnInit {

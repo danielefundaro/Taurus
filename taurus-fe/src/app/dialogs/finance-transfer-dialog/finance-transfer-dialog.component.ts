@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ImportsModule } from '../../imports';
 import { FinancialAccount, FinancialTransferRequest } from '../../module';
@@ -8,6 +8,7 @@ import { toIsoDate } from '../../service';
     selector: 'app-finance-transfer-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './finance-transfer-dialog.component.html'
 })
 export class FinanceTransferDialogComponent {

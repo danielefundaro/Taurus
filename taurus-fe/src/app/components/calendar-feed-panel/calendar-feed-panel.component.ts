@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { CalendarFeed, CalendarFeedAuditEntry, CalendarFeedCreate, CalendarFeedDetailLevel, CalendarFeedScope, CalendarFeedSecret } from '../../module';
@@ -9,6 +9,7 @@ import { CalendarFeedService, ConfirmService, ToastService, withErrorSummary } f
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './calendar-feed-panel.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './calendar-feed-panel.component.scss'
 })
 export class CalendarFeedPanelComponent implements OnInit {

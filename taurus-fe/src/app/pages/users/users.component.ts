@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DialogService } from 'primeng/dynamicdialog';
@@ -16,6 +16,7 @@ import { CommonOpenSearchService } from '../../service/common-open-search.servic
     imports: [RouterModule, ImportsModule],
     templateUrl: './users.component.html',
     styleUrl: './users.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [UsersService, DialogService]
 })
 export class UsersComponent extends ListPageBase implements OnInit {

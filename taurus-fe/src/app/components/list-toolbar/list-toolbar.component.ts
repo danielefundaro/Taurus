@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { IconFieldModule } from 'primeng/iconfield';
@@ -19,6 +19,7 @@ export interface ListToolbarOption {
     standalone: true,
     imports: [FormsModule, ButtonModule, IconFieldModule, InputIconModule, InputTextModule, SelectModule, SelectButtonModule, ToggleButtonDisabledDirective],
     templateUrl: './list-toolbar.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './list-toolbar.component.scss'
 })
 export class ListToolbarComponent implements OnDestroy {

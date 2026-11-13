@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { NgxExtendedPdfViewerModule, NgxExtendedPdfViewerService, PagesLoadedEvent, PDFExportScaleFactor } from 'ngx-extended-pdf-viewer';
 import { BadgeModule } from 'primeng/badge';
 import { ButtonModule } from 'primeng/button';
@@ -46,6 +46,7 @@ const HANDLE_HIT_PX = 12;
     imports: [CommonModule, NgxExtendedPdfViewerModule, ButtonModule, TooltipModule, BadgeModule, ConfirmDialogModule, ImportsModule],
     providers: [NgxExtendedPdfViewerService],
     templateUrl: './pdf-manipulator-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './pdf-manipulator-dialog.component.scss'
 })
 export class PdfManipulatorDialogComponent {
@@ -235,13 +236,13 @@ export class PdfManipulatorDialogComponent {
         this.pageCrops =
             direction === 'vertical'
                 ? [
-                    { page: this.cropPageNum, x: 0, y: 0, width: 0.5, height: 1 },
-                    { page: this.cropPageNum, x: 0.5, y: 0, width: 0.5, height: 1 }
-                ]
+                      { page: this.cropPageNum, x: 0, y: 0, width: 0.5, height: 1 },
+                      { page: this.cropPageNum, x: 0.5, y: 0, width: 0.5, height: 1 }
+                  ]
                 : [
-                    { page: this.cropPageNum, x: 0, y: 0, width: 1, height: 0.5 },
-                    { page: this.cropPageNum, x: 0, y: 0.5, width: 1, height: 0.5 }
-                ];
+                      { page: this.cropPageNum, x: 0, y: 0, width: 1, height: 0.5 },
+                      { page: this.cropPageNum, x: 0, y: 0.5, width: 1, height: 0.5 }
+                  ];
         this.cropRect = { ...this.pageCrops[0] };
         this.cropDrawing = false;
         this.editingCropIndex = 0;
@@ -711,9 +712,7 @@ export class PdfManipulatorDialogComponent {
 
     /** Le zone del backend: i crop della ricetta, oppure l'intera pagina quando non ce ne sono. */
     private toneZones(values: Uint8ClampedArray, width: number, height: number): ToneZone[] {
-        const rectangles: ToneRect[] = this.recipe.crops.length
-            ? this.recipe.crops.map((crop) => this.toneRect(crop, width, height))
-            : [{ left: 0, top: 0, right: width, bottom: height }];
+        const rectangles: ToneRect[] = this.recipe.crops.length ? this.recipe.crops.map((crop) => this.toneRect(crop, width, height)) : [{ left: 0, top: 0, right: width, bottom: height }];
 
         return rectangles.map((rectangle) => ({ ...rectangle, bounds: this.toneBounds(values, rectangle, width) }));
     }

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../imports';
@@ -27,6 +27,7 @@ export interface ScoreVersionsDialogResult {
     selector: 'app-score-versions-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './score-versions-dialog.component.html'
 })
 export class ScoreVersionsDialogComponent implements OnInit {
@@ -59,11 +60,7 @@ export class ScoreVersionsDialogComponent implements OnInit {
     /** I campi del suono differiscono da quelli salvati: chiudere il dialogo li perderebbe. */
     protected get soundDirty(): boolean {
         const current = this.soundSettings();
-        return (
-            current.transpositionOverride !== this.savedSound.transpositionOverride ||
-            current.soundProgramOverride !== this.savedSound.soundProgramOverride ||
-            current.soundBankOverride !== this.savedSound.soundBankOverride
-        );
+        return current.transpositionOverride !== this.savedSound.transpositionOverride || current.soundProgramOverride !== this.savedSound.soundProgramOverride || current.soundBankOverride !== this.savedSound.soundBankOverride;
     }
 
     /** Nome dello strumento da cui la parte eredita suono e trasposizione. */

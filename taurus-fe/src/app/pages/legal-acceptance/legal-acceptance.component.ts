@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, first } from 'rxjs';
 import { LegalTextComponent } from '../../components/legal-text/legal-text.component';
@@ -18,6 +18,7 @@ interface DocumentText {
     standalone: true,
     imports: [ImportsModule, LegalTextComponent],
     templateUrl: './legal-acceptance.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './legal-acceptance.component.scss'
 })
 export class LegalAcceptanceComponent implements OnInit {
@@ -33,7 +34,7 @@ export class LegalAcceptanceComponent implements OnInit {
         private readonly route: ActivatedRoute,
         private readonly router: Router,
         private readonly toastService: ToastService
-    ) { }
+    ) {}
 
     ngOnInit(): void {
         this.loadStatus(true);

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ImportsModule } from '../../imports';
 import { InventoryLoanSheetSummary } from '../../module';
@@ -7,6 +7,7 @@ import { InventoryLoanSheetSummary } from '../../module';
     selector: 'app-inventory-loan-sheet-cancel-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './inventory-loan-sheet-cancel-dialog.component.html'
 })
 export class InventoryLoanSheetCancelDialogComponent {

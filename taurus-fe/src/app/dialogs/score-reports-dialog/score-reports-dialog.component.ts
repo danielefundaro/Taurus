@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../imports';
@@ -24,6 +24,7 @@ export interface ScoreReportsDialogResult {
     selector: 'app-score-reports-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './score-reports-dialog.component.html'
 })
 export class ScoreReportsDialogComponent implements OnInit {

@@ -1,4 +1,4 @@
-import { HTTP_INTERCEPTORS, HttpClient, HttpContext, HttpErrorResponse, HttpRequest, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClient, HttpContext, HttpErrorResponse, HttpRequest, provideHttpClient, withInterceptorsFromDi, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
@@ -252,7 +252,7 @@ describe('HttpInterceptorService error handling', () => {
 
         TestBed.configureTestingModule({
             providers: [
-                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClient(withXhr(), withInterceptorsFromDi()),
                 provideHttpClientTesting(),
                 { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
                 { provide: ToastService, useValue: toast },

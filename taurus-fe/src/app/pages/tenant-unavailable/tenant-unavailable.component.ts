@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { FloatingConfiguratorComponent } from '../../components/floating-configurator/floating-configurator.component';
@@ -10,6 +10,7 @@ import { KeycloakService, TenantStatusService } from '../../service';
     standalone: true,
     imports: [ButtonModule, FloatingConfiguratorComponent],
     templateUrl: './tenant-unavailable.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './tenant-unavailable.component.scss'
 })
 export class TenantUnavailableComponent {

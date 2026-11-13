@@ -1,5 +1,5 @@
 import { registerLocaleData } from '@angular/common';
-import { HttpRequest, provideHttpClient } from '@angular/common/http';
+import { HttpRequest, provideHttpClient, withXhr } from '@angular/common/http';
 import localeIt from '@angular/common/locales/it';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
@@ -78,7 +78,7 @@ describe('DetailComponent preparation', () => {
         TestBed.configureTestingModule({
             providers: [
                 provideRouter([{ path: 'calendar/:id', component: DetailComponent }]),
-                provideHttpClient(),
+                provideHttpClient(withXhr()),
                 provideHttpClientTesting(),
                 ConfirmationService,
                 DateConverterPipe,

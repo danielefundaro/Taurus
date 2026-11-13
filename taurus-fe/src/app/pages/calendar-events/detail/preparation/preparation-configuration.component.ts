@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../../../imports';
 import { EventPreparationConfiguration, EventPreparationView, PreparationProfile } from '../../../../module';
@@ -17,6 +17,7 @@ interface Requirement {
 @Component({
     selector: 'app-preparation-configuration',
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './preparation-configuration.component.html'
 })
 export class PreparationConfigurationComponent implements OnChanges {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { BadgeModule } from 'primeng/badge';
@@ -16,6 +16,7 @@ import { ConfiguratorComponent } from '../configurator/configurator.component';
     standalone: true,
     imports: [RouterModule, CommonModule, StyleClassModule, BadgeModule, OverlayBadgeModule, TooltipModule, ConfiguratorComponent, TourAnchorDirective],
     templateUrl: './topbar.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './topbar.component.scss'
 })
 export class TopbarComponent implements OnInit {
@@ -34,7 +35,7 @@ export class TopbarComponent implements OnInit {
         private readonly tenantFeatureService: TenantFeatureService,
         private readonly tenantStatusService: TenantStatusService,
         protected readonly guidedTour: GuidedTourService
-    ) { }
+    ) {}
 
     ngOnInit(): void {
         this.tenantFeatureService.refresh().subscribe({ error: () => undefined });

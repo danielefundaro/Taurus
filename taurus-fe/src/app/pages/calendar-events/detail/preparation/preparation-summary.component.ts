@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { Params } from '@angular/router';
 import { ImportsModule } from '../../../../imports';
 import { EventPreparationConfiguration, EventPreparationEvaluation, EventPreparationIssue, EventPreparationIssueDetail, EventPreparationView, PreparationArea } from '../../../../module';
@@ -36,6 +36,7 @@ export function preparationLink(action?: string): PreparationLink | undefined {
 @Component({
     selector: 'app-preparation-summary',
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './preparation-summary.component.html'
 })
 export class PreparationSummaryComponent implements OnChanges {

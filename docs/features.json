@@ -1046,6 +1046,9 @@
           "taurus-fe/src/tailwind.css",
           "taurus-fe/Dockerfile",
           "taurus-fe/src/app/directive/toggle-button-disabled.directive.ts",
+          "taurus-fe/src/app/constants/accessible-theme.ts",
+          "taurus-fe/docker-entrypoint.d/40-taurus-runtime-config.sh",
+          "taurus-fe/THIRD_PARTY_NOTICES.md",
           "taurus-info/pnpm-lock.yaml",
           "taurus-info/Dockerfile",
           "deploy/compose.yml",
@@ -1054,7 +1057,10 @@
         ],
         "migrations": [],
         "tests": [
-          "taurus-fe/src/app/directive/toggle-button-disabled.directive.spec.ts"
+          "taurus-fe/src/app/directive/toggle-button-disabled.directive.spec.ts",
+          "taurus-fe/src/app/constants/accessible-theme.spec.ts",
+          "taurus-fe/src/app/constants/primeng-autofocus-regression.spec.ts",
+          "taurus-fe/src/runtime-config.spec.ts"
         ]
       },
       "release": null,

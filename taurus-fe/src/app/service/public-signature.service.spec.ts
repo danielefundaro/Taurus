@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
@@ -30,7 +30,7 @@ describe('PublicSignatureService', () => {
     const opened: SignatureLinkAct = { tenantName: 'Banda musicale', minorName: 'Luca Rossi', maskedEmail: 'g***@example.org', linkExpiresAt: '2026-10-26T10:00:00Z', act };
 
     beforeEach(() => {
-        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), PublicSignatureService] });
+        TestBed.configureTestingModule({ providers: [provideHttpClient(withXhr()), provideHttpClientTesting(), PublicSignatureService] });
         service = TestBed.inject(PublicSignatureService);
         service.use(token);
         http = TestBed.inject(HttpTestingController);

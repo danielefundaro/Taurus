@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnInit } from '@angular/core';
+import { Component, effect, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { RoleEnums } from '../../constants';
@@ -10,6 +10,7 @@ import { TenantFeatureService, TenantStatusService } from '../../service';
     selector: 'app-menu',
     imports: [MenuItemComponent, RouterModule, HasRolesDirective, TourAnchorDirective],
     templateUrl: './menu.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './menu.component.scss'
 })
 export class MenuComponent implements OnInit {

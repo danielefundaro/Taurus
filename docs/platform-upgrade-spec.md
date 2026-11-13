@@ -15,6 +15,8 @@ Bozza del 2026-11-02, approvata il 2026-11-06 con tutte le scelte di [Decisioni]
 
 Applicata dalla fase 0 alla fase 8, l'ultima verificata il 2026-11-10 e unita su `main` il 2026-11-11: l'aggiornamento è concluso (vedi [Esito della fase 8](#esito-della-fase-8)). Le versioni rimaste indietro sono in [Eccezioni](#eccezioni-alla-versione-più-recente); da qui in avanti gli aggiornamenti arrivano da Dependabot (decisione 7).
 
+Il 2026-11-13 l'evolutiva successiva della decisione 5 ha portato il frontend ad Angular 22 e PrimeNG 22, con la PrimeUI License, sul ramo `upgrade-angular-22` (vedi [Esito del passo ad Angular e PrimeNG 22](#esito-del-passo-ad-angular-e-primeng-22)).
+
 ## Problema
 
 - **CI bloccata.** Trivy segnala 9 vulnerabilità nel backend, 38 nel frontend, 14 nel sito informativo e 29 nel servizio OMR, di cui 8 `CRITICAL`. Fra queste: un'esecuzione di codice remoto in Astro, un aggiramento dell'autenticazione degli endpoint Actuator di Spring Boot, vulnerabilità XSS nel compilatore di Angular e certificati compromessi in `certifi`.
@@ -210,6 +212,8 @@ Il testo non chiede di includere il codice delle librerie PrimeUI nel sorgente c
 
 L'evolutiva sceglie fra PrimeNG 22 o successive con la PrimeUI License, un'altra libreria di componenti e un fork di PrimeNG 21, prima che Angular 21 esca dal supporto a giugno 2027.
 
+**Scelta del 2026-11-13.** L'evolutiva adotta PrimeNG 22 con la PrimeUI License: il permesso aggiuntivo è in fondo a `LICENSE`, la chiave arriva da `TAURUS_PRIMEUI_LICENSE` e la licenza è annotata in `taurus-fe/THIRD_PARTY_NOTICES.md`. Rispetto al testo proposto sopra, il permesso nomina anche le altre librerie PrimeUI che PrimeNG 22 porta con sé (`@primeuix/styled`, `@primeuix/utils`, `@primeuix/motion`, `@primeicons/angular`, `@primeui/license-manager`), tutte con la stessa licenza. Il risultato è in [Esito del passo ad Angular e PrimeNG 22](#esito-del-passo-ad-angular-e-primeng-22).
+
 ### 6. Karma e Jasmine restano per ora
 
 Karma è deprecato, ma `@angular/build` 22 lo supporta ancora. Migrare 99 file di test a Vitest nello stesso momento renderebbe impossibile capire se un test fallisce per l'aggiornamento o per la migrazione. La migrazione a Vitest è un lavoro a parte, da fare dopo questo. Diventa prioritaria se Karma riceve vulnerabilità senza correzione.
@@ -256,9 +260,8 @@ Dopo l'aggiornamento il file resta, senza voci, con le stesse regole. Una voce n
 
 | Componente | Versione scelta | Più recente | Motivo |
 | --- | --- | --- | --- |
-| TypeScript | 5.9 nel frontend, 6.0 nel sito | 7.0 | Angular 21 richiede `>=5.9 <6.0`: nel frontend la 6.0 arriva con l'evolutiva successiva della decisione 5; `@astrojs/check` supporta fino alla 6 |
-| Angular, CLI e CDK; keycloak-angular | 21.2; 21.0 | 22.2; 22.0 | PrimeNG 21 chiede Angular 21. Angular 21 è in LTS fino a giugno 2027. Si aggiornano nell'evolutiva successiva della decisione 5 |
-| PrimeNG, `@primeuix/themes`, PrimeIcons | 21.1.10, 2.0.3, 7.0.0 | 22.1.4, 3.1.0, 8.0.2 | dalla 22 PrimeUI License. Dopo la 21.1.10 non sono uscite versioni gratuite di PrimeNG 21. Si aggiornano nell'evolutiva successiva della decisione 5 |
+| TypeScript | 6.0 nel frontend e nel sito | 7.0 | Angular 22 richiede `>=6.0 <6.1`; `@astrojs/check` supporta fino alla 6 |
+| Preset di PrimeNG | varianti `-compat` di `@primeuix/themes` 3 | preset standard | il font di base dell'applicazione è a 14 pixel, i preset standard della 3 lo assumono a 16. PrimeTek mantiene le varianti `-compat` fino a giugno 2027: il passaggio a 16 pixel è un lavoro a parte, da fare prima |
 | Python e Ubuntu del servizio OMR | 3.12 / 24.04 | 3.15 / 26.04 | Audiveris non ha pacchetti per Ubuntu 26.04 |
 | opencv-python-headless del servizio OMR | 4.14.0.94 | 5.0.0.93 | homr 0.7.0 richiede `<5`: decisione 9 |
 | musicxml del servizio OMR | 1.4 | 1.6.3 | homr 0.7.0 richiede `==1.4`: decisione 9 |
@@ -469,7 +472,7 @@ In corso dal 2026-11-08 sul ramo `upgrade-phase-5`, che parte da `6abf728`. Sono
 
 #### Passo ad Angular e PrimeNG 22
 
-Programmato e rimandato il 2026-11-08: la fase 5 si chiude alla linea 21 (decisione 5). Il piano resta come riferimento per l'evolutiva successiva che porterà il frontend oltre Angular 21, se sceglierà PrimeNG 22, in un ramo e una pull request nuovi.
+Programmato e rimandato il 2026-11-08: la fase 5 si chiude alla linea 21 (decisione 5). Il piano è stato seguito dall'evolutiva successiva il 2026-11-13, sul ramo `upgrade-angular-22` (vedi [Esito del passo ad Angular e PrimeNG 22](#esito-del-passo-ad-angular-e-primeng-22)).
 
 1. **Angular 22.** `ng update` di Angular, CLI e CDK alla 22.2.x, con TypeScript 6.0 (vedi [Eccezioni](#eccezioni-alla-versione-più-recente)), keycloak-angular 22 e la linea di zone.js che Angular 22 chiede. Si tolgono le API che Angular 22 depreca, come ai passi 20 e 21.
 2. **PrimeNG 22.** PrimeNG 22, `@primeuix/themes` 3 e PrimeIcons 8.
@@ -483,6 +486,24 @@ Programmato e rimandato il 2026-11-08: la fase 5 si chiude alla linea 21 (decisi
 6. **Documentazione di PrimeNG.** `docs/llms-full.md` descrive la 21: si sostituisce con quella della 22, `https://primeng.org/llms/llms-full.txt`, come chiede `AGENTS.md`.
 7. **Verifiche.** `npm run build`, `npm run test:coverage`, Trivy come nella CI e `npm audit`; la suite end to end, ricontrollando l'esclusione su `p-stepper` annotata per PrimeNG 19 nel [README della suite](../taurus-fe/e2e/README.md) e nel [Runbook di test](runbook-test.md); la verifica visiva delle pagine del [Taurus Layout Standard](taurus-layout-standard.md) in chiaro e scuro, desktop e mobile, con il controllo dei cascade layer di Tailwind 4. Il banner di PrimeNG non deve comparire con la chiave valida.
 8. **Riferimenti.** `AGENTS.md`, README e runbook passano ad Angular 22 e PrimeNG 22.
+
+#### Esito del passo ad Angular e PrimeNG 22
+
+Applicato il 2026-11-13 sul ramo `upgrade-angular-22`, che parte da `5394f2a`, dopo la scelta di PrimeNG 22 con la PrimeUI License (decisione 5). Le versioni sono le ultime pubblicate da almeno sette giorni, come chiede la decisione 7: npm ha installato con `before` fissato al 2026-11-06, anche le dipendenze indirette.
+
+- **Versioni.** Angular 22.2.5, CLI, `@angular/build` e CDK 22.2.6, TypeScript 6.0.3, keycloak-angular 22.0.0; PrimeNG 22.1.4, `@primeuix/themes` 3.1.0, PrimeIcons 8.0.2. Restano zone.js 0.16.3 e tailwindcss-primeui 0.6.1, che Angular 22 e PrimeNG 22 accettano. PrimeNG 22 porta con sé `@primeuix/styles` 3.1.0, `@primeicons/angular` 8.0.2 e `@primeui/license-manager` 1.1.0. Angular 22.2.6, PrimeNG 22.1.5 e `@primeuix/themes` 3.1.1 sono uscite da meno di sette giorni: arriveranno con Dependabot.
+- **Migrazioni di Angular.** `ng update` aggiunge `changeDetection: ChangeDetectionStrategy.Eager` a 105 componenti, perché Angular 22 rende OnPush il predefinito: il comportamento resta quello di prima, e il passaggio a OnPush è un lavoro a parte. Aggiunge `withXhr()` a `provideHttpClient`, che tiene il backend XHR e quindi l'avanzamento dei caricamenti, sopprime due diagnostiche estese e mette `istanbul-lib-instrument` fra le dipendenze di sviluppo, come chiede Karma. Le due migrazioni facoltative, a Vitest e al builder `application`, non sono applicate (decisione 6).
+- **Safe navigation nei template.** In Angular 22 `a?.b` restituisce `undefined` invece di `null`, e la migrazione avvolge 33 espressioni in 10 template in `$safeNavigationMigration()`, riformattando quei file. Le espressioni sono tornate come prima: arrivano tutte a input e funzioni che trattano allo stesso modo `null` e `undefined`, o stanno dentro un `@if` che esclude il caso. `detail-section` nasconde ora il contatore quando la lista manca, invece di mostrare uno span vuoto.
+- **Selettori e input di PrimeNG.** I selettori in camel case non ci sono più: `p-sortIcon`, `p-tableCheckbox` e `p-tableHeaderCheckbox` diventano `p-sort-icon`, `p-table-checkbox` e `p-table-header-checkbox` in sei template, e `ToggleButtonDisabledDirective` perde `p-toggleButton` e `p-selectButton`. Le direttive ad attributo della tabella (`pSortableColumn` e le altre) non cambiano. Gli attributi statici che un componente non dichiara non danno errore di compilazione: un controllo con il parser dei template di Angular li ha confrontati con gli input dichiarati da PrimeNG 22. `styleClass` non esiste più su `p-message` e `p-table` e diventa `class`. Lo stesso controllo ha trovato due difetti già presenti: `filterPlaceholder` su `p-multiselect`, che si scrive `filterPlaceHolder`, e `ariaLabel` su `p-progressbar` e `p-selectbutton`, che non hanno quell'input e finivano nel DOM come `arialabel`; ora sono `aria-label`. `Image` espone `previewButton` e `closeButton` come signal, `FileSelectEvent` ha `files` di tipo `FileList | File[]`, e `surfacePalette` di `@primeuix/themes` 3 non accetta più una palette assente.
+- **AutoFocus.** PrimeNG 22 legge l'`autofocus` con `booleanAttribute`, che tratta il valore assente come `false`: il difetto della 21 è corretto, e `neutralizePrimeNgAutoFocusDefault` è tolto con il suo `provideAppInitializer`. Il suo test resta come `primeng-autofocus-regression.spec.ts` e controlla lo stesso comportamento sulla direttiva di PrimeNG.
+- **Preset e tema accessibile.** I preset passano alle varianti `aura-compat`, `lara-compat` e `nora-compat` (vedi [Eccezioni](#eccezioni-alla-versione-più-recente)). In `@primeuix/themes` 3 un token vale per i due modi nella forma CSS `light-dark(chiaro, scuro)`, e `colorScheme.light` e `colorScheme.dark` non ci sono più nei preset. `@primeuix/styled` 1.2 li accetta ancora, ma uno scostamento scritto solo in `colorScheme.light` finisce su `:root` dopo il token del preset e lo sostituisce anche nel modo scuro: il CSS generato lo ha mostrato per `--p-primary-color`, che sarebbe rimasto alla tinta 700 anche su fondo scuro. Il tema accessibile costruisce ora gli scostamenti dal preset scelto, con la metà chiara di Taurus e quella scura del preset (`accessibleSemantic`, `accessibleComponents`), e messaggi e toast hanno un solo token con le due tinte. Il configuratore usa le stesse funzioni per il testo attenuato. `accessible-theme.spec.ts` misura i rapporti sui token della 3, aggiunge pulsanti, primario e testo attenuato, e controlla che la metà scura resti quella di Aura, Lara e Nora.
+- **Chiave della licenza.** `TAURUS_PRIMEUI_LICENSE` passa da `40-taurus-runtime-config.sh` ad `assets/config.json`, a `RuntimeConfig` e a `providePrimeNG({ license })`. Lo script accetta solo i caratteri di una chiave, base64url e punti, perché il valore finisce in un file JSON; senza chiave, o con una chiave scartata, scrive un avviso nel log. La verifica di `@primeui/license-manager` è offline, senza connessioni né telemetria. Senza una chiave valida PrimeNG scrive un avviso in console e mostra un banner in basso a destra, in uno shadow DOM chiuso con `pointer-events: none`: l'applicazione funziona e il banner non blocca i clic. In sviluppo nessuna chiave è nel repository, e il banner compare.
+- **Icone.** Tutte le icone `pi-*` usate dall'applicazione esistono in PrimeIcons 8. `pi-archive` e `pi-music` non esistevano nemmeno nella 7 e restavano vuote: diventano `pi-inbox` e `pi-headphones`.
+- **Deprecazioni di PrimeNG 22.** Restano da togliere entro la 24, quando PrimeNG le rimuoverà: le direttive `pButtonIcon` e `pButtonLabel`, in 6 template; `p-image`, in 4 template, e `p-galleria`, in uno, che PrimeNG sostituisce con Gallery; `p-multiselect`, in 2 template, che diventa `p-select` con `multiple`. Il frontend non usa `p-chart`, che passa a PrimeUI PRO Charts, a pagamento, né gli altri componenti deprecati.
+- **Stepper.** Nel codice della 22 la radice di `p-stepper` è ancora `tablist` e contiene i pannelli `tabpanel`: l'esclusione di `aria-required-children` nell'audit della configurazione iniziale resta.
+- **Vulnerabilità.** `npm audit` non segnala più le 18 vulnerabilità moderate della catena della CLI di Angular. Ne restano 3 moderate, in `minimatch` sotto ESLint 10.14, solo in sviluppo e indipendenti da questo passo.
+- **Verifiche.** Con Node 24.21, che Angular 22 accetta: `ng build` senza errori, con i due avvisi di budget sui fogli di stile di `pdf-manipulator-dialog` e `preview` che c'erano già; `npm run test:coverage` con 813 test superati e la copertura sopra la baseline (statements 65,53%, branches 55,91%, lines 67,59%). L'immagine costruita dal `Dockerfile`, con `node:26-alpine` come la CI, parte sana: `config.json` porta la chiave, una chiave con caratteri non ammessi è scartata con l'avviso, nginx gira con l'uid 101 e le note sono in `/usr/share/doc/taurus-fe/`. Nel browser, sulla pagina pubblica dei termini servita dall'immagine, il primario è emerald.700 in chiaro ed emerald.400 in scuro, il testo attenuato slate.600 e zinc.400, il titolo del toast di errore red.700 e red.400; senza chiave compare il banner di PrimeNG. La stessa pagina ha mostrato un difetto già presente: senza sessione `LayoutService` prova a salvare le preferenze del layout e ripete la chiamata a `/api/preferences/count`, che l'interceptor rifiuta con 401.
+- **Da verificare.** Trivy, che non è installato in locale, gira nel job `security` della CI. La suite end to end e la verifica visiva delle pagine del [Taurus Layout Standard](taurus-layout-standard.md) in chiaro e scuro, desktop e mobile, chiedono un'istanza completa con i tenant di prova: restano da eseguire prima del merge, con e senza chiave di licenza.
 
 ### Esito della fase 6
 
@@ -968,12 +989,13 @@ Risolto il 2026-11-06.
 
 - `package.json` e lockfile dopo ogni `ng update`; builder `@angular/build`; `@primeuix/themes`; Tailwind 4 con lo strumento di migrazione ufficiale.
 - Componenti: le modifiche richieste da PrimeNG 20 e 21, verificate pagina per pagina sulle schermate del [Taurus Layout Standard](taurus-layout-standard.md).
-- `ToggleButtonRoleDirective`, aggiunta nella fase 0: con PrimeNG 21 diventa `ToggleButtonDisabledDirective` e aggiunge solo `aria-disabled`; da togliere quando PrimeNG lo scriverà da sé, verificandolo con la suite di accessibilità.
+- `ToggleButtonRoleDirective`, aggiunta nella fase 0: con PrimeNG 21 diventa `ToggleButtonDisabledDirective` e aggiunge solo `aria-disabled`; da togliere quando PrimeNG lo scriverà da sé, verificandolo con la suite di accessibilità. PrimeNG 22 non lo scrive ancora.
 - `Dockerfile`: `node:26-alpine` e nginx senza root sulla porta 8080.
 - `docs/llms-full.md` rigenerato per PrimeNG 21.
 - Fatto nella fase 7: nginx 1.30 senza privilegi sulla porta 8080 e la porta pubblica inoltrata a Keycloak (vedi [Esito della fase 7](#esito-della-fase-7)).
 - Fatto nella fase 8: Angular 21.2.26 e Tailwind 4.3.4; esce `@angular/platform-browser-dynamic`, deprecato e non usato.
 - Fatto nella fase 5: Angular 21 e PrimeNG 21, le API deprecate, Tailwind 4, le librerie, la direttiva dei ToggleButton, Node 26 nel `Dockerfile` e nella CI, le correzioni trovate dalla suite end to end e `docs/llms-full.md` di PrimeNG 21 (vedi [Avanzamento della fase 5](#avanzamento-della-fase-5)).
+- Fatto il 2026-11-13: Angular 22.2 e PrimeNG 22.1 con TypeScript 6.0, i preset `-compat`, il tema accessibile nella forma `light-dark()`, la chiave della PrimeUI License a runtime, `THIRD_PARTY_NOTICES.md` e `docs/llms-full.md` di PrimeNG 22 (vedi [Esito del passo ad Angular e PrimeNG 22](#esito-del-passo-ad-angular-e-primeng-22)).
 
 ### Sito informativo
 
@@ -1013,7 +1035,7 @@ Nessun cambio di regole. Il passaggio a Spring Security 7 e a Hibernate 7 tocca 
 | Componente | Licenza | Nota |
 | --- | --- | --- |
 | Liquibase 5 Community | Functional Source License 1.1, con licenza futura Apache-2.0 (`FSL-1.1-ALv2`) | dalla 5 non è più Apache-2.0: l'uso interno è gratuito. Accettata il 2026-11-07 per la fase 4b, che la annota in un nuovo `taurus-be/THIRD_PARTY_NOTICES.md`, copiato anche nell'immagine come chiede la licenza a chi ridistribuisce. L'alternativa era restare sull'ultima 4.x, fuori supporto dal 30/09/2025 |
-| PrimeNG 22, `@primeuix/themes` e `@primeuix/styles` 3, PrimeIcons 8 | PrimeUI License, Community gratuita con chiave e rinnovo annuale | fino alla 21 erano MIT. Valutata il 2026-11-08, con un permesso aggiuntivo della sezione 7 della GPLv3 per Taurus e la chiave letta a runtime, e per ora non adottata: la fase 5 resta su PrimeNG 21 (decisione 5) |
+| PrimeNG 22, `@primeuix/themes` e `@primeuix/styles` 3, PrimeIcons 8 e le altre librerie PrimeUI | PrimeUI License, Community gratuita con chiave e rinnovo annuale | fino alla 21 erano MIT. Valutata il 2026-11-08 e adottata il 2026-11-13, con un permesso aggiuntivo della sezione 7 della GPLv3 in fondo a `LICENSE` e la chiave letta a runtime da `TAURUS_PRIMEUI_LICENSE`; annotata in `taurus-fe/THIRD_PARTY_NOTICES.md`, copiato nell'immagine (decisione 5) |
 | Tutti gli altri componenti | invariata | da ricontrollare a ogni maggiore in `THIRD_PARTY_NOTICES.md` |
 
 ## Strategia di test

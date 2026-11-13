@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { finalize, first, Observable } from 'rxjs';
 import { RoleEnums } from '../../../../constants';
 import { ImportsModule } from '../../../../imports';
@@ -24,6 +24,7 @@ const TEXTS: Record<ConfirmationArea, { heading: string; action: string; descrip
 @Component({
     selector: 'app-preparation-confirmation',
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './preparation-confirmation.component.html'
 })
 export class PreparationConfirmationComponent {

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { finalize, first } from 'rxjs';
@@ -11,6 +11,7 @@ import { ConfirmService, NotificationDeliveryAdminService, NotificationPresentat
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './notification-delivery.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './notification-delivery.component.scss'
 })
 export class NotificationDeliveryComponent implements OnInit {
@@ -87,7 +88,7 @@ export class NotificationDeliveryComponent implements OnInit {
         private readonly toastService: ToastService,
         protected readonly notificationPresentation: NotificationPresentationService,
         private readonly route: ActivatedRoute
-    ) { }
+    ) {}
 
     ngOnInit(): void {
         const status = this.route.snapshot.queryParamMap.get('status');
@@ -141,7 +142,6 @@ export class NotificationDeliveryComponent implements OnInit {
         if (this.rangeInvalid) return;
         this.resetAndLoad();
     }
-
 
     private resetAndLoad(): void {
         this.selected = [];

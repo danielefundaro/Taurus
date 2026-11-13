@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ImportsModule } from '../../imports';
 
@@ -6,13 +6,14 @@ import { ImportsModule } from '../../imports';
     selector: 'app-inventory-qr-rotate-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './inventory-qr-rotate-dialog.component.html'
 })
 export class InventoryQrRotateDialogComponent {
     protected reason = '';
     protected confirmed = false;
 
-    constructor(private readonly dialogRef: DynamicDialogRef<InventoryQrRotateDialogComponent>) { }
+    constructor(private readonly dialogRef: DynamicDialogRef<InventoryQrRotateDialogComponent>) {}
 
     protected save(): void {
         if (this.reason.trim() && this.confirmed) this.dialogRef.close(this.reason.trim());

@@ -1,4 +1,4 @@
-import { booleanAttribute, Component, Input } from '@angular/core';
+import { booleanAttribute, Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { Params, RouterModule } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 
@@ -7,6 +7,7 @@ import { TagModule } from 'primeng/tag';
     standalone: true,
     imports: [RouterModule, TagModule],
     templateUrl: './detail-section.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './detail-section.component.scss'
 })
 export class DetailSectionComponent {

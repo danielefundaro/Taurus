@@ -35,7 +35,7 @@
                 [detail]="noProposal ? 'Il nome non corrisponde a uno strumento noto: scegli suono e trasposizione. Fino ad allora le sue parti si ascoltano con il pianoforte e senza trasposizione.' : 'Le sue parti si ascoltano con il pianoforte e senza trasposizione finché non scegli suono e trasposizione.'" />
             }
             <p-selectbutton [options]="kindOptions" [ngModel]="percussion" (ngModelChange)="onKindChange($event)"
-                optionLabel="label" optionValue="value" [allowEmpty]="false" ariaLabel="Tipo di strumento" />
+                optionLabel="label" optionValue="value" [allowEmpty]="false" aria-label="Tipo di strumento" />
             @if (percussion) {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <app-form-field label="Suono di batteria" forId="percussionKey" hint="Suono General MIDI della percussione.">

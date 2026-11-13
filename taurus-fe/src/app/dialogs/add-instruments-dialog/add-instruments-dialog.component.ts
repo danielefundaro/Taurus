@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -15,6 +15,7 @@ import { FormFieldComponent } from '../../components/form-field/form-field.compo
     selector: 'app-add-instruments-dialog',
     imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, DialogShellComponent, FormFieldComponent],
     templateUrl: './add-instruments-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './add-instruments-dialog.component.scss'
 })
 export class AddInstrumentsDialogComponent {

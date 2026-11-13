@@ -16,6 +16,8 @@ import { environment } from './environments/environment';
 export interface RuntimeConfig {
     baseUrl?: string;
     vapidPublicKey?: string;
+    /** Chiave della PrimeUI License, passata a `providePrimeNG`. */
+    primeuiLicense?: string;
     keycloak?: {
         baseurl?: string;
         realm?: string;
@@ -31,6 +33,7 @@ export const loadRuntimeConfig = async (): Promise<void> => {
     if (config) {
         if (config.baseUrl) environment.baseUrl = config.baseUrl;
         if (config.vapidPublicKey) environment.vapidPublicKey = config.vapidPublicKey;
+        if (config.primeuiLicense) environment.primeuiLicense = config.primeuiLicense;
         if (config.keycloak?.baseurl) environment.keycloak.baseurl = config.keycloak.baseurl;
         if (config.keycloak?.realm) environment.keycloak.realm = config.keycloak.realm;
         if (config.keycloak?.clientId) environment.keycloak.clientId = config.keycloak.clientId;

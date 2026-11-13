@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -17,6 +17,7 @@ import { ToggleButtonDisabledDirective } from '../../directive/toggle-button-dis
     selector: 'app-add-tenants-dialog',
     imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, ToggleButtonModule, ToggleButtonDisabledDirective, DialogShellComponent, FormFieldComponent],
     templateUrl: './add-tenants-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './add-tenants-dialog.component.scss'
 })
 export class AddTenantsDialogComponent {

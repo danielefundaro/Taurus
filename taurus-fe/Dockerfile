@@ -36,6 +36,8 @@ COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY security-headers.conf /etc/nginx/taurus-security-headers.conf
 # Scrive assets/config.json dalle variabili d'ambiente, prima che nginx parta.
 COPY --chmod=0755 docker-entrypoint.d/40-taurus-runtime-config.sh /docker-entrypoint.d/40-taurus-runtime-config.sh
+# Le note sulle licenze delle librerie nel bundle (PrimeUI License), fuori dalla cartella servita.
+COPY THIRD_PARTY_NOTICES.md /usr/share/doc/taurus-fe/THIRD_PARTY_NOTICES.md
 
 # Copia build Angular. I file restano di root e nginx li legge soltanto; l'unico che il container
 # riscrive è la configurazione a runtime, che appartiene quindi all'utente nginx.

@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { catchError, finalize, forkJoin, first, of } from 'rxjs';
@@ -22,6 +22,7 @@ type CropHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './image-editor-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './image-editor-dialog.component.scss'
 })
 export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
@@ -110,13 +111,13 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
         this.recipe.crops =
             direction === 'vertical'
                 ? [
-                    { x: 0, y: 0, width: 0.5, height: 1 },
-                    { x: 0.5, y: 0, width: 0.5, height: 1 }
-                ]
+                      { x: 0, y: 0, width: 0.5, height: 1 },
+                      { x: 0.5, y: 0, width: 0.5, height: 1 }
+                  ]
                 : [
-                    { x: 0, y: 0, width: 1, height: 0.5 },
-                    { x: 0, y: 0.5, width: 1, height: 0.5 }
-                ];
+                      { x: 0, y: 0, width: 1, height: 0.5 },
+                      { x: 0, y: 0.5, width: 1, height: 0.5 }
+                  ];
         this.activeCropIndex = 0;
         this.cropDrawing = false;
         this.changed(direction === 'vertical' ? 'Pagina divisa in metà sinistra e destra' : 'Pagina divisa in metà alta e bassa');
@@ -311,8 +312,7 @@ export class ImageEditorDialogComponent implements AfterViewInit, OnDestroy {
 
     private saveMessage(error: HttpErrorResponse): string {
         if (error.status === 409) return 'La traccia o la pagina è stata modificata. Ricarica la traccia prima di riprovare.';
-        if (this.saveRetryable)
-            return 'Il salvataggio non ha ricevuto risposta. «Riprova» ripete lo stesso tentativo: se la modifica è già stata registrata la riporta senza duplicarla.';
+        if (this.saveRetryable) return 'Il salvataggio non ha ricevuto risposta. «Riprova» ripete lo stesso tentativo: se la modifica è già stata registrata la riporta senza duplicarla.';
         return 'Non è stato possibile salvare l’immagine. La modifica è ancora disponibile.';
     }
 

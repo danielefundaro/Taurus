@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { first } from 'rxjs';
 import { ImportsModule } from '../../imports';
@@ -16,6 +16,7 @@ export interface MovementDialogResult {
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './finance-movement-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './finance-movement-dialog.component.scss'
 })
 export class FinanceMovementDialogComponent {
@@ -169,9 +170,7 @@ export class FinanceMovementDialogComponent {
 
     /** L'unica categoria utilizzabile con quella direzione, quando non c'è ambiguità. */
     private singleCategoryFor(direction: FinancialDirection): number | undefined {
-        const usable = this.categories.filter(
-            (category) => category.active !== false && (category.direction === 'BOTH' || category.direction === direction)
-        );
+        const usable = this.categories.filter((category) => category.active !== false && (category.direction === 'BOTH' || category.direction === direction));
         return usable.length === 1 ? usable[0].id : undefined;
     }
 

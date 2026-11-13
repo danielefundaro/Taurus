@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, first } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
@@ -18,6 +18,7 @@ import { focusFragment } from '../../_shared/focus-fragment';
     imports: [ImportsModule, InventoryExpirationBadgeComponent, InventoryIssueListComponent],
     templateUrl: './assignment-detail.component.html',
     styleUrl: './assignment-detail.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService]
 })
 export class InventoryAssignmentDetailComponent implements OnInit {

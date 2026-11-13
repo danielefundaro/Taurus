@@ -24,7 +24,7 @@ describe('MediaThumbnailComponent', () => {
     // componente prima la lascerebbe nel documento, dove blocca le spec che cercano una maschera aperta. La
     // chiusura passa dal pulsante, perché il componente è OnPush e `closePreview()` da solo non aggiorna la vista.
     afterEach(async () => {
-        (component['previewImage']?.closeButton?.nativeElement as HTMLButtonElement | undefined)?.click();
+        (component['previewImage']?.closeButton()?.nativeElement as HTMLButtonElement | undefined)?.click();
         fixture.detectChanges();
         await fixture.whenStable();
         fixture.detectChanges();
@@ -36,7 +36,7 @@ describe('MediaThumbnailComponent', () => {
         component['imageUrl'] = 'blob:page-preview';
         component['loading'] = false;
         component['changeDetector'].detectChanges();
-        const trigger = component['previewImage']?.previewButton?.nativeElement as HTMLButtonElement;
+        const trigger = component['previewImage']?.previewButton()?.nativeElement as HTMLButtonElement;
         spyOn(trigger, 'click').and.callThrough();
 
         component.openPreview();

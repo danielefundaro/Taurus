@@ -136,7 +136,7 @@
                                     <p-tag [value]="statusLabel(job.status)" [severity]="severity(job.status)" /><span>{{ stageLabel(job.stage) }}</span>
                                 </div>
                                 @if (job.status === 'UPLOADED' || job.status === 'VALIDATING') {
-                                    <p-progressbar [value]="job.progressPercentage" ariaLabel="Avanzamento validazione" />
+                                    <p-progressbar [value]="job.progressPercentage" aria-label="Avanzamento validazione" />
                                     <div class="sr-only" aria-live="polite">{{ stageLabel(job.stage) }}</div>
                                 }
                                 <div class="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3 my-4">

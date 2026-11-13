@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { finalize, first, Subscription, timer } from 'rxjs';
 import { ScoreEditorDialogComponent, ScoreEditorDialogData } from '../../../../dialogs/score-editor-dialog/score-editor-dialog.component';
@@ -26,6 +26,7 @@ export const RECOGNITION_POLL_MILLIS = 5000;
     imports: [ImportsModule],
     templateUrl: './score-playback-panel.component.html',
     styleUrl: './score-playback-panel.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService]
 })
 export class ScorePlaybackPanelComponent implements OnChanges, OnDestroy {

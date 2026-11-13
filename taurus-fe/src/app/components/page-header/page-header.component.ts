@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -8,6 +8,7 @@ import { TagModule } from 'primeng/tag';
     standalone: true,
     imports: [RouterModule, ButtonModule, TagModule],
     templateUrl: './page-header.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './page-header.component.scss'
 })
 export class PageHeaderComponent {

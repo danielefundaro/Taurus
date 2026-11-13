@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { toLocalDate } from '../../constants';
 import { ImportsModule } from '../../imports';
@@ -8,6 +8,7 @@ import { InventoryLoanReturnOutcome, InventoryLoanSheetCloseRequest, InventoryLo
     selector: 'app-inventory-loan-sheet-close-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './inventory-loan-sheet-close-dialog.component.html'
 })
 export class InventoryLoanSheetCloseDialogComponent {

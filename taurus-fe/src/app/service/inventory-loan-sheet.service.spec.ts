@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
@@ -13,7 +13,7 @@ describe('Inventory loan sheet endpoints', () => {
     const personal = `${environment.baseUrl}/user/inventory`;
 
     beforeEach(() => {
-        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+        TestBed.configureTestingModule({ providers: [provideHttpClient(withXhr()), provideHttpClientTesting()] });
         inventoryService = TestBed.inject(InventoryService);
         userInventoryService = TestBed.inject(UserInventoryService);
         http = TestBed.inject(HttpTestingController);

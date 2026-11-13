@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { first } from 'rxjs';
 import { ImportsModule } from '../../../imports';
@@ -16,6 +16,7 @@ import { CalendarFeedService } from '../../../service';
     selector: 'app-event-by-uid',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './event-by-uid.component.html'
 })
 export class EventByUidComponent implements OnInit {

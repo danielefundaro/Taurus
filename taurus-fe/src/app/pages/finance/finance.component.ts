@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnInit } from '@angular/core';
+import { Component, effect, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DialogService } from 'primeng/dynamicdialog';
 import { TableLazyLoadEvent } from 'primeng/table';
@@ -30,10 +30,7 @@ import {
 import { ConfirmService, FinanceService, MovementFilters, ReportFormat, TenantFeatureService, ToastService, toIsoDate } from '../../service';
 
 /** Chiave di idempotenza del salvataggio: un retry non deve creare un secondo movimento. */
-const newRequestKey = (): string =>
-    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+const newRequestKey = (): string => (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`);
 
 @Component({
     selector: 'app-finance',
@@ -41,6 +38,7 @@ const newRequestKey = (): string =>
     imports: [ImportsModule, TabsModule, FinancePayoutsComponent],
     templateUrl: './finance.component.html',
     styleUrl: './finance.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService]
 })
 export class FinanceComponent implements OnInit {
@@ -306,9 +304,7 @@ export class FinanceComponent implements OnInit {
     }
 
     private saveMovement(result: MovementDialogResult): void {
-        const payload: FinancialMovement = result.movement.id
-            ? result.movement
-            : { ...result.movement, requestKey: newRequestKey() };
+        const payload: FinancialMovement = result.movement.id ? result.movement : { ...result.movement, requestKey: newRequestKey() };
         const request = payload.id ? this.financeService.updateMovement(payload) : this.financeService.createMovement(payload);
         request.pipe(first()).subscribe((saved) => {
             this.toastService.success('Movimento salvato', 'Saldi e rendiconti sono stati aggiornati.');
@@ -325,10 +321,7 @@ export class FinanceComponent implements OnInit {
     private noticeRecalculatedOpenings(movement: FinancialMovement): void {
         const year = movement.accountingYear;
         if (!year || year >= new Date().getFullYear()) return;
-        this.toastService.info(
-            'Riporti ricalcolati',
-            `Il movimento è nell’esercizio ${year}: i saldi di apertura degli esercizi successivi sono stati aggiornati.`
-        );
+        this.toastService.info('Riporti ricalcolati', `Il movimento è nell’esercizio ${year}: i saldi di apertura degli esercizi successivi sono stati aggiornati.`);
     }
 
     protected deleteMovement(movement: FinancialMovement): void {
@@ -503,7 +496,11 @@ export class FinanceComponent implements OnInit {
 
     /** Sposta il conto di una posizione e salva l'ordine completo. */
     protected moveAccount(account: FinancialAccount, delta: number): void {
-        const ids = this.reordered(this.accounts.map((item) => item.id!), account.id!, delta);
+        const ids = this.reordered(
+            this.accounts.map((item) => item.id!),
+            account.id!,
+            delta
+        );
         if (!ids) return;
         this.financeService
             .reorderAccounts(ids)
@@ -515,7 +512,11 @@ export class FinanceComponent implements OnInit {
     }
 
     protected moveCategory(category: FinancialCategory, delta: number): void {
-        const ids = this.reordered(this.categories.map((item) => item.id!), category.id!, delta);
+        const ids = this.reordered(
+            this.categories.map((item) => item.id!),
+            category.id!,
+            delta
+        );
         if (!ids) return;
         this.financeService
             .reorderCategories(ids)

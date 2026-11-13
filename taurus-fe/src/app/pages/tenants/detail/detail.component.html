@@ -111,7 +111,7 @@
 
     <app-danger-zone
         [operations]="[
-            { id: 'archive', title: 'Archivia tenant', consequence: 'Il tenant verrà archiviato conservando dati, indici, file e autorizzazioni.', label: 'Archivia tenant', icon: 'pi pi-archive' },
+            { id: 'archive', title: 'Archivia tenant', consequence: 'Il tenant verrà archiviato conservando dati, indici, file e autorizzazioni.', label: 'Archivia tenant', icon: 'pi pi-inbox' },
             { id: 'gdpr', title: 'Cancellazione GDPR', consequence: 'Il tenant e tutti i dati associati verranno eliminati definitivamente.', label: 'Elimina definitivamente (GDPR)' }
         ]"
         (execute)="$event === 'archive' ? confirmDelete() : confirmGdprDeletion()"

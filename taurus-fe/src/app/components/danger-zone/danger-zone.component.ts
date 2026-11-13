@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 
 export interface DangerZoneOperation {
@@ -8,7 +8,7 @@ export interface DangerZoneOperation {
     label: string;
     icon?: string;
 }
-@Component({ selector: 'app-danger-zone', standalone: true, imports: [ButtonModule], templateUrl: './danger-zone.component.html', styleUrl: './danger-zone.component.scss' })
+@Component({ selector: 'app-danger-zone', standalone: true, imports: [ButtonModule], templateUrl: './danger-zone.component.html', changeDetection: ChangeDetectionStrategy.Eager, styleUrl: './danger-zone.component.scss' })
 export class DangerZoneComponent {
     @Input() operations: DangerZoneOperation[] = [];
     @Output() execute = new EventEmitter<string>();

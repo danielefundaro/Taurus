@@ -1,4 +1,4 @@
-import { HTTP_INTERCEPTORS, HttpClient, HttpErrorResponse, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClient, HttpErrorResponse, provideHttpClient, withInterceptorsFromDi, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
@@ -20,7 +20,7 @@ describe('HttpInterceptorService on the public signature page', () => {
         toast = jasmine.createSpyObj<ToastService>('ToastService', ['error']);
         TestBed.configureTestingModule({
             providers: [
-                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClient(withXhr(), withInterceptorsFromDi()),
                 provideHttpClientTesting(),
                 { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
                 { provide: KeycloakService, useValue: keycloak },
@@ -69,7 +69,7 @@ describe('HttpInterceptorService on the public legal documents', () => {
         loading = { loading: false };
         TestBed.configureTestingModule({
             providers: [
-                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClient(withXhr(), withInterceptorsFromDi()),
                 provideHttpClientTesting(),
                 { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
                 { provide: KeycloakService, useValue: keycloak },
@@ -129,7 +129,7 @@ describe('HttpInterceptorService on a public page without a session', () => {
         toast = jasmine.createSpyObj<ToastService>('ToastService', ['error']);
         TestBed.configureTestingModule({
             providers: [
-                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClient(withXhr(), withInterceptorsFromDi()),
                 provideHttpClientTesting(),
                 { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
                 { provide: KeycloakService, useValue: keycloak },
@@ -170,7 +170,7 @@ describe('HttpInterceptorService when a tenant feature is disabled', () => {
         router = jasmine.createSpyObj<Router>('Router', ['navigate'], { routerState: { snapshot: { root } } as never });
         TestBed.configureTestingModule({
             providers: [
-                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClient(withXhr(), withInterceptorsFromDi()),
                 provideHttpClientTesting(),
                 { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
                 { provide: KeycloakService, useValue: jasmine.createSpyObj<KeycloakService>('KeycloakService', ['logout'], { isUserLoggedIn: true, token: 'token' }) },
@@ -229,7 +229,7 @@ describe('HttpInterceptorService on a conditional read', () => {
         toast = jasmine.createSpyObj<ToastService>('ToastService', ['error']);
         TestBed.configureTestingModule({
             providers: [
-                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClient(withXhr(), withInterceptorsFromDi()),
                 provideHttpClientTesting(),
                 { provide: HTTP_INTERCEPTORS, useClass: HttpInterceptorService, multi: true },
                 { provide: KeycloakService, useValue: jasmine.createSpyObj<KeycloakService>('KeycloakService', ['logout'], { isUserLoggedIn: true, token: 'token' }) },

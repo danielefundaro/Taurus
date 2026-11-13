@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ImportsModule } from '../../imports';
 import { FinancialEventSummary } from '../../module';
@@ -13,6 +13,7 @@ export interface EventBudgetResult {
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './finance-event-budget-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './finance-event-budget-dialog.component.scss'
 })
 export class FinanceEventBudgetDialogComponent {

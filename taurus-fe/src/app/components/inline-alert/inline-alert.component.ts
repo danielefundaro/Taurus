@@ -1,10 +1,17 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { Params, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 
 export type AlertSeverity = 'success' | 'info' | 'warn' | 'error';
-@Component({ selector: 'app-inline-alert', standalone: true, imports: [MessageModule, ButtonModule, RouterModule], templateUrl: './inline-alert.component.html', styleUrl: './inline-alert.component.scss' })
+@Component({
+    selector: 'app-inline-alert',
+    standalone: true,
+    imports: [MessageModule, ButtonModule, RouterModule],
+    templateUrl: './inline-alert.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './inline-alert.component.scss'
+})
 export class InlineAlertComponent {
     @Input() severity: AlertSeverity = 'info';
     @Input() heading = '';

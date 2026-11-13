@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { finalize, first } from 'rxjs';
 import { fromLocalDate, inventoryLoanTypeLabel, loanDurationIssueMessage, toLocalDate } from '../../constants';
@@ -17,6 +17,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     selector: 'app-inventory-loan-sheet-issue-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './inventory-loan-sheet-issue-dialog.component.html'
 })
 export class InventoryLoanSheetIssueDialogComponent {

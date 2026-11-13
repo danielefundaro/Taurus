@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -17,6 +17,7 @@ import { FormFieldComponent } from '../../components/form-field/form-field.compo
 @Component({
     selector: 'app-add-calendar-events-dialog',
     imports: [ButtonModule, InputTextModule, InputNumberModule, SelectModule, DatePickerModule, FluidModule, FormsModule, CommonModule, DialogShellComponent, FormFieldComponent],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './add-calendar-events-dialog.component.html'
 })
 export class AddCalendarEventsDialogComponent {
@@ -141,12 +142,7 @@ export class AddCalendarEventsDialogComponent {
             default:
                 rule = `${every}${this.interval > 1 ? 'anni' : 'anno'} il ${start.getDate()} ${AddCalendarEventsDialogComponent.MONTHS[start.getMonth()]}`;
         }
-        const end =
-            this.endType === 'COUNT'
-                ? `per ${this.occurrenceCount} ${this.occurrenceCount === 1 ? 'occorrenza' : 'occorrenze'}`
-                : this.untilDate
-                  ? `fino al ${this.untilDate.toLocaleDateString('it-IT')}`
-                  : '';
+        const end = this.endType === 'COUNT' ? `per ${this.occurrenceCount} ${this.occurrenceCount === 1 ? 'occorrenza' : 'occorrenze'}` : this.untilDate ? `fino al ${this.untilDate.toLocaleDateString('it-IT')}` : '';
         const time = start.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
         return `${rule}, alle ${time}${end ? ', ' + end : ''}.`;
     }
@@ -184,20 +180,7 @@ export class AddCalendarEventsDialogComponent {
         if (!this.weekDays.includes(startDay)) this.weekDays = [...this.weekDays, startDay];
     }
 
-    private static readonly MONTHS = [
-        'gennaio',
-        'febbraio',
-        'marzo',
-        'aprile',
-        'maggio',
-        'giugno',
-        'luglio',
-        'agosto',
-        'settembre',
-        'ottobre',
-        'novembre',
-        'dicembre'
-    ];
+    private static readonly MONTHS = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
 
     /** `randomUUID` manca nei contesti non sicuri e nei test: in quel caso basta una chiave casuale. */
     private static newKey(): string {

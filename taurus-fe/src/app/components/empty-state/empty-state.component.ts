@@ -1,7 +1,7 @@
-import { booleanAttribute, Component, EventEmitter, Input, Output } from '@angular/core';
+import { booleanAttribute, Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 
-@Component({ selector: 'app-empty-state', standalone: true, imports: [ButtonModule], templateUrl: './empty-state.component.html', styleUrl: './empty-state.component.scss' })
+@Component({ selector: 'app-empty-state', standalone: true, imports: [ButtonModule], templateUrl: './empty-state.component.html', changeDetection: ChangeDetectionStrategy.Eager, styleUrl: './empty-state.component.scss' })
 export class EmptyStateComponent {
     @Input() icon = 'pi pi-inbox';
     @Input() heading = 'Nessun elemento';

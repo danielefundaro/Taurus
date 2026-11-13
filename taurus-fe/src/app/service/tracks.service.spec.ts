@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
@@ -13,7 +13,7 @@ describe('TracksService image editing', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            providers: [provideHttpClient(), provideHttpClientTesting(), { provide: KeycloakService, useValue: { currentUserRole: RoleEnums.ARCHIVIST } }]
+            providers: [provideHttpClient(withXhr()), provideHttpClientTesting(), { provide: KeycloakService, useValue: { currentUserRole: RoleEnums.ARCHIVIST } }]
         });
         service = TestBed.inject(TracksService);
         http = TestBed.inject(HttpTestingController);

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, debounce, finalize, first, map, Observable, of, Subject, Subscription, switchMap, timer } from 'rxjs';
 import { DangerZoneOperation } from '../../../components/danger-zone/danger-zone.component';
@@ -41,6 +41,7 @@ const emptyDocument = (): LegalDocument => ({ documentType: 'TERMS', version: ''
     standalone: true,
     imports: [ImportsModule, LegalTextComponent],
     templateUrl: './legal-document-detail.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './legal-document-detail.component.scss'
 })
 export class LegalDocumentDetailComponent extends DetailPageBase implements OnInit, OnDestroy {

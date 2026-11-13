@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
@@ -12,7 +12,7 @@ describe('LegalService', () => {
     const draft: LegalDocument = { documentType: 'TERMS', version: '1.3', title: 'Termini', action: 'ACCEPT', required: true, content: '# Termini' };
 
     beforeEach(() => {
-        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+        TestBed.configureTestingModule({ providers: [provideHttpClient(withXhr()), provideHttpClientTesting()] });
         service = TestBed.inject(LegalService);
         controller = TestBed.inject(HttpTestingController);
     });

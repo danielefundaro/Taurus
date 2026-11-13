@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { Component, inject, Input, OnChanges, OnInit, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { finalize, first, forkJoin } from 'rxjs';
 import { inventoryConditionLabel, inventoryLoanHolderRoleLabel, inventoryLoanReturnOutcomeLabel, inventoryLoanSheetStatusLabel, inventoryLoanSheetStatusSeverity, inventoryLoanTypeLabel, loanDurationIssueMessage } from '../../constants';
@@ -16,6 +16,7 @@ import { ConfirmService, InventoryService, TenantFeatureService, ToastService, w
     imports: [ImportsModule, LoanSheetSignaturesComponent],
     templateUrl: './inventory-loan-sheets.component.html',
     styleUrl: './inventory-loan-sheets.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService]
 })
 export class InventoryLoanSheetsComponent implements OnInit, OnChanges {

@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, OnChanges, Renderer2, SecurityContext, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, ElementRef, Input, OnChanges, Renderer2, SecurityContext, ViewChild, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 
 /** Identificativi dei titoli scritti dal server: lettere, cifre, trattini e trattini bassi. */
@@ -27,6 +27,7 @@ const decoded = (fragment: string): string => {
     standalone: true,
     template: '<div #container class="legal-text" (click)="follow($event)"></div>',
     styleUrl: './legal-text.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     encapsulation: ViewEncapsulation.None
 })
 export class LegalTextComponent implements OnChanges {

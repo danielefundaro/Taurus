@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Table } from 'primeng/table';
 import { finalize, first } from 'rxjs';
@@ -14,6 +14,7 @@ import { LegalService, withErrorSummary } from '../../service';
     standalone: true,
     imports: [ImportsModule, DatePipe],
     templateUrl: './legal-documents.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './legal-documents.component.scss'
 })
 export class LegalDocumentsComponent implements OnInit {
@@ -32,7 +33,7 @@ export class LegalDocumentsComponent implements OnInit {
     constructor(
         private readonly legalService: LegalService,
         private readonly router: Router
-    ) { }
+    ) {}
 
     ngOnInit(): void {
         this.loadDocuments();

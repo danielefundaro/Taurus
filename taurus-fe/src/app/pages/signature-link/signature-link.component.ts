@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { DialogService } from 'primeng/dynamicdialog';
@@ -27,6 +27,7 @@ type PageState = 'loading' | 'unavailable' | 'ready' | 'completed';
     imports: [ImportsModule],
     templateUrl: './signature-link.component.html',
     styleUrl: './signature-link.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService, PublicSignatureService, { provide: SignatureService, useExisting: PublicSignatureService }, SignatureActFlow]
 })
 export class SignatureLinkComponent implements OnInit {

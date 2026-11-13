@@ -2,7 +2,7 @@ import { environment } from './environments/environment';
 import { loadRuntimeConfig } from './runtime-config';
 
 describe('loadRuntimeConfig', () => {
-    const compiled = { baseUrl: environment.baseUrl, vapidPublicKey: environment.vapidPublicKey, keycloak: { ...environment.keycloak } };
+    const compiled = { baseUrl: environment.baseUrl, vapidPublicKey: environment.vapidPublicKey, primeuiLicense: environment.primeuiLicense, keycloak: { ...environment.keycloak } };
 
     const serve = (body: unknown, ok = true, status = 200) =>
         spyOn(window, 'fetch').and.resolveTo({ ok, status, json: () => Promise.resolve(body) } as Response);
@@ -10,6 +10,7 @@ describe('loadRuntimeConfig', () => {
     afterEach(() => {
         environment.baseUrl = compiled.baseUrl;
         environment.vapidPublicKey = compiled.vapidPublicKey;
+        environment.primeuiLicense = compiled.primeuiLicense;
         environment.keycloak.baseurl = compiled.keycloak.baseurl;
         environment.keycloak.realm = compiled.keycloak.realm;
         environment.keycloak.clientId = compiled.keycloak.clientId;
@@ -19,6 +20,7 @@ describe('loadRuntimeConfig', () => {
         serve({
             baseUrl: 'https://taurus.example.org/api',
             vapidPublicKey: 'chiave-servita',
+            primeuiLicense: 'licenza-servita',
             keycloak: { baseurl: 'https://auth.example.org', realm: 'banda', clientId: 'web_app' }
         });
 
@@ -26,6 +28,7 @@ describe('loadRuntimeConfig', () => {
 
         expect(environment.baseUrl).toBe('https://taurus.example.org/api');
         expect(environment.vapidPublicKey).toBe('chiave-servita');
+        expect(environment.primeuiLicense).toBe('licenza-servita');
         expect(environment.keycloak.baseurl).toBe('https://auth.example.org');
         expect(environment.keycloak.realm).toBe('banda');
     });
@@ -38,6 +41,7 @@ describe('loadRuntimeConfig', () => {
         expect(environment.baseUrl).toBe('https://taurus.example.org/api');
         expect(environment.keycloak.realm).toBe(compiled.keycloak.realm);
         expect(environment.keycloak.clientId).toBe(compiled.keycloak.clientId);
+        expect(environment.primeuiLicense).toBe(compiled.primeuiLicense);
     });
 
     // Un deploy a una sola origine configura `/auth`: Keycloak concatena quel valore e lo usa nelle

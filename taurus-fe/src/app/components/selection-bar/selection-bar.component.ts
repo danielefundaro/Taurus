@@ -1,9 +1,16 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { FormsModule } from '@angular/forms';
 
-@Component({ selector: 'app-selection-bar', standalone: true, imports: [ButtonModule, CheckboxModule, FormsModule], templateUrl: './selection-bar.component.html', styleUrl: './selection-bar.component.scss' })
+@Component({
+    selector: 'app-selection-bar',
+    standalone: true,
+    imports: [ButtonModule, CheckboxModule, FormsModule],
+    templateUrl: './selection-bar.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './selection-bar.component.scss'
+})
 export class SelectionBarComponent {
     private static nextId = 0;
 

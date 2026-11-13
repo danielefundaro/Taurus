@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 
 import { ButtonModule } from 'primeng/button';
 import { FileUploadModule } from 'primeng/fileupload';
@@ -15,6 +15,7 @@ import { DialogShellComponent } from '../../components/dialog-shell/dialog-shell
     imports: [ButtonModule, FileUploadModule, DialogShellComponent],
     providers: [TracksService, KeycloakService, DialogService],
     templateUrl: './add-files-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './add-files-dialog.component.scss'
 })
 export class AddFilesDialogComponent {

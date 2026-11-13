@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, ChangeDetectionStrategy } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { finalize, first } from 'rxjs';
 import {
@@ -30,6 +30,7 @@ import { ConfirmService, InventoryService, ToastService, withErrorSummary } from
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './loan-sheet-signatures.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService, SignatureActFlow]
 })
 export class LoanSheetSignaturesComponent implements OnChanges {

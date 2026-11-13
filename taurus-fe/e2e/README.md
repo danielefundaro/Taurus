@@ -38,7 +38,7 @@ Le prove sono in `specs`:
   guidata con il nome dell'organizzazione, **Ultima importazione** e i limiti del tenant in risposta
   `no-store` e senza stati tecnici a schermo, scaricamento del modello XLSX, socio che non vede la
   voce di menu e riceve `403` dal contesto, axe-core e nessuno scorrimento orizzontale a 320, 768 e
-  1280 pixel. Il suo audit esclude la regola `aria-required-children`: `p-stepper` di PrimeNG, 19 e 21, si
+  1280 pixel. Il suo audit esclude la regola `aria-required-children`: `p-stepper` di PrimeNG, 19, 21 e 22, si
   dichiara `tablist` e ci annida dentro i propri pannelli `tabpanel`, con i passi a `presentation`,
   ed è il markup del componente, non del nostro modello. Le prove non caricano e non applicano
   nulla, perché l'importazione è additiva e lascerebbe dati nell'ambiente: validazione, file

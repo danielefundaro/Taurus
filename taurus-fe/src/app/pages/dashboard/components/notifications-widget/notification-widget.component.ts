@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -19,6 +19,7 @@ const MORNING_HOUR = 8;
     selector: 'app-notifications-widget',
     imports: [ButtonModule, MenuModule, DatePickerModule, FormsModule, DatePipe, DetailSectionComponent, EmptyStateComponent, ListRowComponent],
     templateUrl: './notification-widget.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './notification-widget.component.scss'
 })
 export class NotificationsWidgetComponent implements OnChanges {

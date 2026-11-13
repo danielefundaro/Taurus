@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../imports';
@@ -18,6 +18,7 @@ export interface ScoreUploadDialogData {
     selector: 'app-score-upload-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './score-upload-dialog.component.html'
 })
 export class ScoreUploadDialogComponent {

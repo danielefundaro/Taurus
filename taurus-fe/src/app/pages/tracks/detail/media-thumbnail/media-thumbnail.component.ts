@@ -119,6 +119,6 @@ export class MediaThumbnailComponent implements AfterViewInit, OnChanges, OnDest
     }
 
     private openLoadedPreview(): void {
-        this.previewImage?.previewButton?.nativeElement.click();
+        this.previewImage?.previewButton()?.nativeElement.click();
     }
 }

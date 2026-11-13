@@ -1,4 +1,4 @@
-import { Component, computed, effect, ElementRef, HostListener, OnDestroy, signal, untracked, viewChild } from '@angular/core';
+import { Component, computed, effect, ElementRef, HostListener, OnDestroy, signal, untracked, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { FocusTrapModule } from 'primeng/focustrap';
@@ -25,6 +25,7 @@ interface Box {
     standalone: true,
     imports: [ButtonModule, FocusTrapModule, InlineAlertComponent],
     templateUrl: './guided-tour.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './guided-tour.component.scss'
 })
 export class GuidedTourComponent implements OnDestroy {
