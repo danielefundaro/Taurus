@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { filter, first, of, switchMap } from 'rxjs';
+import { first, of, switchMap } from 'rxjs';
 import { Preferences, PreferencesCriteria } from '../module';
 import { LocalStorageService } from './local-storage.service';
 import { PreferencesService } from './preferences.service';
@@ -69,10 +69,9 @@ export class ListLayoutService {
             preference.value = value;
             this.localStorageService.setItem(key, preference);
             this.tenantStatus
-                .load()
+                // In modalità bootstrap e nelle pagine pubbliche la preferenza resta solo locale.
+                .whenProvisioned()
                 .pipe(
-                    // In modalità bootstrap la preferenza resta solo locale: il tenant non ha schema.
-                    filter((status) => status.provisioned),
                     switchMap(() => this.preferencesService.count().pipe(first())),
                     switchMap((count) => {
                         const criteria = new PreferencesCriteria();
@@ -92,9 +91,8 @@ export class ListLayoutService {
         const { id } = preference;
         if (id)
             this.tenantStatus
-                .load()
+                .whenProvisioned()
                 .pipe(
-                    filter((status) => status.provisioned),
                     switchMap(() => this.preferencesService.update(id, preference!).pipe(first()))
                 )
                 .subscribe((result) => this.localStorageService.setItem(key, result));

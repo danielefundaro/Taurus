@@ -52,6 +52,36 @@ describe('TenantStatusService', () => {
         expect(service.bootstrap()).toBeTrue();
     });
 
+    it('lets the tenant data through only for a tenant with schema', async () => {
+        const provisioned = firstValueFrom(service.whenProvisioned());
+        http.expectOne(url).flush({ tenantCode: 'acme', provisioned: true });
+        await expectAsync(provisioned).toBeResolvedTo({ tenantCode: 'acme', provisioned: true });
+
+        service.invalidate();
+        let emitted = false;
+        service.whenProvisioned().subscribe(() => (emitted = true));
+        http.expectOne(url).flush({ tenantCode: 'temp', provisioned: false });
+        expect(emitted).toBeFalse();
+    });
+
+    describe('on a public page', () => {
+        const start = location.pathname + location.search;
+
+        afterEach(() => history.replaceState(null, '', start));
+
+        it('completes without reading the status, because the page has no session', () => {
+            history.replaceState(null, '', '/legal/privacy');
+            let emitted = false;
+            let completed = false;
+
+            service.whenProvisioned().subscribe({ next: () => (emitted = true), complete: () => (completed = true) });
+
+            http.expectNone(url);
+            expect(emitted).toBeFalse();
+            expect(completed).toBeTrue();
+        });
+    });
+
     it('reads the status again after invalidation', async () => {
         const initial = firstValueFrom(service.load());
         http.expectOne(url).flush({ tenantCode: 'acme', provisioned: true });
