@@ -428,7 +428,7 @@
                         </td>
                         <td class="text-right">{{ setting.associationSharePercent | number: '1.0-2' : 'it-IT' }}%</td>
                         <td class="text-right">{{ setting.roundingStep ? (setting.roundingStep | currency: 'EUR' : 'symbol' : '1.0-2' : 'it-IT') : 'Nessuno' }}</td>
-                        <td>{{ setting.createdBy ?? '—' }}</td>
+                        <td>{{ setting.createdByName ?? '—' }}</td>
                         <td>{{ setting.createdAt ? (setting.createdAt | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
                         <td>
                             <div class="flex justify-end gap-1">

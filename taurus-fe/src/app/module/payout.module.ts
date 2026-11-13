@@ -9,7 +9,8 @@ export interface PayoutSetting {
     validFrom: string;
     associationSharePercent: number;
     roundingStep: number;
-    createdBy?: string;
+    /** Nome e cognome del socio che ha creato la versione; assente se non è un socio del tenant. */
+    createdByName?: string | null;
     createdAt?: string;
 }
 
