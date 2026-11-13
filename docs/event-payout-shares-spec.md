@@ -54,7 +54,7 @@ La prima versione deve permettere di:
 | Simulazione | calcolata dal backend e ricalcolata a ogni modifica, senza salvare nulla |
 | Liquidazione | un solo movimento di uscita per operazione, con il dettaglio per evento nelle righe |
 | Liquidazione parziale | ammessa: ogni riga può essere liquidata per un importo inferiore al dovuto |
-| Ruoli | gli stessi del modulo economico: Super Admin, Admin e Tesoriere |
+| Ruoli | gli stessi del modulo economico: Super Admin, Admin, Direttivo e Tesoriere |
 | Flag tenant | `EVENT_PAYOUTS`, dedicato e spento per impostazione predefinita, effettivo soltanto con `FINANCE` e `CALENDAR` attivi |
 
 Le scelte alternative valutate e scartate, con il motivo, sono raccolte in [Decisioni chiuse](#decisioni-chiuse).
@@ -241,14 +241,14 @@ A differenza del fattore, il pagamento fisso cambia la quota degli altri present
 
 ## Ruoli e autorizzazioni
 
-| Operazione | Super Admin | Admin | Tesoriere | Archivista | Utente | Utente esterno |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Consultare la simulazione di un evento | sì | sì | sì | no | no | no |
-| Gestire i parametri datati | sì | sì | sì | no | no | no |
-| Assegnare o rimuovere un fattore o un pagamento fisso | sì | sì | sì | no | no | no |
-| Consultare le quote dovute a un socio | sì | sì | sì | no | no | no |
-| Generare la liquidazione | sì | sì | sì | no | no | no |
-| Consultare le proprie quote | sì | sì | sì | no | no | no |
+| Operazione | Super Admin | Admin | Direttivo | Tesoriere | Archivista | Utente | Utente esterno |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Consultare la simulazione di un evento | sì | sì | sì | sì | no | no | no |
+| Gestire i parametri datati | sì | sì | sì | sì | no | no | no |
+| Assegnare o rimuovere un fattore o un pagamento fisso | sì | sì | sì | sì | no | no | no |
+| Consultare le quote dovute a un socio | sì | sì | sì | sì | no | no | no |
+| Generare la liquidazione | sì | sì | sì | sì | no | no | no |
+| Consultare le proprie quote | sì | sì | sì | sì | no | no | no |
 
 Le quote di un socio sono dati economici del tenant: restano visibili soltanto a chi amministra la cassa. La consultazione delle proprie quote da parte del socio è un'evoluzione facoltativa, non inclusa nella prima versione.
 
@@ -282,7 +282,7 @@ Quando la funzionalità non è effettiva, per il flag spento o per una dipendenz
 
 Alla riattivazione le quote vengono ricalcolate sui dati correnti — presenze, preventivo, consuntivo, parametri, fattori e pagamenti fissi — e confrontate con quanto già liquidato, esponendo gli eventuali scostamenti; le notifiche non prodotte durante la disattivazione non vengono recuperate.
 
-La [specifica dei flag tenant](tenant-feature-flags-spec.md) descrive soltanto i flag implementati: all'implementazione di questa funzionalità va aggiornata con il nuovo flag in elenco, colonne, modelli, risposta delle funzionalità correnti, enum e dipendenze, codici d'errore, checkbox, notifiche e piano di test.
+La [specifica dei flag tenant](tenant-feature-flags-spec.md) riporta il flag in elenco, colonne, modelli, risposta delle funzionalità correnti, enum e dipendenze, codici d'errore, checkbox, notifiche e piano di test.
 
 ## Modello dati
 
@@ -331,24 +331,26 @@ Gli endpoint vivono sotto `/api/finance/payouts/**`, già coperti dalla regola d
 
 - `GET /api/finance/payouts/settings`, elenco delle versioni in ordine di decorrenza;
 - `POST /api/finance/payouts/settings`, nuova versione; risponde `409` con codice `payout.setting.dateExists` se la decorrenza è già occupata;
-- `PUT /api/finance/payouts/settings/{id}`;
-- `DELETE /api/finance/payouts/settings/{id}`, cancellazione logica consentita soltanto se esiste un'altra versione applicabile agli eventi interessati.
+- `PUT /api/finance/payouts/settings/{id}`, con gli stessi controlli della creazione; risponde `404` con codice `payout.setting.notFound` se la versione non esiste e `409` con codice `payout.setting.inUse` se spostare la decorrenza in avanti lascerebbe senza parametri eventi con presenti;
+- `DELETE /api/finance/payouts/settings/{id}`, cancellazione logica consentita soltanto se esiste un'altra versione applicabile agli eventi interessati; altrimenti risponde `409` con codice `payout.setting.inUse`;
+- `GET /api/finance/payouts/settings/affected-events?validFrom=…&settingId=…`, gli eventi già liquidati che una versione con quella decorrenza ricalcolerebbe, con nome, data e importo liquidato; `settingId` esclude la versione in modifica. Il frontend lo interroga prima di salvare, per l'avviso sulle decorrenze retroattive.
 
 ### Simulazione
 
 - `GET /api/finance/payouts/events/{eventId}`, restituisce la simulazione completa su preventivo e consuntivo: per ciascuno, base dell'evento, spese, pagamenti fissi, margine, quota di cassa piena e applicata, netto, totale delle quote, residuo e disavanzo; per ogni presente, fattore o pagamento fisso, quota simulata, quota reale, già liquidato e residuo dovuto;
-- la richiesta accetta, per la sola anteprima, `sharePercent` e `roundingStep`: valori che non vengono salvati e servono a rispondere alla domanda «e se cambiassi il passo?»;
+- la richiesta accetta, per la sola anteprima, `sharePercent` e `roundingStep`: valori che non vengono salvati e servono a rispondere alla domanda «e se cambiassi il passo?»; la risposta li dichiara con `preview` e riporta accanto i valori salvati; valori fuori intervallo sono rifiutati con `400` e codice `payout.preview.invalid`;
 - risponde `409` con codice `payout.setting.notConfigured` quando nessuna versione è applicabile alla data dell'evento.
 
 ### Fattori e pagamenti fissi
 
-- `PUT /api/finance/payouts/events/{eventId}/adjustments/{userId}`, imposta il motivo e, in alternativa, il fattore o il pagamento fisso; risponde `400` con codice `payout.adjustment.reasonRequired` se manca il motivo, `400` con codice `payout.adjustment.valueRequired` se non indica esattamente uno fra fattore e pagamento fisso, `400` con codice `payout.adjustment.factorOutOfRange` se il fattore non è compreso fra zero e uno, `400` con codice `payout.adjustment.fixedAmountNotPositive` se il pagamento fisso non è maggiore di zero, e `409` con codice `payout.adjustment.userNotPresent` se l'utente non risulta presente all'evento;
-- `DELETE /api/finance/payouts/events/{eventId}/adjustments/{userId}`, riporta il presente alla quota base, senza fattore né pagamento fisso.
+- `PUT /api/finance/payouts/events/{eventId}/adjustments/{userId}`, imposta il motivo e, in alternativa, il fattore o il pagamento fisso, e risponde `204`; un fattore pari a `1` non viene salvato e rimuove l'eventuale fattore esistente. Risponde `400` con codice `payout.adjustment.reasonRequired` se manca il motivo, `400` con codice `payout.adjustment.valueRequired` se non indica esattamente uno fra fattore e pagamento fisso, `400` con codice `payout.adjustment.factorOutOfRange` se il fattore non è compreso fra zero e uno, `400` con codice `payout.adjustment.fixedAmountNotPositive` se il pagamento fisso non è maggiore di zero, `404` con codice `finance.event.notFound` o `payout.user.notFound` se evento o utente non esistono, e `409` con codice `payout.adjustment.userNotPresent` se l'utente non risulta presente all'evento;
+- `DELETE /api/finance/payouts/events/{eventId}/adjustments/{userId}`, riporta il presente alla quota base, senza fattore né pagamento fisso, e risponde `204` anche quando non c'era nulla da rimuovere.
 
 ### Quote e liquidazione
 
-- `GET /api/finance/payouts/users/{userId}`, elenco delle quote reali e dei pagamenti fissi del socio con evento, data, tipo, importo, liquidato e residuo, filtrabile per periodo e per stato;
-- `POST /api/finance/payouts/settlements`, riceve conto, data, descrizione facoltativa e le righe `{eventId, userId, amount}`; crea un solo movimento di uscita e le righe di liquidazione in un'unica transazione. Risponde `400` con codice `payout.settlement.amountExceedsDue` se una riga supera il residuo dovuto sulla quota reale o sul pagamento fisso e `409` con codice `payout.settlement.empty` se non contiene righe.
+- `GET /api/finance/payouts/users`, riepilogo per socio nel periodo indicato: eventi con presenza, dovuto, liquidato e scostamento;
+- `GET /api/finance/payouts/users/{userId}`, elenco delle quote reali e dei pagamenti fissi del socio con evento, data, tipo, importo, liquidato e residuo, filtrabile per periodo (`from`, `to`) e per stato (`DUE`, `SETTLED`);
+- `POST /api/finance/payouts/settlements`, riceve conto, data, categoria, descrizione e note facoltative, una chiave di idempotenza `requestKey` e le righe `{eventId, userId, amount}`; crea un solo movimento di uscita e le righe di liquidazione in un'unica transazione e risponde `201`. Una richiesta ripetuta con la stessa chiave restituisce la liquidazione già registrata invece di crearne una seconda. Risponde `400` con codice `payout.settlement.amountExceedsDue` se una riga supera il residuo dovuto sulla quota reale o sul pagamento fisso e `409` con codice `payout.settlement.empty` se non contiene righe.
 
 La liquidazione riguarda un solo socio per volta: righe di utenti diversi nella stessa richiesta sono rifiutate con `payout.settlement.multipleUsers`, perché un movimento ha una sola controparte.
 
@@ -364,13 +366,13 @@ Il movimento creato dalla liquidazione è un normale movimento del modulo econom
 
 Ne discende un limite da conoscere: una liquidazione che copre più eventi contribuisce ai totali del tenant ma non al consuntivo del singolo evento, che continua a leggere `financial_movement.event_id`. Il dettaglio per evento resta nelle righe di liquidazione e nella pagina delle quote. Attribuire al singolo evento anche i pagamenti cumulativi richiede la normalizzazione `event_economic_item` già prevista come evoluzione facoltativa dalla [specifica economica](financial-management-spec.md); fino ad allora, chi vuole il consuntivo per evento liquida un evento per volta.
 
-Il movimento resta modificabile ed eliminabile come ogni altro.
+Il movimento resta modificabile ed eliminabile come ogni altro, con un solo vincolo: finché ha righe di liquidazione attive, importo e direzione non cambiano, e la modifica è rifiutata con `409` e codice `finance.movement.payoutSettlement`. Le righe dicono quanto è stato pagato per ciascun evento: un importo diverso le renderebbe false. Per correggere un pagamento si elimina il movimento, che riporta le quote fra quelle dovute, e si genera una nuova liquidazione. Data, conto, categoria, descrizione, note, allegati e riconciliazione restano modificabili.
 
 ## Notifiche
 
-Ogni operazione esplicita genera una notifica interna per Admin, Super Admin e Tesoriere, con i titoli nel formato `Economia: <evento>`:
+Ogni operazione esplicita genera una notifica interna per Super Admin, Admin, Direttivo e Tesoriere, con i titoli nel formato `Economia: <operazione>` delle altre notifiche economiche, per esempio «Economia: compensi liquidati»; il messaggio nomina l'evento e la sua data:
 
-- `PAYOUT_SETTING_CREATED` e `PAYOUT_SETTING_UPDATED`, che riportano decorrenza, percentuale e passo;
+- `PAYOUT_SETTING_CREATED` e `PAYOUT_SETTING_UPDATED`, che riportano decorrenza, percentuale e passo, e `PAYOUT_SETTING_REMOVED`, con gravità di avviso;
 - `PAYOUT_ADJUSTMENT_SET` e `PAYOUT_ADJUSTMENT_REMOVED`, che riportano socio, evento, fattore o pagamento fisso e motivo;
 - `PAYOUT_SETTLED`, che riporta socio, totale e numero di eventi liquidati.
 
