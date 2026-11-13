@@ -42,10 +42,15 @@ public final class PayoutDtos {
     }
 
     /**
-     * The factor or the fixed payment of a participant: exactly one of the two, always with a reason. Both are checked
-     * by the service, so that each refusal has its own key.
+     * The factor or the fixed payment of a participant: exactly one of the two, always with a reason. Presence and range
+     * are checked by the service, so that each refusal has its own key; the size of the amount is a format limit, like
+     * the length of the reason, and fits the column with the two decimals of the other amounts.
      */
-    public record AdjustmentRequest(BigDecimal factor, BigDecimal fixedAmount, @Size(max = 255) String reason) {
+    public record AdjustmentRequest(
+        BigDecimal factor,
+        @Digits(integer = 15, fraction = 2) BigDecimal fixedAmount,
+        @Size(max = 255) String reason
+    ) {
     }
 
     /** Where the money of the event goes, on the planned or on the actual figures. */
