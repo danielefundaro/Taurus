@@ -38,13 +38,15 @@ const movement = (overrides: Partial<FinancialMovement> = {}): FinancialMovement
 
 describe('FinanceComponent', () => {
     const calendarEnabled = signal(true);
+    const eventPayoutsEnabled = signal(false);
 
     beforeEach(() => {
         calendarEnabled.set(true);
+        eventPayoutsEnabled.set(false);
         TestBed.configureTestingModule({
             providers: [
                 { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: new Map() } } },
-                { provide: TenantFeatureService, useValue: { calendarEnabled } }
+                { provide: TenantFeatureService, useValue: { calendarEnabled, eventPayoutsEnabled } }
             ]
         });
     });
@@ -208,6 +210,70 @@ describe('FinanceComponent', () => {
         expect(component['activeTab']).toBe('movements');
         expect(financeService.getMovements.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({ eventId: 70, reconciled: false }));
         expect(financeService.getEvent).not.toHaveBeenCalled();
+    });
+
+    it('opens the shares on the event named by the link', () => {
+        TestBed.overrideProvider(ActivatedRoute, {
+            useValue: { snapshot: { queryParamMap: new Map([['tab', 'payouts'], ['event', '70']]) } }
+        });
+        eventPayoutsEnabled.set(true);
+        const { component, financeService } = create();
+        financeService.getEvent = jasmine.createSpy('getEvent');
+
+        component.ngOnInit();
+
+        expect(component['activeTab']).toBe('payouts');
+        expect(component['payoutsOpened']).toBeTrue();
+        expect(component['payoutRoute']).toEqual({ view: undefined, eventId: 70, userId: undefined });
+        // «event» names the shares, not the budget: the dialog of the budget stays closed.
+        expect(financeService.getEvent).not.toHaveBeenCalled();
+    });
+
+    it('passes the member and the view of the shares named by the link', () => {
+        TestBed.overrideProvider(ActivatedRoute, {
+            useValue: { snapshot: { queryParamMap: new Map([['tab', 'payouts'], ['user', '3'], ['view', 'settings']]) } }
+        });
+        eventPayoutsEnabled.set(true);
+        const { component } = create();
+
+        component.ngOnInit();
+
+        expect(component['payoutRoute']).toEqual({ view: 'settings', eventId: undefined, userId: 3 });
+    });
+
+    it('offers no shares tab without the feature and builds it only once opened', () => {
+        TestBed.overrideProvider(ActivatedRoute, {
+            useValue: { snapshot: { queryParamMap: new Map([['tab', 'payouts']]) } }
+        });
+        const { component } = create();
+
+        component.ngOnInit();
+
+        expect(component['activeTab']).toBe('movements');
+        expect(component['payoutsOpened']).toBeFalse();
+    });
+
+    it('leaves the shares tab for the movements when the feature is switched off', () => {
+        eventPayoutsEnabled.set(true);
+        const { component } = create();
+        component['activeTab'] = 'payouts';
+        TestBed.tick();
+        expect(component['activeTab']).toBe('payouts');
+
+        eventPayoutsEnabled.set(false);
+        TestBed.tick();
+
+        expect(component['activeTab']).toBe('movements');
+    });
+
+    it('refreshes balances and movements after a settlement', () => {
+        const { component, financeService } = create();
+        financeService.getMovements.calls.reset();
+
+        component['onPayoutSettled']();
+
+        expect(financeService.getMovements).toHaveBeenCalled();
+        expect(financeService.getDashboard).toHaveBeenCalled();
     });
 
     it('reads no event and offers no event tab without the calendar', () => {

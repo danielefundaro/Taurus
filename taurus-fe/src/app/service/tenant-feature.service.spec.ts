@@ -24,6 +24,7 @@ describe('TenantFeatureService', () => {
         expect(service.financeEnabled()).toBeFalse();
         expect(service.inventoryEnabled()).toBeFalse();
         expect(service.eventPreparationEnabled()).toBeFalse();
+        expect(service.eventPayoutsEnabled()).toBeFalse();
 
         const result = firstValueFrom(service.refresh());
         http.expectOne(`${environment.baseUrl}/tenant-features/current`).flush({
@@ -37,7 +38,8 @@ describe('TenantFeatureService', () => {
             inventoryQrEnabled: false,
             notificationPreferencesEnabled: true,
             webPushRemindersEnabled: false,
-            eventPreparationEnabled: true
+            eventPreparationEnabled: true,
+            eventPayoutsEnabled: true
         });
 
         await result;
@@ -48,6 +50,8 @@ describe('TenantFeatureService', () => {
         expect(service.onboardingImportEnabled()).toBeTrue();
         expect(service.notificationPreferencesEnabled()).toBeTrue();
         expect(service.eventPreparationEnabled()).toBeTrue();
+        expect(service.eventPayoutsEnabled()).toBeTrue();
+        expect(service.isEnabled(TenantFeature.EVENT_PAYOUTS)).toBeTrue();
     });
 
     it('shares concurrent refreshes and supports a forced refresh', async () => {

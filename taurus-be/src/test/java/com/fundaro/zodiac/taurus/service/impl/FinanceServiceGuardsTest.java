@@ -3,6 +3,7 @@ package com.fundaro.zodiac.taurus.service.impl;
 import com.fundaro.zodiac.taurus.domain.CalendarEvents;
 import com.fundaro.zodiac.taurus.domain.EventCost;
 import com.fundaro.zodiac.taurus.domain.finance.AccountingYear;
+import com.fundaro.zodiac.taurus.domain.finance.EventPayoutSettlement;
 import com.fundaro.zodiac.taurus.domain.finance.AccountingYearStatus;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialAccount;
 import com.fundaro.zodiac.taurus.domain.finance.FinancialAccountType;
@@ -15,6 +16,7 @@ import com.fundaro.zodiac.taurus.domain.finance.FinancialMovementNature;
 import com.fundaro.zodiac.taurus.repository.CalendarEventsRepository;
 import com.fundaro.zodiac.taurus.repository.MediaRepository;
 import com.fundaro.zodiac.taurus.repository.finance.AccountingYearRepository;
+import com.fundaro.zodiac.taurus.repository.finance.EventPayoutSettlementRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialAccountRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialCategoryRepository;
 import com.fundaro.zodiac.taurus.repository.finance.FinancialMovementAttachmentRepository;
@@ -85,6 +87,8 @@ class FinanceServiceGuardsTest {
     MediaRepository mediaRepository;
     @Mock
     MediaService mediaService;
+    @Mock
+    EventPayoutSettlementRepository payoutSettlementRepository;
 
     private FinanceService service;
 
@@ -171,6 +175,64 @@ class FinanceServiceGuardsTest {
             .extracting(error -> ((RequestAlertException) error).getErrorKey())
             .isEqualTo("finance.movement.versionConflict");
         verify(movementRepository, never()).save(any(FinancialMovement.class));
+    }
+
+    @Test
+    void deletingASettlementMovementMakesItsSharesDueAgain() {
+        FinancialMovement movement = movement(30L);
+        movement.setDirection(FinancialDirection.EXPENSE);
+        EventPayoutSettlement line = new EventPayoutSettlement();
+        line.setMovementId(30L);
+        line.setEventId(70L);
+        line.setUserId(5L);
+        line.setAmount(new BigDecimal("10.00"));
+        when(movementRepository.findByIdAndDeletedFalse(30L)).thenReturn(Optional.of(movement));
+        when(payoutSettlementRepository.findAllByMovementIdInAndDeletedFalse(List.of(30L))).thenReturn(List.of(line));
+        lenient().when(yearRepository.findAllByDeletedFalseOrderByYearAsc()).thenReturn(List.of());
+        service.setPayoutSettlementRepository(payoutSettlementRepository);
+
+        service.deleteMovement(30L, authentication());
+
+        assertThat(movement.isDeleted()).isTrue();
+        assertThat(line.isDeleted()).isTrue();
+        assertThat(line.getEditBy()).isEqualTo("user-1");
+        verify(payoutSettlementRepository).saveAll(List.of(line));
+    }
+
+    @Test
+    void keepsTheAmountOfASettlementMovement() {
+        FinancialMovement movement = movement(30L);
+        movement.setDirection(FinancialDirection.EXPENSE);
+        when(movementRepository.findByIdAndDeletedFalse(30L)).thenReturn(Optional.of(movement));
+        when(payoutSettlementRepository.findAllByMovementIdAndDeletedFalse(30L)).thenReturn(List.of(new EventPayoutSettlement()));
+        service.setPayoutSettlementRepository(payoutSettlementRepository);
+        MovementRequest larger = new MovementRequest(
+            10L, null, null, FinancialDirection.EXPENSE, LocalDate.of(2026, 9, 1), null, new BigDecimal("12.00"), "Compenso",
+            null, null, null, null, null
+        );
+
+        assertThatThrownBy(() -> service.updateMovement(30L, larger, authentication()))
+            .isInstanceOf(RequestAlertException.class)
+            .extracting(error -> ((RequestAlertException) error).getErrorKey())
+            .isEqualTo("finance.movement.payoutSettlement");
+        verify(movementRepository, never()).save(any(FinancialMovement.class));
+    }
+
+    @Test
+    void leavesTheOtherFieldsOfASettlementMovementEditable() {
+        FinancialMovement movement = movement(30L);
+        FinancialAccount account = account(10L, "Cassa");
+        when(movementRepository.findByIdAndDeletedFalse(30L)).thenReturn(Optional.of(movement));
+        when(accountRepository.findByIdAndDeletedFalse(10L)).thenReturn(Optional.of(account));
+        when(yearRepository.findByYearAndDeletedFalse(2026)).thenReturn(Optional.of(year(2026, AccountingYearStatus.OPEN)));
+        when(movementRepository.save(any(FinancialMovement.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(accountRepository.findAllByDeletedFalseOrderByDisplayOrderAscNameAsc()).thenReturn(List.of(account));
+        lenient().when(yearRepository.findAllByDeletedFalseOrderByYearAsc()).thenReturn(List.of());
+        service.setPayoutSettlementRepository(payoutSettlementRepository);
+
+        // Same amount and direction: the settlement lines are not even read.
+        assertThat(service.updateMovement(30L, movementRequest(0L), authentication()).description()).isEqualTo("Quota");
+        verify(payoutSettlementRepository, never()).findAllByMovementIdAndDeletedFalse(anyLong());
     }
 
     @Test

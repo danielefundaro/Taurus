@@ -1,9 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, effect, inject, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DialogService } from 'primeng/dynamicdialog';
 import { TableLazyLoadEvent } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { first, forkJoin, of } from 'rxjs';
+import { FinancePayoutsComponent, PayoutView } from '../../components/finance-payouts/finance-payouts.component';
 import { AccountDialogResult, FinanceAccountDialogComponent } from '../../dialogs/finance-account-dialog/finance-account-dialog.component';
 import { FinanceCategoryDialogComponent } from '../../dialogs/finance-category-dialog/finance-category-dialog.component';
 import { EventBudgetResult, FinanceEventBudgetDialogComponent } from '../../dialogs/finance-event-budget-dialog/finance-event-budget-dialog.component';
@@ -37,7 +38,7 @@ const newRequestKey = (): string =>
 @Component({
     selector: 'app-finance',
     standalone: true,
-    imports: [ImportsModule, TabsModule],
+    imports: [ImportsModule, TabsModule, FinancePayoutsComponent],
     templateUrl: './finance.component.html',
     styleUrl: './finance.component.scss',
     providers: [DialogService]
@@ -54,7 +55,11 @@ export class FinanceComponent implements OnInit {
     protected totalEvents = 0;
     protected loading = false;
     protected eventsLoading = false;
-    protected activeTab = 'movements';
+    /** The payouts tab is built the first time it is opened and then kept, so that switching tab keeps its state. */
+    protected payoutsOpened = false;
+    /** Event, member or view of the payouts named by the link that opened the page (notifications, event detail). */
+    protected payoutRoute: { view?: PayoutView; eventId?: number; userId?: number } = {};
+    private currentTab = 'movements';
 
     protected movementFilters: {
         from?: Date;
@@ -113,6 +118,8 @@ export class FinanceComponent implements OnInit {
 
     /** Without the calendar the economics of the events are not shown and no movement can be linked to an event. */
     protected readonly calendarEnabled = inject(TenantFeatureService).calendarEnabled;
+    /** The shares of the participants: without the feature the tab is absent and no payout endpoint is called. */
+    protected readonly eventPayoutsEnabled = inject(TenantFeatureService).eventPayoutsEnabled;
     private movementLazyEvent: TableLazyLoadEvent = { first: 0, rows: 20, sortField: 'bookingDate', sortOrder: -1 };
     private eventLazyEvent: TableLazyLoadEvent = { first: 0, rows: 12, sortField: 'startDate', sortOrder: -1 };
     private handledRouteAction = false;
@@ -123,7 +130,21 @@ export class FinanceComponent implements OnInit {
         private readonly confirmService: ConfirmService,
         private readonly dialogService: DialogService,
         private readonly route: ActivatedRoute
-    ) { }
+    ) {
+        // Switched off while the tab is open: the tab disappears and the user stays on the finance page.
+        effect(() => {
+            if (!this.eventPayoutsEnabled() && this.currentTab === 'payouts') this.activeTab = 'movements';
+        });
+    }
+
+    protected get activeTab(): string {
+        return this.currentTab;
+    }
+
+    protected set activeTab(tab: string) {
+        this.currentTab = tab;
+        if (tab === 'payouts') this.payoutsOpened = true;
+    }
 
     ngOnInit(): void {
         const params = this.route.snapshot.queryParamMap;
@@ -676,6 +697,18 @@ export class FinanceComponent implements OnInit {
         const tab = params.get('tab');
         if (tab && ['movements', 'accounts', 'categories', 'years'].includes(tab)) this.activeTab = tab;
         if (tab === 'events' && this.calendarEnabled()) this.activeTab = tab;
+        if (tab === 'payouts' && this.eventPayoutsEnabled()) {
+            const view = params.get('view');
+            const payoutEventId = Number(params.get('event'));
+            const userId = Number(params.get('user'));
+            this.payoutRoute = {
+                view: view === 'settings' || view === 'members' ? view : undefined,
+                eventId: Number.isFinite(payoutEventId) && payoutEventId > 0 ? payoutEventId : undefined,
+                userId: Number.isFinite(userId) && userId > 0 ? userId : undefined
+            };
+            this.activeTab = tab;
+            return;
+        }
 
         const eventId = Number(params.get('eventId'));
         if (params.get('action') === 'new') {
@@ -758,6 +791,11 @@ export class FinanceComponent implements OnInit {
             .uploadAttachment(movementId, file, description)
             .pipe(first())
             .subscribe(() => this.toastService.success('Allegato caricato', 'Il documento è stato associato al movimento.'));
+    }
+
+    /** A settlement is an expense movement: balances, movements and economics of the events change. */
+    protected onPayoutSettled(): void {
+        this.refreshAfterMovement();
     }
 
     private refreshAfterMovement(): void {

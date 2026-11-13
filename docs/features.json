@@ -168,23 +168,66 @@
       "title": "Ripartizione dei compensi ai presenti",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "not-planned",
+      "deliveryStatus": "implemented",
       "spec": "docs/event-payout-shares-spec.md",
       "relatedDocs": [
         "docs/application-errors-standard.md",
         "docs/financial-management-spec.md",
         "docs/notification-editorial-style.md",
-        "docs/taurus-layout-standard.md"
+        "docs/taurus-layout-standard.md",
+        "docs/tenant-feature-flags-spec.md"
       ],
       "modules": ["taurus-be", "taurus-fe"],
       "evidence": {
-        "implementation": [],
-        "migrations": [],
-        "tests": []
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/finance/PayoutSetting.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/finance/EventPayoutAdjustment.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/finance/EventPayoutSettlement.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/finance/PayoutSettingRepository.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/finance/EventPayoutAdjustmentRepository.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/finance/EventPayoutSettlementRepository.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/finance/PayoutCalculator.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/finance/PayoutService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dto/finance/PayoutDtos.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/PayoutResource.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/impl/FinanceService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/enumeration/TenantFeature.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/TenantFeatureService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/notification/NotificationFeaturePolicy.java",
+          "taurus-fe/src/app/components/finance-payouts/finance-payouts.component.ts",
+          "taurus-fe/src/app/dialogs/finance-payout-settlement-dialog/finance-payout-settlement-dialog.component.ts",
+          "taurus-fe/src/app/dialogs/finance-payout-setting-dialog/finance-payout-setting-dialog.component.ts",
+          "taurus-fe/src/app/pages/finance/finance.component.ts",
+          "taurus-fe/src/app/pages/calendar-events/detail/detail.component.ts",
+          "taurus-fe/src/app/pages/tenants/detail/detail.component.ts",
+          "taurus-fe/src/app/service/payout.service.ts",
+          "taurus-fe/src/app/service/tenant-feature.service.ts"
+        ],
+        "migrations": [
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261113000000_tenant_event_payouts_flag.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261113000001_event_payouts.xml"
+        ],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/finance/PayoutCalculatorTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/finance/PayoutServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/finance/PayoutIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/web/rest/PayoutResourceFeatureTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/FinanceServiceGuardsTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/TenantFeatureServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/notification/NotificationFeaturePolicyTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TenantsServiceImplTest.java",
+          "taurus-fe/src/app/components/finance-payouts/finance-payouts.component.spec.ts",
+          "taurus-fe/src/app/dialogs/finance-payout-settlement-dialog/finance-payout-settlement-dialog.component.spec.ts",
+          "taurus-fe/src/app/dialogs/finance-payout-setting-dialog/finance-payout-setting-dialog.component.spec.ts",
+          "taurus-fe/src/app/pages/finance/finance.component.spec.ts",
+          "taurus-fe/src/app/pages/tenants/detail/detail.component.spec.ts",
+          "taurus-fe/src/app/service/payout.service.spec.ts",
+          "taurus-fe/src/app/service/tenant-feature.service.spec.ts"
+        ]
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-23",
-      "notes": "Decisioni approvate il 2026-10-19: quota dei presenti calcolata da compenso, spese e percentuale di cassa e arrotondata per difetto a un passo comune; parametri datati anche retroattivi; fattore motivato fra zero e uno che riduce la sola quota del presente; preventivo per la quota simulata e consuntivo per la quota reale, unica liquidabile; residuo alla cassa; liquidazione come movimento di uscita unico per socio. Implementazione non ancora pianificata."
+      "lastVerifiedOn": "2026-11-13",
+      "notes": "Decisioni approvate il 2026-10-19: quota dei presenti calcolata da compenso, spese e percentuale di cassa e arrotondata per difetto a un passo comune; parametri datati anche retroattivi; fattore motivato fra zero e uno che riduce la sola quota del presente; preventivo per la quota simulata e consuntivo per la quota reale, unica liquidabile; residuo alla cassa; liquidazione come movimento di uscita unico per socio. Integrazione approvata il 2026-11-12: pagamento fisso motivato per presente, alternativo al fattore, sottratto dalla base insieme alle spese e liquidabile senza attendere l'incasso; il presente esce dalla divisione del netto; ammesso anche su eventi senza compenso, con disavanzo a carico della cassa. Quota di cassa sempre calcolata sull'intera base e ridotta a base meno spese meno pagamenti fissi, fino a zero, quando la base non basta a coprirla. Flag tenant dedicato EVENT_PAYOUTS, spento per impostazione predefinita e dipendente da Economia e Calendario, al posto del solo FINANCE. Implementata il 2026-11-13: tabelle payout_setting, event_payout_adjustment ed event_payout_settlement nello schema del tenant con vincoli e indici univoci parziali, categoria di sistema «Compensi ai presenti» e colonna event_payouts_enabled spenta per tutti i tenant; calcolo puro in PayoutCalculator a quattro decimali, con quote arrotondate per difetto al passo (0,01 senza passo) e pagamenti fissi non arrotondati; uscite di liquidazione escluse dalle spese del consuntivo; versione dei parametri non eliminabile né spostabile in avanti se lascia senza parametri eventi con presenti; liquidazione idempotente sulla requestKey, con un solo movimento EXPENSE creato fuori dal perimetro di NoticesAspect e le notifiche PAYOUT_* composte da PayoutService; importo e direzione di un movimento di liquidazione bloccati (finance.movement.payoutSettlement) e righe liberate dalla sua eliminazione. Ruoli come il resto di Economia, Direttivo compreso. Frontend: scheda Compensi della pagina Economia con simulazione a 300 ms, barre previsto ed effettivo sulla stessa scala, anteprima di percentuale e passo, fattore o pagamento fisso in linea, quote per socio con liquidazione parziale e versioni dei parametri con avviso sugli eventi già liquidati; pulsante Ripartisci compenso nel consuntivo economico dell'evento. La versione dei parametri espone autore e data come createdBy e createdAt, fuori dai campi di audit. Verificati ./mvnw clean verify -Dtaurus.test.requireDocker=true (1271 test unitari e 284 di integrazione, soglia dei branch del backend alzata a 0,62), npm run test:coverage (802 test, soglie frontend alzate a 65/55/67) e la build Angular di produzione."
     },
     {
       "id": "event-preparation",

@@ -95,7 +95,7 @@ describe('DetailComponent preparation', () => {
                 { provide: ToastService, useValue: jasmine.createSpyObj<ToastService>('ToastService', ['success', 'info', 'warn', 'error']) },
                 {
                     provide: TenantFeatureService,
-                    useValue: { financeEnabled: signal(true), inventoryEnabled: signal(true), eventPreparationEnabled: signal(true), webPushRemindersEnabled: signal(false) }
+                    useValue: { financeEnabled: signal(true), inventoryEnabled: signal(true), eventPreparationEnabled: signal(true), webPushRemindersEnabled: signal(false), eventPayoutsEnabled: signal(false) }
                 }
             ]
         });

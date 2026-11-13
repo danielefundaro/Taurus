@@ -102,6 +102,20 @@ class TenantsServiceImplTest {
         );
     }
 
+    @Test
+    void listsTheSharesOfTheParticipantsAmongTheFeaturesLostWithTheFinanceOrTheCalendar() {
+        Map<String, Boolean> before = new java.util.HashMap<>(flags(true, true, true));
+        before.put("finance", true);
+        before.put("eventPayouts", true);
+        Map<String, Boolean> withoutFinance = new java.util.HashMap<>(before);
+        withoutFinance.put("finance", false);
+        Map<String, Boolean> withoutCalendar = new java.util.HashMap<>(before);
+        withoutCalendar.put("calendar", false);
+
+        assertThat(service().dependentChanges(before, withoutFinance)).containsOnly(entry("eventPayouts", false));
+        assertThat(service().dependentChanges(before, withoutCalendar)).containsEntry("eventPayouts", false);
+    }
+
     private static Map<String, Boolean> flags(boolean inventory, boolean loanSheet, boolean signature) {
         return Map.ofEntries(
             Map.entry("finance", false),
@@ -115,7 +129,8 @@ class TenantsServiceImplTest {
             Map.entry("scorePlayback", false),
             Map.entry("inventoryLoanSheet", loanSheet),
             Map.entry("inventorySignature", signature),
-            Map.entry("calendar", true)
+            Map.entry("calendar", true),
+            Map.entry("eventPayouts", false)
         );
     }
 

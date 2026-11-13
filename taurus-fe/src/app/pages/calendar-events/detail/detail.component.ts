@@ -92,6 +92,8 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected newCostAmount: number | null = null;
     protected economicSummary?: FinancialEventSummary;
     protected readonly financeEnabled;
+    /** The shares of the participants: the button opens the simulation of this event. */
+    protected readonly eventPayoutsEnabled;
     protected readonly inventoryEnabled;
     protected readonly eventPreparationEnabled;
     protected readonly webPushRemindersEnabled;
@@ -146,6 +148,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     ) {
         super();
         this.financeEnabled = tenantFeatureService.financeEnabled;
+        this.eventPayoutsEnabled = tenantFeatureService.eventPayoutsEnabled;
         this.inventoryEnabled = tenantFeatureService.inventoryEnabled;
         this.eventPreparationEnabled = tenantFeatureService.eventPreparationEnabled;
         this.webPushRemindersEnabled = tenantFeatureService.webPushRemindersEnabled;

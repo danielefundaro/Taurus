@@ -30,5 +30,6 @@ export class Tenants extends CommonFieldsOpenSearch {
     inventoryLoanSheetEnabled: boolean = false;
     inventorySignatureEnabled: boolean = false;
     calendarEnabled: boolean = false;
+    eventPayoutsEnabled: boolean = false;
     entityVersion?: number;
 }

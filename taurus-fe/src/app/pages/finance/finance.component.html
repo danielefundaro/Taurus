@@ -96,6 +96,9 @@
                 <p-tab value="events" appTourAnchor="finance.tabEvents">Eventi</p-tab>
                 }
                 <p-tab value="years" appTourAnchor="finance.tabYears">Esercizi</p-tab>
+                @if (eventPayoutsEnabled()) {
+                <p-tab value="payouts">Compensi</p-tab>
+                }
             </p-tablist>
             <p-tabpanels>
                 <p-tabpanel value="movements">
@@ -969,6 +972,17 @@
                     </section>
                     }
                 </p-tabpanel>
+
+                @if (eventPayoutsEnabled()) {
+                <p-tabpanel value="payouts">
+                    @if (payoutsOpened) {
+                    <app-finance-payouts [accounts]="accounts" [categories]="categories" [events]="eventOptions"
+                        [initialView]="payoutRoute.view" [initialEventId]="payoutRoute.eventId"
+                        [initialUserId]="payoutRoute.userId" (settled)="onPayoutSettled()"
+                        (recordIncome)="openMovement(undefined, $event, 'INCOME')" />
+                    }
+                </p-tabpanel>
+                }
             </p-tabpanels>
         </p-tabs>
     </div>

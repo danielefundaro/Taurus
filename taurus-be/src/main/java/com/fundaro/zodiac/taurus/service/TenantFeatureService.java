@@ -45,7 +45,8 @@ public class TenantFeatureService {
             enabled(tenant, TenantFeature.SCORE_PLAYBACK),
             enabled(tenant, TenantFeature.INVENTORY_LOAN_SHEET),
             enabled(tenant, TenantFeature.INVENTORY_SIGNATURE),
-            enabled(tenant, TenantFeature.CALENDAR)
+            enabled(tenant, TenantFeature.CALENDAR),
+            enabled(tenant, TenantFeature.EVENT_PAYOUTS)
         );
     }
 
@@ -113,12 +114,15 @@ public class TenantFeatureService {
             case INVENTORY_SIGNATURE ->
                 Boolean.TRUE.equals(tenant.getInventorySignatureEnabled()) && enabled(tenant, TenantFeature.INVENTORY_LOAN_SHEET);
             case CALENDAR -> Boolean.TRUE.equals(tenant.getCalendarEnabled());
+            case EVENT_PAYOUTS -> Boolean.TRUE.equals(tenant.getEventPayoutsEnabled())
+                && enabled(tenant, TenantFeature.FINANCE)
+                && enabled(tenant, TenantFeature.CALENDAR);
         };
     }
 
     private boolean applicationAvailable(TenantFeature feature) {
         return switch (feature) {
-            case FINANCE, INVENTORY, INVENTORY_LOAN_SHEET, CALENDAR -> true;
+            case FINANCE, INVENTORY, INVENTORY_LOAN_SHEET, CALENDAR, EVENT_PAYOUTS -> true;
             // The tenant administrator turns the signature on only when mail, codes and seal are configured.
             case INVENTORY_SIGNATURE -> true;
             case ONBOARDING_IMPORT -> properties.getOnboarding().isEnabled();

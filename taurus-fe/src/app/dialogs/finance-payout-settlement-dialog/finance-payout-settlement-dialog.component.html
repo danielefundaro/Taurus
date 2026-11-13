@@ -1,0 +1,36 @@
+<app-dialog-shell #shell heading="Genera movimento" [subtitle]="'Un’unica uscita a favore di ' + memberName + ', con il dettaglio per evento.'" confirmLabel="Registra movimento" [invalidCount]="invalidCount" (cancel)="cancel()" (confirm)="save()">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-4">
+        <div>
+            <small class="text-muted-color block">Totale da registrare</small>
+            <strong class="text-2xl">{{ total | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+        </div>
+        <span class="text-muted-color">per {{ eventsLabel }}</span>
+    </div>
+    <ul class="list-none p-0 m-0 mb-4 flex flex-col gap-2">
+        @for (line of lines; track $index) {
+            <li class="flex justify-between gap-4">
+                <span
+                    >{{ line.eventName }} <small class="text-muted-color">{{ line.eventDate | date: 'dd/MM/yyyy' }}</small></span
+                >
+                <strong>{{ line.amount | currency: 'EUR' : 'symbol' : '1.2-2' : 'it-IT' }}</strong>
+            </li>
+        }
+    </ul>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-form-field label="Conto" forId="payout-account" required [error]="shell.validationAttempted ? accountError : undefined">
+            <p-select inputId="payout-account" [(ngModel)]="accountId" [options]="accounts" optionLabel="name" optionValue="id" placeholder="Seleziona" appendTo="body" />
+        </app-form-field>
+        <app-form-field label="Data contabile" forId="payout-date" required [error]="shell.validationAttempted ? dateError : undefined">
+            <p-datepicker inputId="payout-date" [(ngModel)]="bookingDate" dateFormat="dd/mm/yy" appendTo="body" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Categoria" forId="payout-category" hint="Se non la scegli si usa «Compensi ai presenti».">
+            <p-select inputId="payout-category" [(ngModel)]="categoryId" [options]="categories" optionLabel="name" optionValue="id" placeholder="Compensi ai presenti" [showClear]="true" appendTo="body" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Descrizione" forId="payout-description" hint="Se la lasci vuota si compone dal nome degli eventi.">
+            <input id="payout-description" pInputText [(ngModel)]="description" maxlength="4000" />
+        </app-form-field>
+        <app-form-field class="md:col-span-2" label="Note" forId="payout-notes">
+            <textarea id="payout-notes" pTextarea rows="3" [(ngModel)]="notes"></textarea>
+        </app-form-field>
+    </div>
+</app-dialog-shell>
