@@ -101,12 +101,14 @@ Più avanti: battute in levare con metro diverso, metri composti misti (per esem
 
 ### Nuova parte da zero
 
-1. Nel workspace Parti della traccia l'archivista sceglie **Nuova parte scritta**.
-2. Indica descrizione e strumenti della parte, poi chiave, armatura, metro, tempo, numero di battute iniziali e battuta in levare. Con un solo strumento, chiave e trasposizione propongono i valori dello strumento; con più strumenti la parte non ha trasposizione. Armatura e tempo propongono quelli delle altre parti della traccia, se esistono.
-3. Taurus crea la parte senza pagine e apre l'editor con le battute di pausa.
+1. Nella scheda Ascolto della traccia l'archivista sceglie **Nuova parte scritta**, accanto ai comandi di ascolto e correzione delle parti.
+2. Indica descrizione e strumenti della parte, poi chiave, armatura, metro, tempo, numero di battute iniziali e battuta in levare. La chiave segue gli strumenti: percussioni, chiave di basso per gli strumenti gravi, altrimenti violino. Metro, battute, levare e tonalità si propongono dalla parte di riferimento dell'ascolto o, in mancanza, dalla prima parte approvata o con una versione; il tempo è quello dell'ascolto della partitura, se impostato. Con un solo strumento l'armatura proposta è trasportata per lo strumento, anche in chiave di basso; con più strumenti la parte non ha trasposizione. Chiave e armatura scelte a mano non cambiano più con gli strumenti.
+3. Taurus crea la parte in fondo alla traccia, senza pagine e con la prima bozza (`POST /written-parts`, con la versione della traccia), e apre l'editor con le battute di pausa. Il MusicXML non contiene `<transpose>`: la trasposizione è quella dello strumento, come per l'ascolto.
 4. L'archivista scrive; la bozza si salva da sola.
 5. **Salva** crea la versione 1 con origine `WRITING`, non verificata; **Salva e approva** la crea approvata.
 6. **Impagina** genera pagine e PDF (vedi [Impaginazione](#impaginazione)); da quel momento la parte compare in anteprima e stampa. Fino ad allora è una [parte da impaginare](#parti-da-impaginare).
+
+Una parte della traccia senza versioni né bozza, per esempio senza pagine da riconoscere, si scrive con **Scrivi**: Taurus chiede le stesse impostazioni, tranne descrizione e strumenti, che sono quelli della parte, e apre l'editor senza creare una parte. La prima bozza si salva alla prima modifica.
 
 ### Parte ricavata da un'altra
 
@@ -126,9 +128,11 @@ Più avanti: battute in levare con metro diverso, metri composti misti (per esem
 ### Bozza e ripresa
 
 - La bozza si salva pochi secondi dopo l'ultima modifica e comunque ogni 30 secondi durante la scrittura; una copia resta nel browser se la rete manca, e viene inviata al ritorno della connessione.
-- Riaprendo l'editor con una bozza, Taurus chiede se riprenderla, con data e ora, o scartarla.
+- Riaprendo l'editor con una bozza, l'editor mostra al posto dello spartito chi l'ha salvata, con data e ora, e lascia riprenderla oppure scartarla e aprire la versione corrente; scartare chiede conferma. La scelta è nell'editor e non in un dialogo di conferma, così `Esc` non scarta mai una bozza. **Riprendi la bozza** nella scheda Ascolto la riprende senza chiedere; una parte senza versioni riprende sempre la bozza.
+- Chiudendo l'editor la bozza si salva subito; se il server non risponde, l'editor avvisa che le ultime modifiche restano nel browser e si riprendono riaprendo la parte.
+- Se la bozza è stata cambiata in un'altra finestra (`scoreWriting.draftConflict`), l'editor offre **Tieni le mie modifiche**, che sostituisce la bozza salvata, e **Carica l'altra bozza**.
 - Se nel frattempo è stata salvata un'altra versione della stessa parte, la ripresa lo segnala: salvando, la bozza diventa comunque la versione corrente, dopo una conferma esplicita. Non c'è unione automatica.
-- **Salva** e **Salva e approva** eliminano la bozza; eliminare la parte o la partitura elimina anche la sua bozza. Le bozze non scadono: decide chi riapre l'editor, riprendendole o scartandole. Il workspace Parti mostra le parti con una bozza («Bozza non salvata di Mario Rossi, 3 marzo»), con **Scarta** per chi gestisce la traccia.
+- **Salva** e **Salva e approva** eliminano la bozza; eliminare la parte o la partitura elimina anche la sua bozza. Le bozze non scadono: decide chi riapre l'editor, riprendendole o scartandole. La scheda Ascolto mostra le parti con una bozza («Bozza non salvata di Mario Rossi, 14/11/2026 10:32»), con **Riprendi la bozza** e **Scarta la bozza** per chi gestisce la traccia; **Scarta la bozza** chiede conferma ed è disattivato mentre qualcuno scrive la parte.
 
 ### Copia nel browser rifiutata
 
@@ -136,7 +140,7 @@ La copia nel browser non si elimina mai per un rifiuto del server: si elimina so
 
 1. Al ritorno della connessione il server rifiuta la copia se il blocco è passato a un altro (`scoreWriting.locked`).
 2. L'editor lo dice, per esempio «Le modifiche fatte senza connessione dalle 10:32 alle 10:41 non sono state salvate: ora sta scrivendo Mario Rossi», e offre **Scarica MusicXML**, **Tienila per dopo** e **Scarta**.
-3. Quando lo stesso utente riapre l'editor sulla stessa parte o partitura e il blocco è libero, Taurus propone la copia come una bozza da riprendere, con data e ora. Se sul server c'è una bozza o una versione più recente, chiede la stessa conferma esplicita della ripresa di una bozza.
+3. Quando lo stesso utente riapre l'editor sulla stessa parte o partitura e il blocco è libero, Taurus propone la copia come una bozza da riprendere, con data e ora, prima di un'eventuale bozza sul server. Se sul server c'è una bozza o una versione più recente, lo dice e il comando diventa **Riprendi e sostituisci**. Una copia uguale alla bozza sul server si elimina senza chiedere.
 4. Il MusicXML scaricato da una parte si può anche ricaricare con il caricamento esistente, che crea una nuova versione.
 
 ### Blocco e presa di controllo
@@ -180,14 +184,16 @@ MusicXML compresso, MIDI e PDF di una versione, come oggi il MusicXML per MuseSc
 
 L'editor si apre a schermo intero, come quello di correzione.
 
-- **Barra superiore**: modalità **Selezione** e **Inserimento**, durata e punti correnti, voce attiva da 1 a 4, annulla e ripristina, ascolto dal punto selezionato, stato della bozza («Salvata alle 10:41»), **Tastiera MIDI**, **Salva**, **Salva e approva**, **Impagina**.
+- **Barra superiore**: titolo «Scrittura · nome della parte» con lo stato della bozza sotto («Bozza salvata alle 10:41»), annulla e ripristina, ascolto dal punto selezionato, **Tastiera MIDI**, **Salva**, **Salva e approva**, **Impagina**.
+- **Scheda Nota**: l'interruttore **Inserimento**, la voce del cursore da 1 a 4 e lo spostamento del cursore, poi durata e punti, che durante l'inserimento valgono per le note seguenti. Nella scrittura «Inserisci prima» e «Inserisci dopo» della correzione non compaiono, ed «Elimina» diventa **Cancella**, che trasforma la nota in pausa.
 - **Palette laterale** a schede: Note, Battuta (metro, armatura, chiave, battute), Struttura (ritornelli, volte, salti, lettere di prova), Espressione (dinamiche, forcelle, articolazioni, legature, testo), Impaginazione (interruzioni di riga e di pagina). Ogni comando indica la sua scorciatoia.
 - **Spartito** al centro, con il cursore di inserimento visibile come una barra verticale colorata nella posizione dove andrà la prossima nota.
 - **Barra di stato**: battuta, tempo nella battuta, voce, nota selezionata letta per esteso («Battuta 12 · tempo 3 · Sib4 · croma puntata»), già annunciata a chi usa uno screen reader; controlli in tempo reale.
 - **Tastiera di pianoforte a schermo**, mostrata su tablet o a richiesta: un tocco inserisce la nota alla durata corrente.
 - **Partitura**: elenco delle parti con mostra e nascondi, righi vuoti compressi, interruttore tra suoni reali e trasposizione, scelta della parte da ascoltare in evidenza.
 - **Ricavata da**: per le parti estratte o trasposte, un'etichetta con la parte o la partitura di origine e, se divergono, un avviso.
-- **Workspace Parti**: le etichette «Da impaginare» e «Bozza non salvata di …», con **Impagina** e **Scarta**.
+- **Scheda Ascolto**: **Nuova parte scritta**, e per ogni parte **Scrivi** oppure, con una bozza, l'etichetta «Bozza non salvata di …» con **Riprendi la bozza** e **Scarta la bozza**. I comandi stanno accanto a **Correggi** e alle versioni, che sono già nella scheda Ascolto, e sono disattivati finché la traccia ha modifiche da salvare.
+- **Workspace Parti**: l'etichetta «Da impaginare», con **Impagina**.
 
 ### Scorciatoie principali
 
@@ -201,16 +207,18 @@ L'editor si apre a schermo intero, come quello di correzione.
 | `Maiusc` + `A`–`G` | aggiunge la nota all'accordo |
 | `↑` `↓` | un grado; con `Ctrl` un'ottava |
 | `+` `-` `=` | diesis, bemolle, bequadro |
-| `T` | legatura di valore con la nota seguente |
-| `Canc` | elimina la nota, che diventa pausa nella scrittura |
+| `T` | legatura di valore con la nota seguente; durante l'inserimento scrive al cursore la nota precedente, legata a lei |
+| `Canc` | elimina la nota, che diventa pausa nella scrittura; durante l'inserimento il cursore torna al suo posto |
+| `←` `→` | nota precedente o seguente; durante l'inserimento spostano il cursore |
+| `Esc` | esce dalla modalità di inserimento |
 | `S` | legatura di portamento sulla selezione |
-| `Ctrl` + `3` | terzina (con `5`, `6` gli altri gruppi irregolari) |
-| `Ctrl` + `1`–`4` | voce attiva |
+| `Alt` + `3` | terzina al cursore, lunga quanto la durata corrente (con `5`, `6` gli altri gruppi irregolari) |
+| `Ctrl` + `Alt` + `1`–`4` | voce attiva |
 | `Ctrl` + `C`, `X`, `V` | copia, taglia, incolla; `R` ripete la selezione |
 | `Ctrl` + `Z`, `Y` | annulla, ripristina |
 | `Spazio` | ascolta dalla selezione o ferma |
 
-Le scorciatoie della tabella che esistono già nell'editor di correzione mantengono lo stesso significato.
+Le scorciatoie della tabella che esistono già nell'editor di correzione mantengono lo stesso significato. Voci e gruppi irregolari non usano `Ctrl` + cifra, che nei browser passa da una scheda all'altra e non si può intercettare in modo affidabile: le voci usano `Ctrl` + `Alt`, i gruppi `Alt`, letti dal tasto fisico così da valere con qualsiasi disposizione della tastiera.
 
 ### Tastiera MIDI
 
@@ -278,6 +286,7 @@ Sotto `/api/tracks/{trackId}`, per super amministratore, amministratore e archiv
 | --- | --- |
 | `POST /scores/{scoreId}/score-versions` (esistente) | salvataggio di una versione scritta, con `origin: WRITING` |
 | `GET`, `PUT`, `DELETE /scores/{scoreId}/score-draft` | bozza della parte; `PUT` con `entityVersion` per evitare sovrascritture |
+| `POST /written-parts` | parte scritta da zero in fondo alla traccia, senza pagine: descrizione, strumenti, MusicXML iniziale e versione della traccia; crea anche la prima bozza, di chi la scrive |
 | `POST`, `PUT`, `DELETE /scores/{scoreId}/edit-lock` | prende, rinnova e rilascia il blocco; `POST ?takeOver=true` prende il controllo |
 | `POST /scores/{scoreId}/derive` | crea una parte nuova da una versione, con strumento di destinazione e ottava |
 | `GET`, `POST /arrangements`, `GET /arrangements/{id}/versions` | partiture della traccia e loro versioni |
@@ -290,7 +299,7 @@ L'organico si salva con `PUT /api/instruments/ensemble`, che riceve l'elenco ord
 
 Il blocco di una parte (`/scores/{scoreId}/edit-lock`) richiede solo l'ascolto (`SCORE_PLAYBACK`), perché lo usa anche l'editor di correzione; con `SCORE_WRITING` disattivata restano disponibili solo il blocco e il salvataggio delle correzioni.
 
-Errori nuovi, secondo lo [standard](application-errors-standard.md): `scoreWriting.locked` (409, con nome e ora di chi scrive; anche per bozze e versioni inviate senza il blocco), `scoreWriting.draftOutdated` (409), `scoreWriting.instrumentNotConfigured` (422, per l'estrazione), `scoreWriting.engravingUnavailable` (503).
+Errori nuovi, secondo lo [standard](application-errors-standard.md): `scoreWriting.locked` (409, con nome e ora di chi scrive; anche per bozze e versioni inviate senza il blocco), `scoreWriting.draftOutdated` (409), `scoreWriting.instrumentNotFound` (400, per uno strumento inesistente nella parte scritta da zero), `scoreWriting.instrumentNotConfigured` (422, per l'estrazione), `scoreWriting.engravingUnavailable` (503). Una parte scritta da zero su una traccia modificata nel frattempo riceve `version.conflict` (409).
 
 ## Autorizzazioni e isolamento tenant
 
@@ -400,7 +409,7 @@ Decise il 14/11/2026, dopo il confronto della specifica con il codice:
 10. **Accordi e percussioni da MIDI**: accordo per le note arrivate entro 80 ms dalla prima mentre la prima è premuta, soglia regolabile; nelle percussioni, qualsiasi tasto per una parte con un solo strumento e la nota di batteria dello strumento per una parte con più strumenti (vedi [Tastiera MIDI](#tastiera-midi)). Scartate la finestra fissa, che ritarda ogni nota, i tasti tenuti, che trasformano il legato in accordi, e i tasti bianchi in ordine per le percussioni, che non funzionano con le batterie elettroniche.
 11. **Ordine della partitura**: dall'[organico della banda](#organico-della-banda), con un ordine di riferimento proposto dal catalogo e confermato dal tenant.
 12. **Parti senza pagine**: l'impaginazione diventa la fase 2 e `SCORE_WRITING` si attiva solo dopo di essa; le parti non ancora impaginate sono segnalate e guidano all'impaginazione (vedi [Parti da impaginare](#parti-da-impaginare)). Scartato il disegno nel browser in anteprima e stampa, che darebbe due impaginazioni diverse.
-13. **Bozze abbandonate**: non scadono; si eliminano al salvataggio di una versione, con la parte o la partitura, o scartandole, e il workspace le mostra. Scartata la scadenza automatica, che senza notifiche eliminerebbe lavoro senza avvisare per risparmiare poco spazio: una bozza per parte o partitura ne limita già il numero.
+13. **Bozze abbandonate**: non scadono; si eliminano al salvataggio di una versione, con la parte o la partitura, o scartandole, e la scheda Ascolto le mostra. Scartata la scadenza automatica, che senza notifiche eliminerebbe lavoro senza avvisare per risparmiare poco spazio: una bozza per parte o partitura ne limita già il numero.
 
 ## Estensioni approvate
 
