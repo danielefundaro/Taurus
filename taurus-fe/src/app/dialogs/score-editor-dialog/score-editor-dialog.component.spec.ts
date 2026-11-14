@@ -1,9 +1,11 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ConfirmationService } from 'primeng/api';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { firstValueFrom, of } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
 import { ScoreEditorData } from '../../module';
-import { ConfirmService, MediaService, ScoreAudioService, ScorePlaybackService, ScoreRendererService } from '../../service';
+import { ConfirmService, EditLockState, MediaService, ScoreAudioService, ScoreEditLockService, ScorePlaybackService, ScoreRendererService } from '../../service';
 import { ScoreEditorDialogComponent, ScoreEditorDialogData } from './score-editor-dialog.component';
 
 const XML = `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Tuba</part-name></score-part></part-list><part id="P1">
@@ -18,8 +20,24 @@ describe('ScoreEditorDialogComponent', () => {
     let renderer: jasmine.SpyObj<ScoreRendererService>;
     let playbackService: jasmine.SpyObj<ScorePlaybackService>;
     let dialogRef: jasmine.SpyObj<DynamicDialogRef>;
+    let lockState: WritableSignal<EditLockState>;
+    let lock: { session: string; state: () => EditLockState; readonly held: boolean; acquire: jasmine.Spy; refused: jasmine.Spy; release: jasmine.Spy };
 
     beforeEach(async () => {
+        lockState = signal<EditLockState>({ status: 'acquiring', message: null });
+        lock = {
+            session: 'editor-window-1',
+            state: lockState.asReadonly(),
+            get held() {
+                return lockState().status === 'held';
+            },
+            acquire: jasmine.createSpy('acquire').and.callFake(async () => {
+                lockState.set({ status: 'held', message: null });
+                return true;
+            }),
+            refused: jasmine.createSpy('refused').and.returnValue(false),
+            release: jasmine.createSpy('release')
+        };
         const editor: ScoreEditorData = {
             version: { id: 7, scoreId: 9, versionNumber: 2, origin: 'OMR_AUDIVERIS', status: 'UNVERIFIED', measureCount: 2, checks: null as never, createdAt: '2026-10-18T10:00:00Z', current: true, pagesChanged: false },
             musicXml: XML,
@@ -45,7 +63,8 @@ describe('ScoreEditorDialogComponent', () => {
                 { provide: ScoreRendererService, useValue: renderer },
                 { provide: MediaService, useValue: jasmine.createSpyObj('MediaService', ['streamImage']) },
                 { provide: ScoreAudioService, useValue: jasmine.createSpyObj('ScoreAudioService', ['ready', 'load', 'play', 'pause', 'setChannel']) },
-                { provide: ConfirmService, useValue: jasmine.createSpyObj('ConfirmService', ['confirmDiscard', 'confirmReversible']) }
+                { provide: ConfirmService, useValue: jasmine.createSpyObj('ConfirmService', ['confirmDiscard', 'confirmReversible']) },
+                { provide: ScoreEditLockService, useValue: { forPart: () => lock } }
             ]
         }).compileComponents();
         fixture = TestBed.createComponent(ScoreEditorDialogComponent);
@@ -169,9 +188,61 @@ describe('ScoreEditorDialogComponent', () => {
         component.save(true);
 
         const correction = playbackService.correct.calls.mostRecent().args[2];
-        expect(correction).toEqual(jasmine.objectContaining({ parentVersionId: 7, approve: true, measureSources: [0, 1] }));
+        expect(correction).toEqual(jasmine.objectContaining({ parentVersionId: 7, approve: true, measureSources: [0, 1], origin: 'CORRECTION', editSession: 'editor-window-1' }));
         expect(correction.content.split('<step>D</step>').length - 1).toBe(2);
         expect(correction.content).not.toContain('taurus-');
         expect(dialogRef.close).toHaveBeenCalledWith(jasmine.objectContaining({ versionNumber: 3 }));
+
+        fixture.destroy();
+        expect(lock.release).toHaveBeenCalled();
+    });
+
+    it('opens in read only while someone else corrects or writes the part, until the user takes over', async () => {
+        lock.acquire.and.callFake(async (takeOver = false) => {
+            lockState.set(takeOver ? { status: 'held', message: null } : { status: 'locked', message: 'In modifica da Mario Rossi dalle 10:32' });
+            return takeOver;
+        });
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        const confirmService = TestBed.inject(ConfirmService) as jasmine.SpyObj<ConfirmService>;
+        const component = fixture.componentInstance as unknown as { move(steps: number): void; save(approve: boolean): void; resolveLock(): void; dirty: boolean; message: string | null };
+
+        const notice: HTMLElement = fixture.nativeElement.querySelector('.score-editor__lock');
+        expect(notice.textContent).toContain('In modifica da Mario Rossi dalle 10:32');
+        component.move(1);
+        expect(component.dirty).toBeFalse();
+        expect(component.message).toContain('sola lettura');
+
+        component.resolveLock();
+        expect(confirmService.confirmReversible).toHaveBeenCalled();
+        confirmService.confirmReversible.calls.mostRecent().args[0].accept();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(lock.acquire).toHaveBeenCalledWith(true);
+        expect(fixture.nativeElement.querySelector('.score-editor__lock')).toBeNull();
+        component.move(1);
+        expect(component.dirty).toBeTrue();
+    });
+
+    it('passes to read only when a save finds that someone else took over', async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+        const refusal = new HttpErrorResponse({ status: 409, error: { message: 'error.scoreWriting.locked' } });
+        playbackService.correct.and.returnValue(throwError(() => refusal));
+        lock.refused.and.callFake(() => {
+            lockState.set({ status: 'lost', message: 'In modifica da Lucia Bianchi dalle 10:40' });
+            return true;
+        });
+        const component = fixture.componentInstance as unknown as { move(steps: number): void; save(approve: boolean): void; readOnly: boolean; dirty: boolean };
+
+        component.move(1);
+        component.save(false);
+
+        expect(lock.refused).toHaveBeenCalledWith(refusal);
+        expect(component.readOnly).toBeTrue();
+        expect(component.dirty).toBeTrue();
+        expect(dialogRef.close).not.toHaveBeenCalled();
     });
 });

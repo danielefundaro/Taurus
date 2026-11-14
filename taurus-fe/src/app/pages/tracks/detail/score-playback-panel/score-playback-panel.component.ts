@@ -7,7 +7,8 @@ import { ScoreReportsDialogComponent, ScoreReportsDialogData, ScoreReportsDialog
 import { ScoreUploadDialogComponent, ScoreUploadDialogData } from '../../../../dialogs/score-upload-dialog/score-upload-dialog.component';
 import { ScoreVersionsDialogComponent, ScoreVersionsDialogData, ScoreVersionsDialogResult } from '../../../../dialogs/score-versions-dialog/score-versions-dialog.component';
 import { ImportsModule } from '../../../../imports';
-import { PartPlayback, RecognitionJob, ScoreVersion, TrackPlayback } from '../../../../module';
+import { editLockMessage } from '../../../../constants';
+import { EditLock, PartPlayback, RecognitionJob, ScoreVersion, TrackPlayback } from '../../../../module';
 import { drumName, programName } from '../../../../score-player/general-midi';
 import { checksSummary, isRecognitionActive, partLabel, recognitionLabel } from '../../../../score-player/playback-labels';
 import { ScorePlaybackService, ToastService, withErrorSummary } from '../../../../service';
@@ -78,6 +79,11 @@ export class ScorePlaybackPanelComponent implements OnChanges, OnDestroy {
     protected summary = checksSummary;
     protected recognitionStatus = recognitionLabel;
     protected recognizing = isRecognitionActive;
+
+    /** Chi sta correggendo o scrivendo la parte: «In modifica da Mario Rossi dalle 10:32». */
+    protected editingLabel(editing: EditLock): string {
+        return editLockMessage(editing.ownerName, editing.since, false);
+    }
 
     protected soundLabel(part: PartPlayback): string {
         const sound = part.sound;

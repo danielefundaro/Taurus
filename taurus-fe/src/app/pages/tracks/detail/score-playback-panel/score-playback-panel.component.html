@@ -55,6 +55,9 @@
                         } @else {
                             <p-tag severity="secondary" value="Ascolto non ancora disponibile" />
                         }
+                        @if (canManage && part.editing; as editing) {
+                            <p-tag severity="info" icon="pi pi-pencil" [value]="editingLabel(editing)" />
+                        }
                         @if (canManage && part.openReports) {
                             <button type="button" class="p-0 border-0 bg-transparent cursor-pointer" [attr.aria-label]="'Apri le segnalazioni di ' + label(part)" (click)="reports(part)">
                                 <p-tag severity="danger" icon="pi pi-comment" [value]="part.openReports === 1 ? '1 segnalazione' : part.openReports + ' segnalazioni'" />

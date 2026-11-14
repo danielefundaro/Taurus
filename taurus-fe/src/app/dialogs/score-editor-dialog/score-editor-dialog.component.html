@@ -22,10 +22,14 @@
                 pTooltip="Spazio. Maiusc+clic su un'altra battuta sceglie un intervallo"
                 (onClick)="togglePlay()"
             />
-            <p-button label="Salva" icon="pi pi-save" severity="secondary" [disabled]="!dirty || saving" [loading]="saving" pTooltip="Salva come nuova versione non verificata" (onClick)="save(false)" />
-            <p-button label="Salva e approva" icon="pi pi-check" [disabled]="!dirty || saving" [loading]="saving" pTooltip="Salva come nuova versione approvata" (onClick)="save(true)" />
+            <p-button label="Salva" icon="pi pi-save" severity="secondary" [disabled]="!dirty || saving || readOnly" [loading]="saving" pTooltip="Salva come nuova versione non verificata" (onClick)="save(false)" />
+            <p-button label="Salva e approva" icon="pi pi-check" [disabled]="!dirty || saving || readOnly" [loading]="saving" pTooltip="Salva come nuova versione approvata" (onClick)="save(true)" />
         </div>
     </header>
+
+    @if (status !== 'error' && lockNotice; as notice) {
+        <app-inline-alert class="score-editor__lock block mx-4 mt-2" severity="warn" [heading]="notice.heading" [detail]="notice.detail" [actionLabel]="notice.action" (action)="resolveLock()" />
+    }
 
     @if (status === 'error') {
         <app-inline-alert class="block m-4" severity="warn" heading="Editor non disponibile" [detail]="errorMessage" />

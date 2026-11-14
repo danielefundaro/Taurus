@@ -41,6 +41,12 @@ describe('ScorePlaybackPanelComponent', () => {
         expect(component.soundLabel(part({ soundProgram: 73, transpositionSemitones: 0 }))).toBe('Flute · in suoni reali');
         expect(component.soundLabel(part({ percussionKeys: [38, 36] }))).toBe(`Batteria: ${['Acoustic Snare', 'Bass Drum 1'].join(', ')}`);
     });
+
+    it('says who is correcting or writing a part', () => {
+        const since = new Date(2026, 10, 14, 10, 32).toISOString();
+        expect(component.editingLabel({ ownerName: 'Mario Rossi', since, expiresAt: since, mine: false })).toBe('In modifica da Mario Rossi dalle 10:32');
+        expect(component.editingLabel({ ownerName: null, since, expiresAt: since, mine: false })).toBe('In modifica da un altro utente dalle 10:32');
+    });
 });
 
 describe('ScorePlaybackPanelComponent recognition', () => {

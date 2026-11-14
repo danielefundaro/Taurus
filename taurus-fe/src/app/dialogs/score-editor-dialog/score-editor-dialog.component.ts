@@ -12,7 +12,7 @@ import { parseMusicXml } from '../../score-player/musicxml-score';
 import { buildPlayback } from '../../score-player/playback-builder';
 import { originLabel } from '../../score-player/playback-labels';
 import { partSound, secondsAt } from '../../score-player/timeline';
-import { ConfirmService, MediaService, ScoreAudioService, ScorePlaybackService, ScoreRendererService, withErrorSummary } from '../../service';
+import { ConfirmService, MediaService, PartEditLock, ScoreAudioService, ScoreEditLockService, ScorePlaybackService, ScoreRendererService, withErrorSummary } from '../../service';
 
 export interface ScoreEditorDialogData {
     trackId: number;
@@ -54,6 +54,8 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     @ViewChild('pageViewer') private pageViewer?: ElementRef<HTMLElement>;
 
     protected readonly data: ScoreEditorDialogData;
+    /** Blocco della parte: un solo autore alla volta, anche fra correzione e scrittura. */
+    protected readonly lock: PartEditLock;
     protected readonly noteTypes = [...NOTE_TYPES];
     protected readonly alterations = ALTERATIONS;
     protected readonly clefs = [...CLEF_OPTIONS];
@@ -127,16 +129,20 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         private readonly renderer: ScoreRendererService,
         private readonly audio: ScoreAudioService,
         private readonly confirmService: ConfirmService,
-        private readonly changeDetector: ChangeDetectorRef
+        private readonly changeDetector: ChangeDetectorRef,
+        lockService: ScoreEditLockService
     ) {
         this.data = config.data!;
+        this.lock = lockService.forPart(this.data.trackId, this.data.scoreId);
     }
 
     async ngOnInit(): Promise<void> {
         try {
             const [editor, reports] = await Promise.all([
                 firstValueFrom(this.playbackService.editor(this.data.trackId, this.data.scoreId, this.data.versionId)),
-                firstValueFrom(this.playbackService.errorReports(this.data.trackId)).catch(() => [] as ErrorReport[])
+                firstValueFrom(this.playbackService.errorReports(this.data.trackId)).catch(() => [] as ErrorReport[]),
+                // Senza il blocco l'editor si apre in sola lettura: lo stato del blocco dice perché.
+                this.lock.acquire()
             ]);
             this.editor = editor;
             this.reports = reports.filter((report) => report.scoreId === this.data.scoreId && report.status === 'OPEN');
@@ -158,17 +164,32 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.lock.release();
         this.stop();
         if (this.renderFrame !== undefined) cancelAnimationFrame(this.renderFrame);
         for (const url of this.pageUrls.values()) URL.revokeObjectURL(url);
     }
 
     protected get canUndo(): boolean {
-        return this.history.canUndo;
+        return this.history.canUndo && !this.readOnly;
     }
 
     protected get canRedo(): boolean {
-        return this.history.canRedo;
+        return this.history.canRedo && !this.readOnly;
+    }
+
+    /** Un altro autore possiede il blocco, o non si è potuto prendere: si consulta senza modificare. */
+    protected get readOnly(): boolean {
+        return this.lock.state().status !== 'held';
+    }
+
+    /** Avviso della sola lettura, con l'azione che la risolve; `null` mentre il blocco è di questa finestra. */
+    protected get lockNotice(): { heading: string; detail: string; action: string } | null {
+        const { status, message } = this.lock.state();
+        if (status === 'locked') return { heading: 'Sola lettura', detail: message ?? '', action: 'Prendi il controllo' };
+        if (status === 'lost') return { heading: 'Un altro ha preso il controllo', detail: `${message ?? ''}: le modifiche non salvate restano qui finché non riprendi il controllo`, action: 'Riprendi il controllo' };
+        if (status === 'unavailable') return { heading: 'Sola lettura', detail: message ?? '', action: 'Riprova' };
+        return null;
     }
 
     protected get pages(): number[] {
@@ -497,14 +518,16 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     // Salvataggio
 
     protected save(approve: boolean): void {
-        if (!this.score || !this.editor || this.saving || !this.dirty) return;
+        if (!this.score || !this.editor || this.saving || !this.dirty || this.readOnly) return;
         this.stop();
         this.saving = true;
         const correction: ScoreCorrection = {
             parentVersionId: this.editor.version.id,
             content: this.score.cleanXml(),
             approve,
-            measureSources: this.score.measureSources()
+            measureSources: this.score.measureSources(),
+            origin: 'CORRECTION',
+            editSession: this.lock.session
         };
         this.playbackService
             .correct(this.data.trackId, this.data.scoreId, correction, withErrorSummary('Correzione non salvata'))
@@ -515,10 +538,30 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
                     this.changeDetector.markForCheck();
                 })
             )
-            .subscribe((version: ScoreVersion) => {
-                this.dirty = false;
-                this.dialogRef.close(version);
+            .subscribe({
+                next: (version: ScoreVersion) => {
+                    this.dirty = false;
+                    this.dialogRef.close(version);
+                },
+                // Chi ha perso il controllo passa in sola lettura: l'avviso del salvataggio dice chi lo ha preso.
+                error: (error: unknown) => this.lock.refused(error)
             });
+    }
+
+    /** Prende il blocco: dopo una conferma se lo possiede un altro, che passa in sola lettura. */
+    protected resolveLock(): void {
+        const status = this.lock.state().status;
+        if (status === 'unavailable') {
+            void this.retakeLock(false);
+            return;
+        }
+        this.confirmService.confirmReversible({
+            title: 'Prendere il controllo?',
+            consequence: 'Chi sta modificando la parte passa in sola lettura e non potrà salvare le modifiche non ancora salvate.',
+            actionLabel: 'Prendi il controllo',
+            key: 'score-editor-discard',
+            accept: () => void this.retakeLock(true)
+        });
     }
 
     protected close(): void {
@@ -557,9 +600,19 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.apply((score) => change(score, index));
     }
 
+    private async retakeLock(takeOver: boolean): Promise<void> {
+        await this.lock.acquire(takeOver);
+        this.changeDetector.markForCheck();
+    }
+
     /** Esegue una modifica; se non riesce ripristina il documento e ne mostra il motivo. */
     private apply(change: (score: ScoreDocument) => string | null | void): void {
         if (!this.score || this.saving) return;
+        if (this.readOnly) {
+            this.message = "L'editor è in sola lettura: prendi il controllo per modificare la parte";
+            this.changeDetector.markForCheck();
+            return;
+        }
         this.stop();
         const before = this.score.snapshot();
         try {
@@ -579,7 +632,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     }
 
     private restore(snapshot: string): void {
-        if (!this.score) return;
+        if (!this.score || this.readOnly) return;
         this.stop();
         this.score = ScoreDocument.restore(snapshot, this.score.prefix);
         this.message = null;

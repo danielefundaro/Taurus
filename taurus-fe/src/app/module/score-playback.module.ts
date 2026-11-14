@@ -1,6 +1,6 @@
 /** Ascolto e correzione delle parti: dati scambiati con il backend. */
 
-export type ScoreVersionOrigin = 'OMR_AUDIVERIS' | 'OMR_HOMR' | 'UPLOAD_MUSICXML' | 'UPLOAD_MIDI' | 'CORRECTION';
+export type ScoreVersionOrigin = 'OMR_AUDIVERIS' | 'OMR_HOMR' | 'UPLOAD_MUSICXML' | 'UPLOAD_MIDI' | 'CORRECTION' | 'WRITING';
 export type ScoreVersionStatus = 'UNVERIFIED' | 'APPROVED';
 export type PlaybackAvailability = 'AVAILABLE' | 'NOT_AVAILABLE';
 export type RecognitionJobStatus = 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED';
@@ -134,6 +134,27 @@ export interface PartPlayback {
     recognition?: RecognitionJob | null;
     /** Segnalazioni d'errore aperte sulla parte, contate solo per archivisti e amministratori. */
     openReports: number;
+    /** Chi sta modificando la parte in un editor, solo per archivisti e amministratori. */
+    editing?: EditLock | null;
+    /** Bozza dell'editor di scrittura, solo per archivisti e amministratori. */
+    draft?: DraftSummary | null;
+}
+
+/** Blocco di una parte: un solo autore alla volta, nell'editor di scrittura o di correzione. */
+export interface EditLock {
+    ownerName?: string | null;
+    since: string;
+    expiresAt: string;
+    /** Il blocco appartiene a questa finestra dell'editor. */
+    mine: boolean;
+}
+
+/** Bozza dell'editor di scrittura di una parte. */
+export interface DraftSummary {
+    savedBy?: string | null;
+    savedAt: string;
+    /** Dopo l'inizio della scrittura è stata salvata un'altra versione della parte. */
+    outdated: boolean;
 }
 
 export interface TrackPlayback {
@@ -186,13 +207,19 @@ export interface ScoreEditorData {
     layout: MeasureBox[] | null;
 }
 
-/** Versione scritta nell'editor di correzione. */
+/** Versione scritta nell'editor di correzione o in quello di scrittura. */
 export interface ScoreCorrection {
-    parentVersionId: number;
+    /** Versione di partenza; per la scrittura `null` quando la parte non ha versioni. */
+    parentVersionId: number | null;
     content: string;
     approve: boolean;
-    /** Per ogni battuta, la sua posizione nella versione di partenza; `null` per le battute inserite. */
-    measureSources: (number | null)[];
+    /** Per ogni battuta, la sua posizione nella versione di partenza; `null` per le battute inserite. Ignorato dalla scrittura. */
+    measureSources?: (number | null)[];
+    origin: 'CORRECTION' | 'WRITING';
+    /** Sessione dell'editor, che deve possedere il blocco della parte. */
+    editSession: string;
+    /** Scrittura: chi scrive ha confermato di sostituire una versione salvata dopo l'inizio della scrittura. */
+    confirmOutdated?: boolean;
 }
 
 export type ErrorReportStatus = 'OPEN' | 'CLOSED';
