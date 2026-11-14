@@ -78,6 +78,9 @@
         <p-tabs class="score-editor__tools" [(value)]="activeTool">
             <p-tablist>
                 <p-tab value="note">Nota</p-tab>
+                @if (writingMode) {
+                    <p-tab value="passage">Passaggio</p-tab>
+                }
                 <p-tab value="measure">Battuta</p-tab>
                 <p-tab value="structure">Struttura</p-tab>
                 <p-tab value="expression">Espressione</p-tab>
@@ -243,6 +246,50 @@
                     </div>
                 </p-tabpanel>
 
+                @if (writingMode) {
+                    <p-tabpanel value="passage">
+                        <div class="score-editor__group-row">
+                            <div class="score-editor__group" role="group" aria-label="Selezione">
+                                <span class="score-editor__label">Selezione</span>
+                                <span class="score-editor__hint">{{ passage ? 'Passaggio selezionato' : 'Maiusc+clic o Maiusc+← → dalla nota selezionata' }}</span>
+                                <p-button label="Tutta la parte" size="small" severity="secondary" outlined pTooltip="Seleziona tutte le battute, con tutte le voci (Ctrl+A)" (onClick)="selectWholePart()" />
+                                <p-button label="Togli la selezione" size="small" severity="secondary" text [disabled]="!passage" pTooltip="Resta selezionata la prima nota (Esc)" (onClick)="clearRange()" />
+                            </div>
+                            <div class="score-editor__group" role="group" aria-label="Appunti">
+                                <span class="score-editor__label">Appunti</span>
+                                <span class="score-editor__hint">{{ clipboard.clip() ? 'Negli appunti: ' + clipboard.clip()!.label : 'Appunti vuoti' }}</span>
+                                <p-button label="Copia" icon="pi pi-copy" size="small" severity="secondary" outlined pTooltip="Copia il passaggio o la nota selezionata (Ctrl+C)" [disabled]="!note" (onClick)="copy()" />
+                                <p-button label="Taglia" size="small" severity="secondary" outlined pTooltip="Copia e trasforma in pause (Ctrl+X)" [disabled]="!note || readOnly" (onClick)="cut()" />
+                                <p-button
+                                    label="Incolla"
+                                    icon="pi pi-clipboard"
+                                    size="small"
+                                    severity="secondary"
+                                    outlined
+                                    [pTooltip]="inserting ? 'Incolla al cursore (Ctrl+V)' : 'Incolla dall\'inizio della selezione, al posto di ciò che c\'è (Ctrl+V)'"
+                                    [disabled]="!clipboard.clip() || readOnly || (!note && !measure)"
+                                    (onClick)="paste()"
+                                />
+                                <p-button label="Ripeti" icon="pi pi-clone" size="small" severity="secondary" outlined pTooltip="Ripete il passaggio o la nota subito dopo di lei (R)" [disabled]="!note || readOnly" (onClick)="repeatSelection()" />
+                            </div>
+                            <div class="score-editor__group" role="group" aria-label="Trasposizione">
+                                <span class="score-editor__label">Trasposizione</span>
+                                <p-select [options]="intervals" [(ngModel)]="transposeInterval" optionLabel="label" optionValue="value" size="small" ariaLabel="Intervallo" appendTo="body" [disabled]="readOnly" />
+                                <p-selectbutton [options]="directions" [(ngModel)]="transposeDirection" optionLabel="label" optionValue="value" [allowEmpty]="false" size="small" aria-label="Direzione" [disabled]="readOnly" />
+                                <p-selectbutton [options]="transposeScopes" [(ngModel)]="transposeScope" optionLabel="label" optionValue="value" [allowEmpty]="false" size="small" aria-label="Note da trasporre" [disabled]="readOnly" />
+                                <p-button
+                                    label="Trasponi"
+                                    size="small"
+                                    severity="secondary"
+                                    [pTooltip]="transposeScope === 'part' ? 'Traspone tutte le note e le armature della parte' : 'Traspone il passaggio o la nota selezionata; ↑ ↓ spostano di un grado, con Ctrl di un\'ottava'"
+                                    [disabled]="readOnly || (transposeScope === 'passage' && !note)"
+                                    (onClick)="transpose()"
+                                />
+                            </div>
+                        </div>
+                    </p-tabpanel>
+                }
+
                 <p-tabpanel value="measure">
                     <div class="score-editor__group-row">
                         <div class="score-editor__group" role="group" aria-label="Metro">
@@ -359,6 +406,13 @@
                             <li><kbd>Alt</kbd>+<kbd>3</kbd>, <kbd>5</kbd>, <kbd>6</kbd> terzina, quintina e sestina al cursore</li>
                             <li><kbd>Canc</kbd> la nota scritta diventa una pausa</li>
                         </ul>
+                        <h3 class="score-editor__panel-title mb-2">Passaggio</h3>
+                        <ul class="score-editor__shortcuts mb-3">
+                            <li><kbd>Maiusc</kbd>+clic o <kbd>Maiusc</kbd>+<kbd>←</kbd> <kbd>→</kbd> seleziona un passaggio dalla nota selezionata; <kbd>Ctrl</kbd>+<kbd>A</kbd> tutta la parte; <kbd>Esc</kbd> toglie la selezione</li>
+                            <li><kbd>Ctrl</kbd>+<kbd>C</kbd> copia, <kbd>Ctrl</kbd>+<kbd>X</kbd> taglia, <kbd>Ctrl</kbd>+<kbd>V</kbd> incolla al cursore o all'inizio della selezione, anche in un'altra parte</li>
+                            <li><kbd>R</kbd> ripete il passaggio o la nota subito dopo di lei</li>
+                            <li><kbd>↑</kbd> <kbd>↓</kbd> spostano il passaggio di un grado, con <kbd>Ctrl</kbd> di un'ottava; <kbd>Canc</kbd> lo trasforma in pause</li>
+                        </ul>
                         <h3 class="score-editor__panel-title mb-2">Selezione</h3>
                     }
                     <ul class="score-editor__shortcuts">
@@ -372,7 +426,11 @@
                         } @else {
                             <li><kbd>0</kbd> nota o pausa, <kbd>I</kbd> inserisci dopo, <kbd>Canc</kbd> elimina, <kbd>T</kbd> legatura di valore</li>
                         }
-                        <li><kbd>Spazio</kbd> ascolta la battuta o l'intervallo; <kbd>Maiusc</kbd>+clic sceglie l'ultima battuta, <kbd>Esc</kbd> la toglie</li>
+                        @if (writingMode) {
+                            <li><kbd>Spazio</kbd> ascolta la battuta o le battute del passaggio selezionato</li>
+                        } @else {
+                            <li><kbd>Spazio</kbd> ascolta la battuta o l'intervallo; <kbd>Maiusc</kbd>+clic sceglie l'ultima battuta, <kbd>Esc</kbd> la toglie</li>
+                        }
                         <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> annulla, <kbd>Ctrl</kbd>+<kbd>Y</kbd> ripristina</li>
                     </ul>
                 </p-tabpanel>
@@ -389,6 +447,8 @@
             }
             @if (message) {
                 <span class="score-editor__message"><i class="pi pi-exclamation-triangle mr-1" aria-hidden="true"></i>{{ message }}</span>
+            } @else if (info) {
+                <span class="score-editor__info"><i class="pi pi-check mr-1" aria-hidden="true"></i>{{ info }}</span>
             }
         </div>
 

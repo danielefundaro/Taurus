@@ -138,6 +138,15 @@
     color: var(--p-orange-600);
 }
 
+.score-editor__info {
+    color: var(--p-text-muted-color);
+}
+
+.score-editor__hint {
+    color: var(--p-text-muted-color);
+    font-size: 0.875rem;
+}
+
 .score-editor__body {
     display: grid;
     grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
@@ -185,6 +194,13 @@
     ::ng-deep g.measure.is-current-measure {
         fill: var(--p-primary-color);
         stroke: var(--p-primary-color);
+    }
+
+    // Note del passaggio selezionato; la nota di partenza resta nel colore della selezione.
+    ::ng-deep g.is-in-passage,
+    ::ng-deep g.is-in-passage * {
+        fill: var(--p-blue-700) !important;
+        stroke: var(--p-blue-700) !important;
     }
 
     ::ng-deep g.is-selected,

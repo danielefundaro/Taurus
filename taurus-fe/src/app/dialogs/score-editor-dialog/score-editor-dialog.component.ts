@@ -9,6 +9,7 @@ import { excerpt } from '../../score-editor/excerpt';
 import { Alteration, ALTERATIONS, CLEF_OPTIONS, fraction, KEY_OPTIONS, NOTE_TYPES, NoteType, Step, STEP_NAMES, STEPS, toNumber } from '../../score-editor/notation-rules';
 import { EditError, ScoreDocument, ScoreDocumentChecks } from '../../score-editor/score-document';
 import * as edits from '../../score-editor/score-edits';
+import * as passages from '../../score-editor/score-passage';
 import * as writing from '../../score-editor/score-writing';
 import { parseMusicXml } from '../../score-player/musicxml-score';
 import { buildPlayback } from '../../score-player/playback-builder';
@@ -23,6 +24,7 @@ import {
     PartDraftKeeper,
     PartEditLock,
     ScoreAudioService,
+    ScoreClipboardService,
     ScoreDraftService,
     ScoreEditLockService,
     ScorePlaybackService,
@@ -182,6 +184,15 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     ];
     protected readonly originLabel = originLabel;
     protected readonly voices = writing.VOICES.map((voice) => ({ label: String(voice), value: voice }));
+    protected readonly intervals = [...passages.INTERVALS];
+    protected readonly directions: { label: string; value: 1 | -1 }[] = [
+        { label: 'Su', value: 1 },
+        { label: 'Giù', value: -1 }
+    ];
+    protected readonly transposeScopes: { label: string; value: 'passage' | 'part' }[] = [
+        { label: 'Selezione', value: 'passage' },
+        { label: 'Tutta la parte', value: 'part' }
+    ];
     /** Editor di scrittura: bozze, modalità di inserimento e battute sempre complete. */
     protected readonly writingMode: boolean;
 
@@ -192,6 +203,8 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     protected saving = false;
     protected dirty = false;
     protected message: string | null = null;
+    /** Esito di un'azione che non modifica la parte, per esempio una copia. */
+    protected info: string | null = null;
     protected activeTool = 'note';
 
     protected selectedId: string | null = null;
@@ -199,6 +212,11 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     private emptyMeasureId: string | null = null;
     /** Ultima battuta dell'intervallo da ascoltare, scelta con Maiusc+clic. */
     protected rangeEnd: number | null = null;
+    /** Scrittura: estremo mobile del passaggio selezionato, scelto con Maiusc; l'altro estremo è la nota selezionata. */
+    protected rangeFocusId: string | null = null;
+    /** Scrittura: passaggio dalla nota selezionata all'estremo mobile, con battute e voci che copre. */
+    protected passage: passages.Passage | null = null;
+    private passageText = '';
     protected note: edits.NoteInfo | null = null;
     protected measure: edits.MeasureInfo | null = null;
     protected checks: ScoreDocumentChecks = { wrongDuration: [], empty: [] };
@@ -224,6 +242,9 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     protected cursor: writing.WritingCursor = writing.startCursor();
     /** Figura delle note scritte al cursore. */
     protected figure: writing.WritingFigure = { type: 'quarter', dots: 0 };
+    protected transposeInterval = 'M2';
+    protected transposeDirection: 1 | -1 = 1;
+    protected transposeScope: 'passage' | 'part' = 'passage';
     protected cursorBox: CursorBox | null = null;
     /** Bozza o copia nel browser da riprendere, prima di aprire lo spartito. */
     protected choice: ResumeChoice | null = null;
@@ -254,7 +275,8 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         private readonly changeDetector: ChangeDetectorRef,
         lockService: ScoreEditLockService,
         private readonly draftService: ScoreDraftService,
-        private readonly apiErrors: ApiErrorService
+        private readonly apiErrors: ApiErrorService,
+        protected readonly clipboard: ScoreClipboardService
     ) {
         this.data = config.data!;
         this.writingMode = this.data.mode === 'writing';
@@ -376,15 +398,16 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         return !!this.editor?.layout?.length;
     }
 
-    /** Battute da ascoltare: quella selezionata o l'intervallo scelto. */
+    /** Battute da ascoltare: quella selezionata, l'intervallo scelto o le battute del passaggio. */
     protected get listenLabel(): string {
-        if (!this.measure) return 'Ascolta';
-        if (this.rangeEnd === null || this.rangeEnd === this.measure.index) return `Ascolta battuta ${this.measure.number}`;
-        const numbers = this.measureNumbers([this.measure.index, this.rangeEnd].sort((left, right) => left - right));
-        return `Ascolta battute ${numbers[0]}–${numbers[1]}`;
+        const range = this.listenRange;
+        if (!range) return 'Ascolta';
+        const numbers = this.measureNumbers(range);
+        return numbers[0] === numbers[1] ? `Ascolta battuta ${numbers[0]}` : `Ascolta battute ${numbers[0]}–${numbers[1]}`;
     }
 
     protected get selectionLabel(): string {
+        if (this.passage) return this.passageText;
         if (this.measure?.empty) return `Battuta ${this.measure.number} · vuota`;
         if (!this.note || !this.measure) return 'Seleziona una nota sullo spartito';
         return `Battuta ${this.measure.number} · ${edits.noteLabel(this.note)}`;
@@ -428,10 +451,8 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         else if (!this.writingMode && (key === 'Insert' || key === 'i')) this.insert('after');
         else if (key === 't') this.tie();
         else if (key === ' ') void this.togglePlay();
-        else if (key === 'Escape' && this.rangeEnd !== null) {
-            this.rangeEnd = null;
-            this.decorate(false);
-        } else handled = false;
+        else if (key === 'Escape' && (this.rangeEnd !== null || this.rangeFocusId !== null)) this.clearRange();
+        else handled = false;
         if (handled) {
             event.preventDefault();
             this.changeDetector.markForCheck();
@@ -462,6 +483,13 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
             measureIndex = found?.tagName === 'measure' ? this.score.measureIndex(found) : null;
         }
         if (measureIndex === null || !target) return;
+        // Le teste delle note sono piccole: un clic accanto a una nota sceglie la nota più vicina della battuta.
+        const id = noteId ?? this.nearestNote(target, event.clientX, event.clientY) ?? edits.firstNoteOf(this.score, measureIndex);
+        if (event.shiftKey && this.writingMode && this.selectedId && id) {
+            // Nella scrittura Maiusc+clic sceglie un passaggio dalla nota selezionata, da copiare, ripetere o trasporre.
+            this.setRangeFocus(id);
+            return;
+        }
         if (event.shiftKey && this.measure) {
             this.rangeEnd = measureIndex;
             this.decorate(false);
@@ -469,8 +497,6 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
             return;
         }
         this.rangeEnd = null;
-        // Le teste delle note sono piccole: un clic accanto a una nota sceglie la nota più vicina della battuta.
-        const id = noteId ?? this.nearestNote(target, event.clientX, event.clientY) ?? edits.firstNoteOf(this.score, measureIndex);
         if (this.inserting) this.cursor = id ? writing.cursorAt(this.score, id) : writing.clampCursor(this.score, { ...this.cursor, measureIndex, offset: fraction(0) });
         if (id) this.select(id);
         else this.selectEmptyMeasure(measureIndex);
@@ -512,7 +538,13 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.noteChange((score, id) => edits.setAlteration(score, id, value));
     }
 
+    /** Su o giù di un grado, o di un'ottava con ±7; un passaggio si sposta tutto. */
     protected move(steps: number): void {
+        const passage = this.passage;
+        if (passage) {
+            this.apply((score) => (Math.abs(steps) === 7 ? passages.transposePassage(score, passage, passages.OCTAVE, steps > 0 ? 1 : -1) : passages.shiftPassage(score, passage, steps)));
+            return;
+        }
         this.noteChange((score, id) => edits.moveStep(score, id, steps));
     }
 
@@ -531,8 +563,16 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.noteChange((score, id) => edits.addChordNote(score, id));
     }
 
-    /** Correzione: elimina la nota. Scrittura: la nota diventa una pausa, e una voce fatta solo di pause sparisce. */
+    /**
+     * Correzione: elimina la nota. Scrittura: la nota, o il passaggio selezionato, diventa una pausa, e una voce fatta solo
+     * di pause sparisce.
+     */
     protected remove(): void {
+        const passage = this.passage;
+        if (passage) {
+            this.apply((score) => this.clearPassage(score, passage));
+            return;
+        }
         this.noteChange((score, id) => {
             if (!this.writingMode) return edits.deleteNote(score, id);
             // Durante l'inserimento il cursore torna dove iniziava la nota cancellata, per riscriverla.
@@ -715,6 +755,107 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.noteChange((score, id) => writing.addChordPitch(score, id, step));
     }
 
+    // Passaggio
+
+    /** Seleziona tutta la parte, dalla prima all'ultima battuta, con tutte le voci. */
+    protected selectWholePart(): void {
+        if (!this.score) return;
+        try {
+            const result = passages.wholePart(this.score);
+            this.select(result.anchorId, result.focusId);
+        } catch (error) {
+            this.message = error instanceof EditError ? error.message : 'Selezione non riuscita';
+            this.changeDetector.markForCheck();
+        }
+    }
+
+    /** Toglie il passaggio, o l'intervallo da ascoltare: resta selezionata la nota di partenza. */
+    protected clearRange(): void {
+        this.rangeEnd = null;
+        this.rangeFocusId = null;
+        this.refreshSelection();
+        this.decorate(false);
+        this.changeDetector.markForCheck();
+    }
+
+    /** Allarga o restringe il passaggio di un elemento della voce della nota selezionata (Maiusc+frecce). */
+    protected extendRange(delta: 1 | -1): void {
+        if (!this.score || !this.selectedId) return;
+        this.setRangeFocus(passages.extendPassage(this.score, this.selectedId, this.rangeFocusId, delta));
+        this.notationHost?.querySelector(`[id="${this.rangeFocusId ?? this.selectedId}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+
+    /** Copia negli appunti il passaggio o la nota selezionata: si incolla anche in un'altra parte. Vale anche in sola lettura. */
+    protected copy(): void {
+        const passage = this.currentPassage();
+        if (!passage || !this.score) return;
+        try {
+            const clip = passages.copyPassage(this.score, passage);
+            this.clipboard.copy(clip);
+            this.message = null;
+            this.info = `Copiato: ${clip.label}`;
+        } catch (error) {
+            this.message = error instanceof EditError ? error.message : 'Copia non riuscita';
+        }
+        this.changeDetector.markForCheck();
+    }
+
+    /** Copia il passaggio o la nota selezionata e la trasforma in pause. */
+    protected cut(): void {
+        const passage = this.currentPassage();
+        if (!passage || !this.score) return;
+        let clip: passages.ScoreClip;
+        try {
+            clip = passages.copyPassage(this.score, passage);
+        } catch (error) {
+            this.message = error instanceof EditError ? error.message : 'Copia non riuscita';
+            this.changeDetector.markForCheck();
+            return;
+        }
+        if (!this.apply((score) => this.clearPassage(score, passage))) return;
+        this.clipboard.copy(clip);
+        this.info = `Tagliato: ${clip.label}`;
+        this.changeDetector.markForCheck();
+    }
+
+    /**
+     * Incolla gli appunti al cursore durante l'inserimento, altrimenti dall'inizio della selezione, al posto di ciò che
+     * c'è: il passaggio incollato resta selezionato.
+     */
+    protected paste(): void {
+        const clip = this.clipboard.clip();
+        if (!clip) {
+            this.message = 'Gli appunti sono vuoti: copia prima una nota o un passaggio';
+            this.changeDetector.markForCheck();
+            return;
+        }
+        const target = this.pasteTarget();
+        if (!target) {
+            this.message = 'Seleziona prima dove incollare sullo spartito';
+            this.changeDetector.markForCheck();
+            return;
+        }
+        this.passageChange((score) => passages.pastePassage(score, clip, target));
+    }
+
+    /** Ripete il passaggio o la nota selezionata subito dopo di lei (R). */
+    protected repeatSelection(): void {
+        const passage = this.currentPassage();
+        if (passage) this.passageChange((score) => passages.repeatPassage(score, passage));
+    }
+
+    /** Traspone il passaggio selezionato, o la nota, oppure tutta la parte con le sue armature. */
+    protected transpose(): void {
+        const interval = this.intervals.find((option) => option.value === this.transposeInterval) ?? this.intervals[0];
+        const direction = this.transposeDirection;
+        if (this.transposeScope === 'part') {
+            this.apply((score) => passages.transposePassage(score, null, interval, direction));
+            return;
+        }
+        const passage = this.currentPassage();
+        if (passage) this.apply((score) => passages.transposePassage(score, passage, interval, direction));
+    }
+
     // Bozza della scrittura
 
     /** Riprende la bozza o la copia nel browser proposta all'apertura. */
@@ -848,7 +989,8 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.changeDetector.markForCheck();
         try {
             const part = parseMusicXml(this.score.cleanXml());
-            const passage = excerpt(part, this.measure.index, this.rangeEnd ?? this.measure.index);
+            const [from, to] = this.listenRange ?? [this.measure.index, this.measure.index];
+            const passage = excerpt(part, from, to);
             const built = buildPlayback([{ key: 'part', name: this.data.partLabel, part: passage, sound: partSound(this.data.sound, part.clefSign) }], passage, {
                 withRepeats: false,
                 tempoBpm: null,
@@ -982,6 +1124,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.selectedId = this.score.notes()[0]?.getAttribute('id') ?? null;
         this.emptyMeasureId = null;
         this.rangeEnd = null;
+        this.rangeFocusId = null;
         this.cursor = writing.clampCursor(this.score, writing.startCursor());
         this.choice = null;
         this.status = 'ready';
@@ -1090,16 +1233,37 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.apply((score) => {
             const result = change(score);
             this.cursor = result.cursor;
+            this.rangeFocusId = null;
             return result.noteId;
         });
     }
 
-    /** Tasti della scrittura: N per la modalità di inserimento e, durante l'inserimento, note, accordi, voci e gruppi. */
+    /**
+     * Tasti della scrittura: N per la modalità di inserimento, la selezione e gli appunti del passaggio e, durante
+     * l'inserimento, note, accordi, voci e gruppi.
+     */
     private writingKey(event: KeyboardEvent): boolean {
         const key = event.key;
         const command = event.ctrlKey || event.metaKey;
         if (!command && !event.altKey && key.toLowerCase() === 'n') {
             this.toggleInsertion();
+            return true;
+        }
+        if (command && !event.altKey && !event.shiftKey) {
+            const letter = key.toLowerCase();
+            const actions: Record<string, () => void> = { a: () => this.selectWholePart(), c: () => this.copy(), x: () => this.cut(), v: () => this.paste() };
+            // Senza nulla da copiare resta la copia del browser, per esempio del testo della pagina.
+            if (actions[letter] && (letter !== 'c' || this.selectedId)) {
+                actions[letter]();
+                return true;
+            }
+        }
+        if (!command && !event.altKey && !event.shiftKey && key.toLowerCase() === 'r') {
+            this.repeatSelection();
+            return true;
+        }
+        if (event.shiftKey && !command && !event.altKey && (key === 'ArrowLeft' || key === 'ArrowRight')) {
+            this.extendRange(key === 'ArrowLeft' ? -1 : 1);
             return true;
         }
         if (!this.inserting) return false;
@@ -1170,7 +1334,64 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
             return;
         }
         const id = this.selectedId;
+        // Le modifiche di una nota valgono per la nota selezionata: il passaggio si toglie.
+        this.rangeFocusId = null;
         this.apply((score) => change(score, id));
+    }
+
+    /** Il passaggio selezionato o, senza passaggio, la nota selezionata. */
+    private currentPassage(): passages.Passage | null {
+        if (this.passage) return this.passage;
+        if (!this.score || !this.selectedId) {
+            this.message = 'Seleziona prima una nota o un passaggio sullo spartito';
+            this.changeDetector.markForCheck();
+            return null;
+        }
+        try {
+            return passages.passageBetween(this.score, this.selectedId, this.selectedId);
+        } catch (error) {
+            this.message = error instanceof EditError ? error.message : 'Selezione non valida';
+            this.changeDetector.markForCheck();
+            return null;
+        }
+    }
+
+    /** Dove incollare: al cursore durante l'inserimento, altrimenti all'inizio della selezione o della battuta selezionata. */
+    private pasteTarget(): writing.WritingCursor | null {
+        if (!this.score) return null;
+        if (this.inserting) return this.cursor;
+        if (this.passage) return { ...this.passage.from, voice: this.passage.voice };
+        if (this.selectedId) return writing.cursorAt(this.score, this.selectedId);
+        return this.measure ? { measureIndex: this.measure.index, voice: 1, offset: fraction(0) } : null;
+    }
+
+    /** Cancella il passaggio: durante l'inserimento il cursore torna al suo inizio, per riscriverlo. */
+    private clearPassage(score: ScoreDocument, passage: passages.Passage): string | null {
+        const selected = passages.clearPassage(score, passage);
+        this.rangeFocusId = null;
+        if (this.inserting) this.cursor = { ...passage.from, voice: passage.wholeMeasures ? this.cursor.voice : passage.voice };
+        return selected;
+    }
+
+    /** Modifica che dà un passaggio da selezionare e, durante l'inserimento, il cursore dopo di lui. */
+    private passageChange(change: (score: ScoreDocument) => passages.PassageResult): void {
+        this.apply((score) => {
+            const result = change(score);
+            if (this.inserting && result.cursor) this.cursor = result.cursor;
+            this.rangeFocusId = result.anchorId && result.focusId !== result.anchorId ? result.focusId : null;
+            return result.anchorId;
+        });
+    }
+
+    /** Sceglie l'estremo mobile del passaggio; sulla nota selezionata il passaggio si toglie. */
+    private setRangeFocus(id: string): void {
+        this.rangeEnd = null;
+        this.rangeFocusId = id === this.selectedId ? null : id;
+        this.message = null;
+        this.info = null;
+        this.refreshSelection();
+        this.decorate(false);
+        this.changeDetector.markForCheck();
     }
 
     private measureChange(change: (score: ScoreDocument, index: number) => string | null | void): void {
@@ -1198,16 +1419,18 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.changeDetector.markForCheck();
     }
 
-    /** Esegue una modifica; se non riesce ripristina il documento e ne mostra il motivo. */
-    private apply(change: (score: ScoreDocument) => string | null | void): void {
-        if (!this.score || this.saving) return;
+    /** Esegue una modifica; se non riesce ripristina il documento e ne mostra il motivo. Restituisce se è riuscita. */
+    private apply(change: (score: ScoreDocument) => string | null | void): boolean {
+        if (!this.score || this.saving) return false;
         if (this.readOnly) {
             this.message = "L'editor è in sola lettura: prendi il controllo per modificare la parte";
             this.changeDetector.markForCheck();
-            return;
+            return false;
         }
         this.stop();
+        this.info = null;
         const before = this.score.snapshot();
+        let applied = false;
         try {
             const selected = change(this.score);
             this.history.record(before);
@@ -1217,12 +1440,14 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
             }
             this.message = null;
             this.keeper?.changed();
+            applied = true;
         } catch (error) {
             this.score = ScoreDocument.restore(before, this.score.prefix);
             this.message = error instanceof EditError ? error.message : 'Modifica non riuscita';
             if (!(error instanceof EditError)) console.error(error);
         }
         this.afterChange();
+        return applied;
     }
 
     private restore(snapshot: string): void {
@@ -1246,6 +1471,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
             this.emptyMeasureId = this.selectedId ? null : (score.measure(index).getAttribute('id') ?? null);
         }
         if (this.rangeEnd !== null && this.rangeEnd >= score.measures().length) this.rangeEnd = null;
+        if (!selectionExists || (this.rangeFocusId && !score.find(this.rangeFocusId))) this.rangeFocusId = null;
         if (this.writingMode) this.cursor = writing.clampCursor(score, this.cursor);
         this.refreshSelection();
         this.changeDetector.markForCheck();
@@ -1264,10 +1490,13 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         });
     }
 
-    private select(id: string | null): void {
+    /** Seleziona la nota indicata e, con `focusId`, il passaggio fino a lei. */
+    private select(id: string | null, focusId: string | null = null): void {
         this.selectedId = id;
         this.emptyMeasureId = null;
+        this.rangeFocusId = id && focusId !== id ? focusId : null;
         this.message = null;
+        this.info = null;
         this.refreshSelection();
         this.decorate(true);
         this.changeDetector.markForCheck();
@@ -1276,7 +1505,9 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     private selectEmptyMeasure(index: number): void {
         this.selectedId = null;
         this.emptyMeasureId = this.score?.measure(index).getAttribute('id') ?? null;
+        this.rangeFocusId = null;
         this.message = null;
+        this.info = null;
         this.refreshSelection();
         this.decorate(true);
         this.changeDetector.markForCheck();
@@ -1292,6 +1523,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     }
 
     private refreshSelection(): void {
+        this.refreshPassage();
         const emptyMeasure = !this.selectedId && this.emptyMeasureId ? this.score?.find(this.emptyMeasureId) : null;
         if (!this.score || (!emptyMeasure && (!this.selectedId || !this.score.find(this.selectedId)))) {
             this.note = null;
@@ -1307,6 +1539,26 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         // Su una pausa di più battute il numero mostra la sua durata, da correggere; altrimenti resta l'ultimo scritto.
         if (this.measure.multiRest > 1) this.measureCount = this.measure.multiRest;
         this.updatePage();
+    }
+
+    private refreshPassage(): void {
+        const score = this.score;
+        this.passage = null;
+        if (!this.writingMode || !score || !this.selectedId || !this.rangeFocusId || !score.find(this.selectedId) || !score.find(this.rangeFocusId)) return;
+        try {
+            this.passage = passages.passageBetween(score, this.selectedId, this.rangeFocusId);
+            this.passageText = passages.passageLabel(score, this.passage);
+        } catch {
+            this.passage = null;
+        }
+    }
+
+    /** Prima e ultima battuta da ascoltare: le battute del passaggio, l'intervallo scelto o la battuta selezionata. */
+    private get listenRange(): [number, number] | null {
+        if (!this.measure) return null;
+        if (this.passage) return [this.passage.from.measureIndex, this.passage.to.measureIndex];
+        const end = this.rangeEnd ?? this.measure.index;
+        return [Math.min(this.measure.index, end), Math.max(this.measure.index, end)];
     }
 
     private async render(): Promise<void> {
@@ -1333,19 +1585,24 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         }
     }
 
-    /** Evidenzia sullo spartito la nota selezionata, la sua battuta, l'intervallo da ascoltare e le battute da verificare. */
+    /**
+     * Evidenzia sullo spartito la nota selezionata, la sua battuta, il passaggio o l'intervallo da ascoltare e le battute da
+     * verificare.
+     */
     private decorate(scroll: boolean): void {
         const host = this.notationHost;
         if (!this.score || !host) return;
-        for (const className of ['is-selected', 'is-current-measure', 'is-in-range', 'is-wrong']) {
+        for (const className of ['is-selected', 'is-current-measure', 'is-in-range', 'is-in-passage', 'is-wrong']) {
             for (const item of Array.from(host.querySelectorAll(`.${className}`))) item.classList.remove(className);
         }
         const measures = this.score.measures();
         for (const index of this.checks.wrongDuration) this.drawnMeasure(measures, index)?.classList.add('is-wrong');
-        if (this.measure) {
-            const from = Math.min(this.measure.index, this.rangeEnd ?? this.measure.index);
-            const to = Math.max(this.measure.index, this.rangeEnd ?? this.measure.index);
-            for (let index = from; index <= to; index++) this.drawnMeasure(measures, index)?.classList.add(index === this.measure.index ? 'is-current-measure' : 'is-in-range');
+        const range = this.listenRange;
+        if (this.measure && range) {
+            for (let index = range[0]; index <= range[1]; index++) this.drawnMeasure(measures, index)?.classList.add(index === this.measure.index ? 'is-current-measure' : 'is-in-range');
+        }
+        if (this.passage) {
+            for (const note of passages.passageNotes(this.score, this.passage)) host.querySelector(`[id="${note.getAttribute('id')}"]`)?.classList.add('is-in-passage');
         }
         const selected = this.selectedId ? host.querySelector(`[id="${this.selectedId}"]`) : null;
         selected?.classList.add('is-selected');

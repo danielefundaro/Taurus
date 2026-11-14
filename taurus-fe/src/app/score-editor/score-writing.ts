@@ -1,6 +1,6 @@
 import { respell, setAlter } from './accidentals';
 import { child, children, element, insertOrdered, integer, NOTE_ORDER, removeChildren, removeIfEmpty } from './musicxml-dom';
-import { diatonic, Fraction, fraction, fromDiatonic, inferType, middleLine, NOTE_TYPES, noteQuarters, NoteType, Step, toNumber } from './notation-rules';
+import { diatonic, Fraction, fraction, fromDiatonic, inferType, middleLine, minus, NOTE_TYPES, noteQuarters, NoteType, Step, toNumber } from './notation-rules';
 import { EditError, isRest, NoteEvent, pitchOf, ScoreDocument, voiceOf } from './score-document';
 import { addTie, addTuplet, clearTies, figureOf, insertAtEnd, insertMeasure, refreshMeasure, removeTie, tieChain, toggleRest, TUPLETS, tupletOf, writeFigure, writePitch } from './score-edits';
 
@@ -44,7 +44,7 @@ interface TupletRatio {
     normal: number;
 }
 
-interface TupletGroup {
+export interface TupletGroup {
     start: number;
     end: number;
     ratio: TupletRatio;
@@ -296,11 +296,55 @@ export function clearWrittenNote(score: ScoreDocument, noteId: string): string |
     if (voice === '1') throw new EditError('Le pause della prima voce restano: la battuta è sempre completa');
     const events = voiceEvents(score, measure, voice);
     if (events.some((event) => !isRest(event.notes[0]))) throw new EditError('Trasforma prima in pause le note di questa voce');
-    for (const event of events) for (const item of event.notes) item.remove();
-    for (const item of children(measure, 'forward')) if (child(item, 'voice')?.textContent?.trim() === voice) item.remove();
-    tidyBackups(measure);
+    removeVoice(measure, voice, events);
     finish(score, [score.measureIndex(measure)]);
     return child(measure, 'note')?.getAttribute('id') ?? null;
+}
+
+/**
+ * Riempie di pause un tratto della voce lungo `length` semiminime dal cursore, anche oltre le stanghette, e aggiunge
+ * battute alla fine della parte se serve: è il primo passo per incollare, tagliare e cancellare un passaggio. Le dinamiche
+ * delle note tolte spariscono con loro; una voce oltre la prima rimasta solo di pause si toglie dalla battuta, la prima
+ * voce di una battuta svuotata del tutto diventa una pausa di battuta. Restituisce le battute toccate.
+ */
+export function clearSpan(score: ScoreDocument, cursor: WritingCursor, length: Fraction): number[] {
+    const voice = String(cursor.voice);
+    let measureIndex = cursor.measureIndex;
+    let offset = cursor.offset;
+    let remaining = length;
+    const touched: number[] = [];
+    while (toNumber(remaining) > 1e-9) {
+        const divisions = prepare(score, { measureIndex, voice: cursor.voice, offset }, [remaining]);
+        const size = measureLength(score, measureIndex);
+        const position = toNumber(offset) * divisions;
+        const span = Math.min(toNumber(remaining) * divisions, size - position);
+        if (span > 1e-6) {
+            const measure = score.measure(measureIndex);
+            completeVoice(score, measureIndex, voice);
+            const end = position + span;
+            const events = voiceEvents(score, measure, voice);
+            for (const group of tupletGroups(events)) {
+                const inside = group.end > position + 1e-6 && group.start < end - 1e-6;
+                if (inside && (group.start < position - 1e-6 || group.end > end + 1e-6)) throw new EditError('Il passaggio coprirebbe solo una parte di un gruppo irregolare: scegli un altro punto');
+            }
+            for (const event of events) if (event.start >= position - 1e-6 && event.start < end - 1e-6) removeNoteDirections(event.notes[0]);
+            replaceSpan(score, measureIndex, voice, position, span, [restTemplate(score, cursor.voice)], {});
+            touched.push(measureIndex);
+            remaining = minus(remaining, fraction(Math.round(span), divisions));
+        }
+        if (toNumber(remaining) <= 1e-9) break;
+        if (measureIndex + 1 >= score.measures().length) insertMeasure(score, measureIndex, 'after');
+        measureIndex++;
+        offset = fraction(0);
+    }
+    for (const index of touched) tidyVoice(score, index, voice);
+    finish(score, touched);
+    return touched;
+}
+
+/** Scrive al cursore il contenuto dei modelli con la figura indicata, come le altre scritture: serve a incollare. */
+export function writeContent(score: ScoreDocument, cursor: WritingCursor, figure: WritingFigure, templates: Element[], tieFrom?: Element[]): WriteResult {
+    return write(score, enterMeasure(score, cursor), figure, templates, tieFrom);
 }
 
 /** Dopo un cambio di metro completa con pause le voci delle battute rimaste più corte, fino al cambio di metro seguente. */
@@ -375,10 +419,6 @@ function write(score: ScoreDocument, cursor: WritingCursor, figure: WritingFigur
     const length = measureLength(score, measureIndex);
     const end = position >= length - 1e-6 && measureIndex + 1 < score.measures().length ? { measureIndex: measureIndex + 1, offset: fraction(0) } : { measureIndex, offset: fraction(Math.round(position), divisions) };
     return { noteId: first!.getAttribute('id')!, cursor: { ...end, voice: cursor.voice } };
-}
-
-function minus(left: Fraction, right: Fraction): Fraction {
-    return fraction(left.num * right.den - right.num * left.den, left.den * right.den);
 }
 
 /** Scrittura dentro un gruppo irregolare: la nota prende il rapporto del gruppo e non può uscirne. */
@@ -643,7 +683,7 @@ function completeVoice(score: ScoreDocument, measureIndex: number, voice: string
 }
 
 /** Note e accordi di una voce della battuta, senza abbellimenti, in ordine di tempo. */
-function voiceEvents(score: ScoreDocument, measure: Element, voice: string): NoteEvent[] {
+export function voiceEvents(score: ScoreDocument, measure: Element, voice: string): NoteEvent[] {
     return score
         .events(measure)
         .filter((event) => event.voice === voice && event.duration > 0)
@@ -651,7 +691,7 @@ function voiceEvents(score: ScoreDocument, measure: Element, voice: string): Not
 }
 
 /** Gruppi irregolari di una voce: elementi consecutivi con lo stesso rapporto, delimitati dalle parentesi. */
-function tupletGroups(events: NoteEvent[]): TupletGroup[] {
+export function tupletGroups(events: NoteEvent[]): TupletGroup[] {
     const groups: TupletGroup[] = [];
     let current: TupletGroup | null = null;
     for (const event of events) {
@@ -700,7 +740,7 @@ function hasTieStop(note: Element): boolean {
 }
 
 /** Gli abbellimenti che precedono la nota nella sua voce, che spariscono con lei. */
-function graceNotesBefore(note: Element): Element[] {
+export function graceNotesBefore(note: Element): Element[] {
     const graces: Element[] = [];
     let current = note.previousElementSibling;
     while (current && current.tagName === 'note' && child(current, 'grace') && voiceOf(current) === voiceOf(note)) {
@@ -730,7 +770,7 @@ function tiedEvents(score: ScoreDocument, event: NoteEvent): NoteEvent[] {
 }
 
 /** Accordo o pausa che termina al cursore nella sua voce, anche alla fine della battuta precedente. */
-function eventBefore(score: ScoreDocument, cursor: WritingCursor): NoteEvent | null {
+export function eventBefore(score: ScoreDocument, cursor: WritingCursor): NoteEvent | null {
     const measures = score.measures();
     const divisions = score.stateAt(cursor.measureIndex).divisions;
     const position = toNumber(cursor.offset) * divisions;
@@ -776,6 +816,57 @@ function restTemplate(score: ScoreDocument, voice: number): Element {
     return note;
 }
 
+/** Dinamiche e forcelle scritte prima di una nota: le appartengono e si copiano, si tolgono e si incollano con lei. */
+export const NOTE_DIRECTIONS: readonly string[] = ['dynamics', 'wedge'];
+
+/** Le direzioni subito prima della nota e dei suoi abbellimenti fatte solo di dinamiche e forcelle, in ordine. */
+export function noteDirections(note: Element): Element[] {
+    const result: Element[] = [];
+    let current = note.previousElementSibling;
+    while (current && current.tagName === 'note' && child(current, 'grace')) current = current.previousElementSibling;
+    while (current && current.tagName === 'direction') {
+        const types = children(current, 'direction-type');
+        if (types.length && types.every((type) => children(type).every((item) => NOTE_DIRECTIONS.includes(item.tagName)))) result.unshift(current);
+        current = current.previousElementSibling;
+    }
+    return result;
+}
+
+function removeNoteDirections(note: Element): void {
+    for (const direction of noteDirections(note)) direction.remove();
+}
+
+/** Una voce fatta solo di pause: oltre la prima si toglie, la prima diventa una pausa di battuta se la battuta è intera. */
+function tidyVoice(score: ScoreDocument, measureIndex: number, voice: string): void {
+    const measure = score.measure(measureIndex);
+    const events = voiceEvents(score, measure, voice);
+    if (!events.length || events.some((event) => !isRest(event.notes[0]))) return;
+    if (voice !== '1') {
+        removeVoice(measure, voice, events);
+        return;
+    }
+    const length = measureLength(score, measureIndex);
+    if (Math.abs(length - score.expectedLength(score.stateAt(measureIndex))) > 1e-6) return;
+    if (events.length === 1 && child(events[0].notes[0], 'rest')?.getAttribute('measure') === 'yes') return;
+    const rest = restTemplate(score, 1);
+    rest.setAttribute('id', score.newId('n'));
+    child(rest, 'rest')!.setAttribute('measure', 'yes');
+    insertOrdered(rest, element(score.document, 'duration', Math.round(length)), NOTE_ORDER);
+    events[0].notes[0].before(rest);
+    for (const event of events) {
+        for (const grace of graceNotesBefore(event.notes[0])) grace.remove();
+        for (const note of event.notes) note.remove();
+    }
+}
+
+/** Toglie dalla battuta le note di una voce, con i suoi abbellimenti, i suoi avanzamenti e i ritorni rimasti senza note. */
+function removeVoice(measure: Element, voice: string, events: NoteEvent[]): void {
+    for (const event of events) for (const item of event.notes) item.remove();
+    for (const item of children(measure, 'note')) if (child(item, 'grace') && voiceOf(item) === voice) item.remove();
+    for (const item of children(measure, 'forward')) if (child(item, 'voice')?.textContent?.trim() === voice) item.remove();
+    tidyBackups(measure);
+}
+
 /** Toglie i ritorni (`backup`) che non precedono più alcuna nota, dopo aver tolto una voce. */
 function tidyBackups(measure: Element): void {
     const items = children(measure);
@@ -786,7 +877,7 @@ function tidyBackups(measure: Element): void {
 }
 
 /** Alterazioni, ritorni tra le voci e travature delle battute scritte; le note legate suonano come quella da cui partono. */
-function finish(score: ScoreDocument, measureIndexes: number[]): void {
+export function finish(score: ScoreDocument, measureIndexes: number[]): void {
     const unique = Array.from(new Set(measureIndexes)).filter((index) => index >= 0 && index < score.measures().length);
     respell(score, unique);
     for (const index of unique) {

@@ -33,11 +33,14 @@ export function respell(score: ScoreDocument, measureIndexes: Iterable<number>):
 
 /**
  * All'apertura rende visibile ogni alterazione che armatura e accidenti non spiegano, scrivendo l'accidente
- * corrispondente: il suono della versione non cambia e le modifiche successive non alterano le note non toccate.
+ * corrispondente: il suono della versione non cambia e le modifiche successive non alterano le note non toccate. Con le
+ * battute indicate vale solo per loro, per esempio dopo aver incollato o trasposto un passaggio.
  */
-export function makeAccidentalsExplicit(score: ScoreDocument): void {
+export function makeAccidentalsExplicit(score: ScoreDocument, measureIndexes?: Iterable<number>): void {
     const states = score.measureStates();
+    const only = measureIndexes ? new Set(measureIndexes) : null;
     score.measures().forEach((measure, index) => {
+        if (only && !only.has(index)) return;
         const carried = new Map<string, number>();
         for (const note of measureNotes(measure)) {
             const pitch = pitchOf(note);

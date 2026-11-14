@@ -5,7 +5,20 @@ import { ConfirmationService } from 'primeng/api';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { ScoreDraft, ScoreEditorData } from '../../module';
-import { ConfirmService, DraftKeeperOptions, DraftState, EditLockState, LocalDraftCopy, MediaService, ScoreAudioService, ScoreDraftService, ScoreEditLockService, ScorePlaybackService, ScoreRendererService } from '../../service';
+import {
+    ConfirmService,
+    DraftKeeperOptions,
+    DraftState,
+    EditLockState,
+    LocalDraftCopy,
+    MediaService,
+    ScoreAudioService,
+    ScoreClipboardService,
+    ScoreDraftService,
+    ScoreEditLockService,
+    ScorePlaybackService,
+    ScoreRendererService
+} from '../../service';
 import { ScoreEditorDialogComponent, ScoreEditorDialogData } from './score-editor-dialog.component';
 
 const XML = `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Tuba</part-name></score-part></part-list><part id="P1">
@@ -333,6 +346,65 @@ describe('ScoreEditorDialogComponent', () => {
             expect(component.inserting).toBeFalse();
         });
 
+        it('selects a passage with Shift and the arrows, then copies, moves, pastes, repeats and clears it', async () => {
+            const component = await openWriting();
+            const clipboard = TestBed.inject(ScoreClipboardService);
+            const steps = (): number[] => ['C', 'D', 'E'].map((step) => keeperOptions!.content().split(`<step>${step}</step>`).length - 1);
+
+            key(component, { key: 'ArrowRight', shiftKey: true });
+            expect(component.selectionLabel).toBe('Selezione · battuta 1 · tutte le voci');
+            key(component, { key: 'c', ctrlKey: true });
+            fixture.detectChanges();
+            expect(clipboard.clip()?.label).toBe('1 battuta');
+            expect(text('.score-editor__info')).toContain('Copiato: 1 battuta');
+            expect(keeper.changed).not.toHaveBeenCalled();
+
+            // Le frecce spostano tutto il passaggio, che resta selezionato; Esc lo toglie.
+            key(component, { key: 'ArrowUp' });
+            expect(steps()).toEqual([0, 1, 2]);
+            expect(component.selectionLabel).toBe('Selezione · battuta 1 · tutte le voci');
+            key(component, { key: 'Escape' });
+            expect(component.selectionLabel).toBe('Battuta 1 · Re3 · semiminima');
+
+            // Incollato al posto della minima della seconda battuta, il passaggio resta selezionato.
+            component.selectMeasure(1);
+            key(component, { key: 'v', ctrlKey: true });
+            expect(steps()).toEqual([1, 2, 1]);
+            expect(component.selectionLabel).toBe('Selezione · battuta 2 · tutte le voci');
+
+            // R lo ripete dopo di lui, aggiungendo una battuta alla fine; Canc lo riporta a una pausa di battuta.
+            key(component, { key: 'r' });
+            expect(keeperOptions!.content().split('<measure ').length - 1).toBe(3);
+            expect(component.selectionLabel).toBe('Selezione · battuta 3 · tutte le voci');
+            key(component, { key: 'Delete' });
+            expect(keeperOptions!.content()).toContain('<rest measure="yes"/>');
+            expect(component.wrongMeasures).toEqual([]);
+            expect(component.selectionLabel).toContain('Battuta 3');
+        });
+
+        it('cuts the selected note and transposes the selection or the whole part', async () => {
+            const component = await openWriting();
+            const clipboard = TestBed.inject(ScoreClipboardService);
+
+            component.transposeInterval = 'P4';
+            component.transpose();
+            expect(keeperOptions!.content()).not.toContain('<step>C</step>');
+            expect(component.selectionLabel).toBe('Battuta 1 · Fa3 · semiminima');
+
+            component.transposeScope = 'part';
+            component.transposeInterval = 'M2';
+            component.transposeDirection = -1;
+            component.transpose();
+            expect(component.selectionLabel).toBe('Battuta 1 · Mi♭3 · semiminima');
+            expect(keeperOptions!.content()).toContain('<accidental>flat</accidental>');
+
+            key(component, { key: 'x', ctrlKey: true });
+            expect(clipboard.clip()?.label).toBe('un passaggio di 1 nota');
+            expect(component.info).toBe('Tagliato: un passaggio di 1 nota');
+            expect(component.note?.rest).toBeTrue();
+            expect(component.wrongMeasures).toEqual([]);
+        });
+
         it('turns the selected note into a rest instead of deleting it, so the measure stays complete', async () => {
             const component = await openWriting();
             key(component, { key: 'Delete' });
@@ -545,7 +617,14 @@ interface WritingEditor {
     note: { rest: boolean } | null;
     wrongMeasures: unknown[];
     choice: { kind: string; resumeLabel: string; warning: string | null } | null;
+    selectionLabel: string;
+    info: string | null;
+    transposeInterval: string;
+    transposeDirection: 1 | -1;
+    transposeScope: 'passage' | 'part';
     onKey(event: KeyboardEvent): void;
+    selectMeasure(index: number): void;
+    transpose(): void;
     move(steps: number): void;
     insert(where: 'before' | 'after'): void;
     save(approve: boolean): Promise<void>;
