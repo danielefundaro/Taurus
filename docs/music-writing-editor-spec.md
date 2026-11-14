@@ -117,6 +117,18 @@ Una parte della traccia senza versioni né bozza, per esempio senza pagine da ri
 3. Si apre l'editor sulla parte trasposta; la parte di origine è indicata nella versione (`parent_version_id`) e nella nuova parte.
 4. Il resto segue la nuova parte da zero, dal punto 4.
 
+### Passaggi: selezione, copia e trasposizione
+
+- **Selezione**: `Maiusc`+clic o `Maiusc`+`←` `→` selezionano un passaggio dalla nota selezionata, nella sua voce; gli estremi cadono sugli elementi della voce e i gruppi irregolari entrano interi. Un passaggio che copre battute intere vale per tutte le loro voci, come in MuseScore. `Ctrl`+`A` seleziona tutta la parte, `Esc` toglie la selezione. Senza un passaggio, i comandi valgono per la nota selezionata.
+- **Appunti**: **Copia** e **Taglia** mettono il passaggio negli appunti dell'editor, che restano finché la pagina è aperta e non toccano quelli del sistema; **Taglia** trasforma il passaggio in pause. **Incolla** scrive al cursore durante l'inserimento, altrimenti dall'inizio della selezione, al posto di ciò che c'è per tutta la lunghezza del passaggio, divide e lega le note oltre le stanghette e aggiunge battute alla fine se serve. Le battute intere si incollano dall'inizio della battuta, con le loro voci, e svuotano le altre voci della destinazione.
+- **Altre parti**: si incolla anche in un'altra parte o in un altro brano, con l'altezza scritta, alterazioni comprese: nell'armatura di arrivo l'editor scrive gli accidenti che servono, per esempio il diesis di un Fa♯ copiato da Sol maggiore e incollato in Do maggiore.
+- **Ripeti** (`R`) incolla il passaggio subito dopo di lui; ripetendo battute intere alla fine della parte si aggiunge una battuta.
+- **Cancella** (`Canc`) trasforma il passaggio in pause: una voce oltre la prima rimasta solo di pause si toglie, e la prima voce di una battuta rimasta solo di pause torna una pausa di battuta.
+- **Cosa si copia**: note, accordi, pause, abbellimenti, articolazioni, gruppi irregolari interi (terzina, quintina e sestina di una figura senza punti) e le dinamiche scritte prima delle note. Legature di portamento e forcelle si copiano solo con entrambi gli estremi nel passaggio; le legature di valore solo verso una nota del passaggio. Gli altri segni della battuta (testi, tempi, segni di struttura) restano dove sono.
+- **Trasposizione**: nella scheda **Passaggio** si sceglie l'intervallo, dall'unisono aumentato all'ottava con la grafia di arrivo (la seconda minore porta Do a Re♭), verso l'alto o verso il basso, per la selezione o per tutta la parte, che traspone anche le armature. Un'armatura di arrivo con più di sette alterazioni, o una nota con più di due, si rifiuta con l'invito a scegliere l'intervallo enarmonico. `↑` `↓` spostano il passaggio di un grado nella tonalità, con `Ctrl` di un'ottava; le note legate a quelle del passaggio si spostano con loro.
+- **Altezze conservate**: incollando, cancellando e trasponendo, le note non toccate della battuta conservano la loro altezza, e l'editor scrive gli accidenti che servono, per esempio un bequadro dopo un Fa diventato Fa♯.
+- **Passaggi rifiutati**: incollare o cancellare solo una parte di un gruppo irregolare, e incollare un gruppo che non entra nella battuta di arrivo.
+
 ### Partitura e arrangiamento
 
 1. Nella nuova scheda **Partitura** della traccia il maestro sceglie **Nuova partitura**, dall'[organico della banda](#organico-della-banda) o dalle parti esistenti della traccia. Ogni rigo della partitura ha un solo strumento, e i righi seguono l'ordine dell'organico.
@@ -186,6 +198,7 @@ L'editor si apre a schermo intero, come quello di correzione.
 
 - **Barra superiore**: titolo «Scrittura · nome della parte» con lo stato della bozza sotto («Bozza salvata alle 10:41»), annulla e ripristina, ascolto dal punto selezionato, **Tastiera MIDI**, **Salva**, **Salva e approva**, **Impagina**.
 - **Scheda Nota**: l'interruttore **Inserimento**, la voce del cursore da 1 a 4 e lo spostamento del cursore, poi durata e punti, che durante l'inserimento valgono per le note seguenti. Nella scrittura «Inserisci prima» e «Inserisci dopo» della correzione non compaiono, ed «Elimina» diventa **Cancella**, che trasforma la nota in pausa.
+- **Scheda Passaggio**: **Tutta la parte** e **Togli la selezione**; **Copia**, **Taglia**, **Incolla**, con ciò che è negli appunti, e **Ripeti**; la trasposizione con intervallo, direzione e note da trasporre (la selezione o tutta la parte). Le note del passaggio si colorano sullo spartito e le sue battute si evidenziano; la barra di stato lo descrive («Selezione · battute 3–5 · voce 1 · 12 elementi», «Selezione · battute 3–5 · tutte le voci») e l'ascolto suona le sue battute.
 - **Palette laterale** a schede: Note, Battuta (metro, armatura, chiave, battute), Struttura (ritornelli, volte, salti, lettere di prova), Espressione (dinamiche, forcelle, articolazioni, legature, testo), Impaginazione (interruzioni di riga e di pagina). Ogni comando indica la sua scorciatoia.
 - **Spartito** al centro, con il cursore di inserimento visibile come una barra verticale colorata nella posizione dove andrà la prossima nota.
 - **Barra di stato**: battuta, tempo nella battuta, voce, nota selezionata letta per esteso («Battuta 12 · tempo 3 · Sib4 · croma puntata»), già annunciata a chi usa uno screen reader; controlli in tempo reale.
@@ -205,16 +218,19 @@ L'editor si apre a schermo intero, come quello di correzione.
 | `.` | punto di valore |
 | `0` | pausa della durata corrente |
 | `Maiusc` + `A`–`G` | aggiunge la nota all'accordo |
-| `↑` `↓` | un grado; con `Ctrl` un'ottava |
+| `↑` `↓` | un grado; con `Ctrl` un'ottava; un passaggio selezionato si sposta tutto |
 | `+` `-` `=` | diesis, bemolle, bequadro |
 | `T` | legatura di valore con la nota seguente; durante l'inserimento scrive al cursore la nota precedente, legata a lei |
-| `Canc` | elimina la nota, che diventa pausa nella scrittura; durante l'inserimento il cursore torna al suo posto |
+| `Canc` | elimina la nota, che diventa pausa nella scrittura, o trasforma in pause il passaggio selezionato; durante l'inserimento il cursore torna al suo posto |
 | `←` `→` | nota precedente o seguente; durante l'inserimento spostano il cursore |
-| `Esc` | esce dalla modalità di inserimento |
+| `Esc` | esce dalla modalità di inserimento; fuori dall'inserimento toglie la selezione del passaggio |
+| `Maiusc` + clic, `Maiusc` + `←` `→` | seleziona un passaggio dalla nota selezionata |
+| `Ctrl` + `A` | seleziona tutta la parte |
 | `S` | legatura di portamento sulla selezione |
 | `Alt` + `3` | terzina al cursore, lunga quanto la durata corrente (con `5`, `6` gli altri gruppi irregolari) |
 | `Ctrl` + `Alt` + `1`–`4` | voce attiva |
-| `Ctrl` + `C`, `X`, `V` | copia, taglia, incolla; `R` ripete la selezione |
+| `Ctrl` + `C`, `X`, `V` | copia, taglia, incolla, anche in un'altra parte |
+| `R` | ripete la selezione, o la nota, subito dopo di lei |
 | `Ctrl` + `Z`, `Y` | annulla, ripristina |
 | `Spazio` | ascolta dalla selezione o ferma |
 
