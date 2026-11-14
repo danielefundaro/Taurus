@@ -760,8 +760,8 @@
         "tests": []
       },
       "release": null,
-      "lastVerifiedOn": "2026-10-23",
-      "notes": "Specifica approvata il 2026-10-18, sviluppo non pianificato: scrittura di parti da zero, parti ricavate per un altro strumento con la trasposizione degli strumenti, partitura con estrazione delle parti, bozze automatiche e blocco per autore, impaginazione in pagine e PDF con Verovio nel servizio musicale. Estende l'editor di correzione di track-score-playback. Rivista il 2026-10-18 con tutte le questioni decise: ruoli esistenti, impaginazione nel servizio taurus-omr, formato marcia 18 x 13 cm, estensione degli strumenti, arrangiatore della traccia, tastiera MIDI dalla prima fase, approvazione da parte di chi scrive senza una seconda persona, notifiche ai soci."
+      "lastVerifiedOn": "2026-11-14",
+      "notes": "Specifica approvata il 2026-10-18, sviluppo non pianificato: scrittura di parti da zero, parti ricavate per un altro strumento con la trasposizione degli strumenti, partitura con estrazione delle parti, bozze automatiche e blocco per autore, impaginazione in pagine e PDF con Verovio nel servizio musicale. Estende l'editor di correzione di track-score-playback. Rivista il 2026-10-18: ruoli esistenti, impaginazione nel servizio taurus-omr, formato marcia 18 x 13 cm, estensione degli strumenti, arrangiatore della traccia, tastiera MIDI dalla prima fase, approvazione da parte di chi scrive senza una seconda persona. Rivista il 2026-11-14 confrontandola con il codice: nessuna notifica, blocco anche nella correzione, trasposizione per strumento singolo, Verovio allineato, accordi MIDI con soglia e percussioni per nota di batteria, copia nel browser conservata, organico della banda, impaginazione anticipata alla fase 2, bozze senza scadenza, le sei proposte approvate come estensioni; nessuna questione aperta."
     },
     {
       "id": "notification-delivery-generalization",
