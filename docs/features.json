@@ -743,7 +743,7 @@
       "title": "Editor di scrittura musicale",
       "kind": "feature",
       "designStatus": "approved",
-      "deliveryStatus": "not-planned",
+      "deliveryStatus": "in-progress",
       "spec": "docs/music-writing-editor-spec.md",
       "relatedDocs": [
         "docs/application-errors-standard.md",
@@ -755,13 +755,46 @@
       ],
       "modules": ["taurus-be", "taurus-fe", "taurus-omr"],
       "evidence": {
-        "implementation": [],
-        "migrations": [],
-        "tests": []
+        "implementation": [
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/scorewriting/ScoreEditLock.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/scorewriting/ScoreDraft.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/scorewriting/ScoreEditLockRepository.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/repository/scorewriting/ScoreDraftRepository.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/scorewriting/ScoreEditLockService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/scorewriting/ScoreDraftService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/scorewriting/ScoreWritingCleanup.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/scorewriting/ScoreWritingMetrics.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/dto/scorewriting/ScoreWritingDtos.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/web/rest/ScoreWritingResource.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/scoreplayback/ScoreVersionService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/scoreplayback/ScorePlaybackService.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/domain/enumeration/TenantFeature.java",
+          "taurus-be/src/main/java/com/fundaro/zodiac/taurus/service/TenantFeatureService.java",
+          "taurus-fe/src/app/service/score-edit-lock.service.ts",
+          "taurus-fe/src/app/dialogs/score-editor-dialog/score-editor-dialog.component.ts",
+          "taurus-fe/src/app/pages/tracks/detail/score-playback-panel/score-playback-panel.component.ts",
+          "taurus-fe/src/app/pages/tenants/detail/detail.component.ts",
+          "taurus-fe/src/app/service/tenant-feature.service.ts"
+        ],
+        "migrations": [
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261114000000_tenant_score_writing_flag.xml",
+          "taurus-be/src/main/resources/config/liquibase/changelog/20261114000001_score_writing.xml"
+        ],
+        "tests": [
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/scorewriting/ScoreEditLockServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/scorewriting/ScoreDraftServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/scorewriting/ScoreWritingIT.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/web/rest/ScoreWritingResourceFeatureTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/scoreplayback/ScoreVersionServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/TenantFeatureServiceTest.java",
+          "taurus-be/src/test/java/com/fundaro/zodiac/taurus/service/impl/TenantsServiceImplTest.java",
+          "taurus-fe/src/app/service/score-edit-lock.service.spec.ts",
+          "taurus-fe/src/app/dialogs/score-editor-dialog/score-editor-dialog.component.spec.ts"
+        ]
       },
       "release": null,
       "lastVerifiedOn": "2026-11-14",
-      "notes": "Specifica approvata il 2026-10-18, sviluppo non pianificato: scrittura di parti da zero, parti ricavate per un altro strumento con la trasposizione degli strumenti, partitura con estrazione delle parti, bozze automatiche e blocco per autore, impaginazione in pagine e PDF con Verovio nel servizio musicale. Estende l'editor di correzione di track-score-playback. Rivista il 2026-10-18: ruoli esistenti, impaginazione nel servizio taurus-omr, formato marcia 18 x 13 cm, estensione degli strumenti, arrangiatore della traccia, tastiera MIDI dalla prima fase, approvazione da parte di chi scrive senza una seconda persona. Rivista il 2026-11-14 confrontandola con il codice: nessuna notifica, blocco anche nella correzione, trasposizione per strumento singolo, Verovio allineato, accordi MIDI con soglia e percussioni per nota di batteria, copia nel browser conservata, organico della banda, impaginazione anticipata alla fase 2, bozze senza scadenza, le sei proposte approvate come estensioni; nessuna questione aperta."
+      "notes": "Specifica approvata il 2026-10-18, sviluppo non pianificato: scrittura di parti da zero, parti ricavate per un altro strumento con la trasposizione degli strumenti, partitura con estrazione delle parti, bozze automatiche e blocco per autore, impaginazione in pagine e PDF con Verovio nel servizio musicale. Estende l'editor di correzione di track-score-playback. Rivista il 2026-10-18: ruoli esistenti, impaginazione nel servizio taurus-omr, formato marcia 18 x 13 cm, estensione degli strumenti, arrangiatore della traccia, tastiera MIDI dalla prima fase, approvazione da parte di chi scrive senza una seconda persona. Rivista il 2026-11-14 confrontandola con il codice: nessuna notifica, blocco anche nella correzione, trasposizione per strumento singolo, Verovio allineato, accordi MIDI con soglia e percussioni per nota di batteria, copia nel browser conservata, organico della banda, impaginazione anticipata alla fase 2, bozze senza scadenza, le sei proposte approvate come estensioni; nessuna questione aperta. Fase 1 avviata il 2026-11-14 con il backend di base: funzionalità SCORE_WRITING (colonna score_writing_enabled spenta per tutti i tenant, capacità application.score-writing.enabled, dipendente da SCORE_PLAYBACK), origine WRITING delle versioni, tabelle score_edit_lock e score_draft nello schema del tenant con un bersaglio univoco; blocco della parte con lock consultivo per bersaglio, rinnovo, scadenza dopo due minuti e presa di controllo, richiesto anche dal salvataggio delle correzioni; bozza con concorrenza ottimistica e al più un salvataggio ogni due secondi, eliminata al salvataggio della versione scritta e con la parte; versione scritta con conferma quando nel frattempo ne è stata salvata un'altra; pulizia notturna dei blocchi scaduti e delle bozze di parti eliminate; nuove chiavi scoreWriting.* nel catalogo degli errori. Nel frontend l'editor di correzione prende il blocco, lo rinnova ogni 30 secondi, si apre in sola lettura con chi sta modificando e offre Prendi il controllo; la scheda Ascolto mostra chi modifica una parte e il dettaglio tenant offre la nuova estensione. Verificati lo stesso giorno ./mvnw verify -Dtaurus.test.requireDocker=true (1303 test unitari e 289 di integrazione, copertura unita 77,87% delle righe e 62,47% dei branch, soglie invariate), npm run test:coverage (824 test) e il controllo del catalogo degli errori. Restano della fase 1 l'editor di scrittura con bozze e copia nel browser, selezione e trasposizione, nuova notazione e tastiera MIDI."
     },
     {
       "id": "notification-delivery-generalization",

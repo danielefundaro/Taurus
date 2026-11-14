@@ -261,7 +261,7 @@ Changelog nello schema del tenant. Tutte le nuove tabelle hanno i campi di audit
 | `score_version` (esistente) | nuove origini `WRITING` e `ARRANGEMENT`; nuova colonna facoltativa `arrangement_version_id` per le versioni estratte |
 | `track_arrangement` | `id`, `track_id`, `name`, `current_version_id`, `concert_pitch` (scrittura in suoni reali) |
 | `arrangement_version` | `id`, `arrangement_id`, `version_number`, `status`, `media_asset_id` (MusicXML compresso a più parti), `parent_version_id`, `part_map_json` (parte della partitura → parte della traccia), `measure_count`, `checks_json`, approvazione; univoco `(arrangement_id, version_number)` |
-| `score_draft` | `id`, tipo e identificativo del bersaglio (parte o partitura), `base_version_id`, `content` (MusicXML compresso, al massimo 10 MB), `saved_by`, `saved_at`, `entity_version`; una bozza per bersaglio |
+| `score_draft` | `id`, tipo e identificativo del bersaglio (parte o partitura), `base_version_id`, `content` (MusicXML compresso; il testo inviato non supera il limite dei caricamenti, 10 MB), `saved_by`, `saved_at`, `entity_version`; una bozza per bersaglio |
 | `score_edit_lock` | tipo e identificativo del bersaglio, `owner`, `owner_name`, `acquired_at`, `heartbeat_at`, `expires_at`; univoco per bersaglio |
 | `score_engraving_job` | `id`, `sheet_music_id`, `score_version_id`, `options_json`, `status`, `attempts`, `error_code`, `pdf_media_asset_id`, `page_count`, audit |
 | `sheet_music` (esistente) | `engraved_from_version_id` facoltativo: versione da cui derivano le pagine generate |
@@ -302,7 +302,7 @@ Errori nuovi, secondo lo [standard](application-errors-standard.md): `scoreWriti
 
 - Metriche: `taurus.score.writing.saves{origin}`, `taurus.score.writing.drafts{outcome}`, `taurus.score.writing.locks{outcome}` (`acquired`, `takenOver`, `expired`), `taurus.score.engravings{outcome}` e la durata dell'impaginazione.
 - Log con identificativi di parte, partitura, versione e job; mai il contenuto MusicXML.
-- Gli stessi limiti di sicurezza dei file MusicXML caricati (entità e DTD disattivate, limiti di dimensione); bozze al massimo 10 MB compressi e un salvataggio ogni due secondi per utente.
+- Gli stessi limiti di sicurezza dei file MusicXML caricati (entità e DTD disattivate, limiti di dimensione); bozze entro lo stesso limite dei caricamenti (`application.score-playback.max-upload-bytes`, 10 MB di MusicXML non compresso) e al più un salvataggio ogni due secondi per bozza (`application.score-writing.draft-min-interval`), che una sola finestra alla volta può scrivere perché serve il blocco.
 - Il servizio musicale resta sulla rete interna con la chiave condivisa; l'impaginazione ha un tempo massimo come il riconoscimento.
 - La tastiera MIDI si usa solo dopo il permesso del browser e senza messaggi di sistema (sysex); `midi=(self)` consente il MIDI solo all'origine dell'applicazione, non a contenuti di altre origini.
 
