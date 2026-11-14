@@ -4,8 +4,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ConfirmationService } from 'primeng/api';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { firstValueFrom, of, throwError } from 'rxjs';
-import { ScoreEditorData } from '../../module';
-import { ConfirmService, EditLockState, MediaService, ScoreAudioService, ScoreEditLockService, ScorePlaybackService, ScoreRendererService } from '../../service';
+import { ScoreDraft, ScoreEditorData } from '../../module';
+import { ConfirmService, DraftKeeperOptions, DraftState, EditLockState, LocalDraftCopy, MediaService, ScoreAudioService, ScoreDraftService, ScoreEditLockService, ScorePlaybackService, ScoreRendererService } from '../../service';
 import { ScoreEditorDialogComponent, ScoreEditorDialogData } from './score-editor-dialog.component';
 
 const XML = `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Tuba</part-name></score-part></part-list><part id="P1">
@@ -22,6 +22,11 @@ describe('ScoreEditorDialogComponent', () => {
     let dialogRef: jasmine.SpyObj<DynamicDialogRef>;
     let lockState: WritableSignal<EditLockState>;
     let lock: { session: string; state: () => EditLockState; readonly held: boolean; acquire: jasmine.Spy; refused: jasmine.Spy; release: jasmine.Spy };
+    let config: { data: ScoreEditorDialogData };
+    let drafts: jasmine.SpyObj<ScoreDraftService>;
+    let keeperState: WritableSignal<DraftState>;
+    let keeper: FakeKeeper;
+    let keeperOptions: DraftKeeperOptions | undefined;
 
     beforeEach(async () => {
         lockState = signal<EditLockState>({ status: 'acquiring', message: null });
@@ -45,6 +50,32 @@ describe('ScoreEditorDialogComponent', () => {
             layout: null
         };
         const data: ScoreEditorDialogData = { trackId: 4, scoreId: 9, versionId: 7, partLabel: 'Tuba', sound: { percussionKeys: [], configured: true, conflicting: false } };
+        config = { data };
+        keeperState = signal<DraftState>({ status: 'clean', savedAt: null, message: null });
+        keeper = {
+            state: keeperState.asReadonly(),
+            dirty: false,
+            changed: jasmine.createSpy('changed'),
+            flush: jasmine.createSpy('flush').and.resolveTo(true),
+            hold: jasmine.createSpy('hold').and.resolveTo(),
+            resume: jasmine.createSpy('resume'),
+            completed: jasmine.createSpy('completed').and.resolveTo(),
+            forget: jasmine.createSpy('forget').and.resolveTo(),
+            overwrite: jasmine.createSpy('overwrite').and.resolveTo(true),
+            reset: jasmine.createSpy('reset').and.resolveTo(),
+            stop: jasmine.createSpy('stop'),
+            content: () => keeperOptions!.content()
+        };
+        keeperOptions = undefined;
+        drafts = jasmine.createSpyObj<ScoreDraftService>('ScoreDraftService', ['draft', 'discard', 'localCopy', 'forgetLocalCopy', 'keeper']);
+        drafts.draft.and.resolveTo(null);
+        drafts.discard.and.resolveTo();
+        drafts.localCopy.and.resolveTo(null);
+        drafts.forgetLocalCopy.and.resolveTo();
+        drafts.keeper.and.callFake((_trackId: number, _scoreId: number, options: DraftKeeperOptions) => {
+            keeperOptions = options;
+            return keeper as never;
+        });
         renderer = jasmine.createSpyObj('ScoreRendererService', ['render']);
         renderer.render.and.callFake(async (xml: string) => [`<svg><g class="measure" id="${/<measure[^>]* id="([^"]+)"/.exec(xml)![1]}"></g></svg>`]);
         playbackService = jasmine.createSpyObj('ScorePlaybackService', ['editor', 'errorReports', 'correct']);
@@ -57,14 +88,15 @@ describe('ScoreEditorDialogComponent', () => {
             imports: [ScoreEditorDialogComponent],
             providers: [
                 ConfirmationService,
-                { provide: DynamicDialogConfig, useValue: { data } },
+                { provide: DynamicDialogConfig, useValue: config },
                 { provide: DynamicDialogRef, useValue: dialogRef },
                 { provide: ScorePlaybackService, useValue: playbackService },
                 { provide: ScoreRendererService, useValue: renderer },
                 { provide: MediaService, useValue: jasmine.createSpyObj('MediaService', ['streamImage']) },
                 { provide: ScoreAudioService, useValue: jasmine.createSpyObj('ScoreAudioService', ['ready', 'load', 'play', 'pause', 'setChannel']) },
-                { provide: ConfirmService, useValue: jasmine.createSpyObj('ConfirmService', ['confirmDiscard', 'confirmReversible']) },
-                { provide: ScoreEditLockService, useValue: { forPart: () => lock } }
+                { provide: ConfirmService, useValue: jasmine.createSpyObj('ConfirmService', ['confirmDiscard', 'confirmReversible', 'confirmDestructive']) },
+                { provide: ScoreEditLockService, useValue: { forPart: () => lock } },
+                { provide: ScoreDraftService, useValue: drafts }
             ]
         }).compileComponents();
         fixture = TestBed.createComponent(ScoreEditorDialogComponent);
@@ -181,11 +213,11 @@ describe('ScoreEditorDialogComponent', () => {
     it('saves a correction with the origin of the measures', async () => {
         fixture.detectChanges();
         await fixture.whenStable();
-        const component = fixture.componentInstance as unknown as { move(steps: number): void; save(approve: boolean): void; dirty: boolean };
+        const component = fixture.componentInstance as unknown as { move(steps: number): void; save(approve: boolean): Promise<void>; dirty: boolean };
 
         component.move(1);
         expect(component.dirty).toBeTrue();
-        component.save(true);
+        await component.save(true);
 
         const correction = playbackService.correct.calls.mostRecent().args[2];
         expect(correction).toEqual(jasmine.objectContaining({ parentVersionId: 7, approve: true, measureSources: [0, 1], origin: 'CORRECTION', editSession: 'editor-window-1' }));
@@ -235,14 +267,293 @@ describe('ScoreEditorDialogComponent', () => {
             lockState.set({ status: 'lost', message: 'In modifica da Lucia Bianchi dalle 10:40' });
             return true;
         });
-        const component = fixture.componentInstance as unknown as { move(steps: number): void; save(approve: boolean): void; readOnly: boolean; dirty: boolean };
+        const component = fixture.componentInstance as unknown as { move(steps: number): void; save(approve: boolean): Promise<void>; readOnly: boolean; dirty: boolean };
 
         component.move(1);
-        component.save(false);
+        await component.save(false);
 
         expect(lock.refused).toHaveBeenCalledWith(refusal);
         expect(component.readOnly).toBeTrue();
         expect(component.dirty).toBeTrue();
         expect(dialogRef.close).not.toHaveBeenCalled();
     });
+
+    describe('writing', () => {
+        const draft = (overrides: Partial<ScoreDraft> = {}): ScoreDraft => ({
+            content: XML.replace('<step>C</step>', '<step>G</step>'),
+            baseVersionId: 7,
+            measureCount: 2,
+            savedBy: 'Mario Rossi',
+            savedAt: '2026-11-14T09:32:00Z',
+            entityVersion: 3,
+            outdated: false,
+            ...overrides
+        });
+
+        /** Editor di scrittura sulla stessa parte, aperto e disegnato. */
+        async function openWriting(overrides: Partial<ScoreEditorDialogData> = {}): Promise<WritingEditor> {
+            fixture.destroy();
+            config.data = { ...config.data, mode: 'writing', ...overrides };
+            fixture = TestBed.createComponent(ScoreEditorDialogComponent);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges();
+            return fixture.componentInstance as unknown as WritingEditor;
+        }
+
+        const key = (component: WritingEditor, init: KeyboardEventInit): void => component.onKey(new KeyboardEvent('keydown', init));
+        const text = (selector: string): string => (fixture.nativeElement.querySelector(selector) as HTMLElement | null)?.textContent ?? '';
+
+        it('writes at the cursor in insertion mode, keeping the measures complete, and hands every change to the draft', async () => {
+            const component = await openWriting();
+            expect(text('h2')).toContain('Scrittura · Tuba');
+            expect(keeperOptions).toEqual(jasmine.objectContaining({ baseVersionId: 7, entityVersion: null, savedAt: null }));
+            expect(component.canSave).toBeFalse();
+
+            key(component, { key: 'n' });
+            expect(component.inserting).toBeTrue();
+            expect(component.insertionLabel).toBe('Inserimento · Battuta 1 · tempo 1 · voce 1 · semiminima');
+            key(component, { key: 'g' });
+            expect(component.insertionLabel).toContain('Battuta 1 · tempo 2');
+            // Una minima al secondo tempo di un 2/4 continua, legata, nella battuta seguente.
+            key(component, { key: '6' });
+            key(component, { key: 'a' });
+            expect(component.wrongMeasures).toEqual([]);
+            const xml = keeperOptions!.content();
+            expect(xml).toContain('<step>G</step>');
+            expect(xml).toContain('<tie type="start"/>');
+            expect(component.insertionLabel).toContain('Battuta 2 · tempo 2');
+            expect(keeper.changed).toHaveBeenCalledTimes(2);
+            expect(component.dirty).toBeTrue();
+
+            // Le voci passano per Ctrl+Alt, perché Ctrl+1–9 cambiano scheda nel browser.
+            key(component, { key: '2', code: 'Digit2', ctrlKey: true, altKey: true });
+            expect(component.cursor.voice).toBe(2);
+            key(component, { key: 'Escape' });
+            expect(component.inserting).toBeFalse();
+        });
+
+        it('turns the selected note into a rest instead of deleting it, so the measure stays complete', async () => {
+            const component = await openWriting();
+            key(component, { key: 'Delete' });
+            expect(component.note?.rest).toBeTrue();
+            expect(component.wrongMeasures).toEqual([]);
+            component.insert('after');
+            expect(keeper.changed).toHaveBeenCalledTimes(1);
+        });
+
+        it('saves the written part as a writing version and closes the draft', async () => {
+            const component = await openWriting();
+            component.move(1);
+            await component.save(true);
+
+            const correction = playbackService.correct.calls.mostRecent().args[2];
+            expect(correction).toEqual(jasmine.objectContaining({ parentVersionId: 7, approve: true, origin: 'WRITING', editSession: 'editor-window-1' }));
+            expect(correction.measureSources).toBeUndefined();
+            expect(keeper.hold).toHaveBeenCalledBefore(playbackService.correct);
+            expect(keeper.completed).toHaveBeenCalled();
+            expect(dialogRef.close).toHaveBeenCalledWith(jasmine.objectContaining({ versionNumber: 3 }));
+        });
+
+        it('asks before replacing a version saved meanwhile, and keeps writing when the user declines', async () => {
+            const component = await openWriting();
+            const confirmService = TestBed.inject(ConfirmService) as jasmine.SpyObj<ConfirmService>;
+            const outdated = new HttpErrorResponse({ status: 409, error: { message: 'error.scoreWriting.draftOutdated' } });
+            const saved = await firstValueFrom(playbackService.correct(4, 9, {} as never));
+            playbackService.correct.calls.reset();
+            playbackService.correct.and.returnValues(
+                throwError(() => outdated),
+                of(saved),
+                throwError(() => outdated)
+            );
+            confirmService.confirmReversible.and.callFake((request) => request.accept());
+            component.move(1);
+
+            await component.save(false);
+            expect(playbackService.correct.calls.count()).toBe(2);
+            expect(playbackService.correct.calls.mostRecent().args[2]).toEqual(jasmine.objectContaining({ confirmOutdated: true }));
+            expect(dialogRef.close).toHaveBeenCalledTimes(1);
+
+            confirmService.confirmReversible.and.callFake((request) => request.reject!());
+            component.move(1);
+            await component.save(false);
+            expect(keeper.resume).toHaveBeenCalled();
+            expect(lock.refused).not.toHaveBeenCalled();
+            expect(dialogRef.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('proposes the draft in the editor, and opens the version once the draft is discarded', async () => {
+            drafts.draft.and.resolveTo(draft());
+            const component = await openWriting();
+            const confirmService = TestBed.inject(ConfirmService) as jasmine.SpyObj<ConfirmService>;
+
+            expect(component.status).toBe('choosing');
+            expect(text('.score-editor__choice')).toContain('Bozza non salvata');
+            expect(text('.score-editor__choice')).toContain('Mario Rossi');
+            expect(text('.score-editor__choice')).toContain('Scarta e apri la versione 2');
+            expect(drafts.keeper).not.toHaveBeenCalled();
+
+            confirmService.confirmDestructive.and.callFake((request) => request.accept());
+            await component.discardChoice();
+            expect(drafts.discard).toHaveBeenCalledWith(4, 9, 'editor-window-1');
+            expect(component.status).toBe('ready');
+            expect(keeperOptions).toEqual(jasmine.objectContaining({ entityVersion: null }));
+            expect(component.canSave).toBeFalse();
+        });
+
+        it('resumes the draft without asking when the archivist chose it, ready to be saved as it is', async () => {
+            drafts.draft.and.resolveTo(draft());
+            const component = await openWriting({ resume: true });
+
+            expect(component.status).toBe('ready');
+            expect(keeperOptions).toEqual(jasmine.objectContaining({ baseVersionId: 7, entityVersion: 3, savedAt: '2026-11-14T09:32:00Z' }));
+            expect(keeperOptions!.content()).toContain('<step>G</step>');
+            expect(component.canSave).toBeTrue();
+            expect(keeper.changed).not.toHaveBeenCalled();
+        });
+
+        it('proposes first the changes left in this browser, warning that a newer draft is on the server', async () => {
+            const local: LocalDraftCopy = { key: 'banda:mario:4:9', content: XML.replace('<step>D</step>', '<step>B</step>'), baseVersionId: 7, entityVersion: 2, changedFrom: '2026-11-14T09:40:00Z', changedAt: '2026-11-14T09:45:00Z' };
+            drafts.draft.and.resolveTo(draft());
+            drafts.localCopy.and.resolveTo(local);
+            const component = await openWriting();
+
+            expect(component.choice).toEqual(jasmine.objectContaining({ kind: 'local', resumeLabel: 'Riprendi e sostituisci' }));
+            expect(component.choice!.warning).toContain('bozza più recente di Mario Rossi');
+            await component.resumeChoice();
+
+            expect(component.status).toBe('ready');
+            expect(keeperOptions).toEqual(jasmine.objectContaining({ entityVersion: 3 }));
+            expect(keeperOptions!.content()).toContain('<step>B</step>');
+            // La copia non è ancora sul server: parte subito verso la bozza.
+            expect(keeper.changed).toHaveBeenCalled();
+        });
+
+        it('forgets the copy in the browser when the server already has it', async () => {
+            drafts.draft.and.resolveTo(draft());
+            drafts.localCopy.and.resolveTo({ key: 'k', content: draft().content, baseVersionId: 7, entityVersion: 3, changedFrom: '2026-11-14T09:30:00Z', changedAt: '2026-11-14T09:31:00Z' });
+            const component = await openWriting();
+
+            expect(drafts.forgetLocalCopy).toHaveBeenCalledWith(4, 9);
+            expect(component.choice?.kind).toBe('draft');
+        });
+
+        it('opens a new written part from its initial content, without asking for a version', async () => {
+            const component = await openWriting({ versionId: null, initialContent: XML });
+
+            expect(playbackService.editor).not.toHaveBeenCalled();
+            expect(component.status).toBe('ready');
+            expect(keeperOptions).toEqual(jasmine.objectContaining({ baseVersionId: null }));
+            expect(keeper.changed).toHaveBeenCalled();
+            expect(component.canSave).toBeTrue();
+            expect(fixture.nativeElement.querySelector('.score-editor__page-tools')).toBeNull();
+        });
+
+        it('shows in read only what the author is writing', async () => {
+            lock.acquire.and.callFake(async () => {
+                lockState.set({ status: 'locked', message: 'In modifica da Mario Rossi dalle 10:32' });
+                return false;
+            });
+            drafts.draft.and.resolveTo(draft());
+            const component = await openWriting();
+
+            expect(drafts.localCopy).not.toHaveBeenCalled();
+            expect(drafts.keeper).not.toHaveBeenCalled();
+            expect(component.status).toBe('ready');
+            expect(component.canSave).toBeFalse();
+            key(component, { key: 'n' });
+            expect(component.inserting).toBeFalse();
+        });
+
+        it('saves the draft when closing, and says so when the server did not receive it', async () => {
+            const component = await openWriting();
+            const confirmService = TestBed.inject(ConfirmService) as jasmine.SpyObj<ConfirmService>;
+            keeper.dirty = true;
+            keeper.flush.and.resolveTo(false);
+            keeperState.set({ status: 'offline', savedAt: null, message: 'Bozza non salvata: il server non risponde.' });
+
+            await component.close();
+            expect(keeper.flush).toHaveBeenCalled();
+            expect(confirmService.confirmDiscard).toHaveBeenCalledWith(jasmine.objectContaining({ title: 'Bozza non salvata sul server' }));
+            expect(dialogRef.close).not.toHaveBeenCalled();
+
+            keeper.flush.and.resolveTo(true);
+            await component.close();
+            expect(dialogRef.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('offers a copy, keeping it for later or discarding it when someone else took over the part', async () => {
+            const component = await openWriting();
+            const confirmService = TestBed.inject(ConfirmService) as jasmine.SpyObj<ConfirmService>;
+            keeperState.set({ status: 'rejected', savedAt: null, message: 'Le modifiche dalle 10:32 alle 10:40 non sono state salvate: ora sta scrivendo Lucia Bianchi' });
+            fixture.detectChanges();
+
+            expect(text('.score-editor__draft-notice')).toContain('ora sta scrivendo Lucia Bianchi');
+            const labels = Array.from(fixture.nativeElement.querySelectorAll('.score-editor__draft-notice button') as NodeListOf<HTMLElement>).map((button) => button.textContent?.trim());
+            expect(labels).toEqual(['Scarica MusicXML', 'Tienila per dopo', 'Scarta']);
+
+            confirmService.confirmDestructive.and.callFake((request) => request.accept());
+            component.discardCopy();
+            await fixture.whenStable();
+            expect(keeper.forget).toHaveBeenCalled();
+            expect(dialogRef.close).toHaveBeenCalledTimes(1);
+
+            component.keepCopy();
+            expect(keeper.stop).toHaveBeenCalled();
+            expect(dialogRef.close).toHaveBeenCalledTimes(2);
+        });
+
+        it('starts again from the draft saved in another window, or keeps its own changes', async () => {
+            const component = await openWriting();
+            keeperState.set({ status: 'conflict', savedAt: null, message: 'La bozza è stata modificata altrove' });
+            fixture.detectChanges();
+            expect(text('.score-editor__draft-notice')).toContain("Bozza cambiata in un'altra finestra");
+
+            await component.keepMine();
+            expect(keeper.overwrite).toHaveBeenCalledTimes(1);
+
+            drafts.draft.and.resolveTo(draft({ entityVersion: 5 }));
+            await component.loadOther();
+            expect(keeper.reset).toHaveBeenCalledWith(jasmine.objectContaining({ entityVersion: 5 }));
+            expect(keeperOptions!.content()).toContain('<step>G</step>');
+        });
+    });
 });
+
+interface FakeKeeper {
+    state: () => DraftState;
+    dirty: boolean;
+    changed: jasmine.Spy;
+    flush: jasmine.Spy;
+    hold: jasmine.Spy;
+    resume: jasmine.Spy;
+    completed: jasmine.Spy;
+    forget: jasmine.Spy;
+    overwrite: jasmine.Spy;
+    reset: jasmine.Spy;
+    stop: jasmine.Spy;
+    content: () => string;
+}
+
+interface WritingEditor {
+    status: string;
+    inserting: boolean;
+    insertionLabel: string;
+    cursor: { voice: number };
+    canSave: boolean;
+    dirty: boolean;
+    note: { rest: boolean } | null;
+    wrongMeasures: unknown[];
+    choice: { kind: string; resumeLabel: string; warning: string | null } | null;
+    onKey(event: KeyboardEvent): void;
+    move(steps: number): void;
+    insert(where: 'before' | 'after'): void;
+    save(approve: boolean): Promise<void>;
+    close(): Promise<void>;
+    resumeChoice(): Promise<void>;
+    discardChoice(): Promise<void>;
+    discardCopy(): void;
+    keepCopy(): void;
+    keepMine(): Promise<void>;
+    loadOther(): Promise<void>;
+}

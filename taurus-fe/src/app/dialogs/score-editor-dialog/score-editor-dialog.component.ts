@@ -1,29 +1,73 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
-import { finalize, first, firstValueFrom } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { ImportsModule } from '../../imports';
-import { ErrorReport, MeasureBox, PlaybackSound, ScoreCorrection, ScoreEditorData, ScoreVersion } from '../../module';
+import { ErrorReport, MeasureBox, PlaybackSound, ScoreCorrection, ScoreDraft, ScoreEditorData, ScoreVersion } from '../../module';
 import { EditHistory } from '../../score-editor/edit-history';
 import { excerpt } from '../../score-editor/excerpt';
-import { Alteration, ALTERATIONS, CLEF_OPTIONS, KEY_OPTIONS, NOTE_TYPES, NoteType, Step, STEP_NAMES, STEPS } from '../../score-editor/notation-rules';
+import { Alteration, ALTERATIONS, CLEF_OPTIONS, fraction, KEY_OPTIONS, NOTE_TYPES, NoteType, Step, STEP_NAMES, STEPS, toNumber } from '../../score-editor/notation-rules';
 import { EditError, ScoreDocument, ScoreDocumentChecks } from '../../score-editor/score-document';
 import * as edits from '../../score-editor/score-edits';
+import * as writing from '../../score-editor/score-writing';
 import { parseMusicXml } from '../../score-player/musicxml-score';
 import { buildPlayback } from '../../score-player/playback-builder';
 import { originLabel } from '../../score-player/playback-labels';
 import { partSound, secondsAt } from '../../score-player/timeline';
-import { ConfirmService, MediaService, PartEditLock, ScoreAudioService, ScoreEditLockService, ScorePlaybackService, ScoreRendererService, withErrorSummary } from '../../service';
+import {
+    ApiErrorService,
+    ConfirmService,
+    DraftState,
+    LocalDraftCopy,
+    MediaService,
+    PartDraftKeeper,
+    PartEditLock,
+    ScoreAudioService,
+    ScoreDraftService,
+    ScoreEditLockService,
+    ScorePlaybackService,
+    ScoreRendererService,
+    withErrorSummary,
+    withHandledErrors
+} from '../../service';
 
 export interface ScoreEditorDialogData {
     trackId: number;
     scoreId: number;
-    versionId: number;
+    /** Versione da correggere, o da cui parte la scrittura; `null` per una parte scritta che non ha ancora versioni. */
+    versionId: number | null;
     partLabel: string;
     /** Suono della parte, per ascoltare le battute durante la correzione. */
     sound: PlaybackSound;
+    /** `writing` apre l'editor di scrittura, con le bozze e la modalità di inserimento; in assenza, la correzione. */
+    mode?: 'correction' | 'writing';
+    /** Scrittura: riprende la bozza senza chiedere, perché l'archivista ha scelto «Riprendi la bozza». */
+    resume?: boolean;
+    /** Scrittura: contenuto iniziale di una parte senza versioni né bozza, preparato con le impostazioni della parte. */
+    initialContent?: string;
 }
 
-type EditorStatus = 'loading' | 'ready' | 'error';
+type EditorStatus = 'loading' | 'choosing' | 'ready' | 'error';
+
+/** Da dove parte la scrittura: la versione, la bozza sul server, la copia nel browser o una parte nuova. */
+type WritingSource = 'version' | 'draft' | 'local' | 'new';
+
+/** Scelta all'apertura della scrittura, quando c'è una bozza o una copia nel browser da riprendere. */
+interface ResumeChoice {
+    kind: 'draft' | 'local';
+    heading: string;
+    detail: string;
+    /** Sul server c'è qualcosa di più recente: riprendendo lo si sostituisce. */
+    warning: string | null;
+    resumeLabel: string;
+    discardLabel: string;
+}
+
+interface CursorBox {
+    left: number;
+    top: number;
+    height: number;
+}
 
 interface PageHighlight {
     left: number;
@@ -36,9 +80,68 @@ interface PageHighlight {
 /** Dimensione dello spartito nell'editor, più grande che nel lettore per selezionare comodamente le note. */
 const EDITOR_SCALE = 50;
 
+const OUTDATED = 'scoreWriting.draftOutdated';
+
+function timeOf(value: string): string {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+}
+
+/** «14 novembre alle 10:32». */
+function momentOf(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return `${date.toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })} alle ${timeOf(value)}`;
+}
+
+function draftChoice(draft: ScoreDraft, version: ScoreVersion): ResumeChoice {
+    const author = draft.savedBy ? ` di ${draft.savedBy}` : '';
+    return {
+        kind: 'draft',
+        heading: 'Bozza non salvata',
+        detail: `C'è una bozza${author}, salvata il ${momentOf(draft.savedAt)}: puoi riprenderla o scartarla e ripartire dalla versione ${version.versionNumber}.`,
+        warning: draft.outdated ? "Dopo l'inizio della scrittura è stata salvata un'altra versione della parte: salvando, la bozza la sostituirà." : null,
+        resumeLabel: 'Riprendi la bozza',
+        discardLabel: `Scarta e apri la versione ${version.versionNumber}`
+    };
+}
+
+function localChoice(local: LocalDraftCopy, draft: ScoreDraft | null, version: ScoreVersion | null): ResumeChoice {
+    const from = timeOf(local.changedFrom);
+    const to = timeOf(local.changedAt);
+    const day = new Date(local.changedAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' });
+    const span = from === to ? `alle ${to}` : `dalle ${from} alle ${to}`;
+    let warning: string | null = null;
+    if (draft && draft.entityVersion !== local.entityVersion) {
+        warning = `Sul server c'è una bozza più recente${draft.savedBy ? ` di ${draft.savedBy}` : ''}, salvata il ${momentOf(draft.savedAt)}: riprendendo queste modifiche la sostituisci.`;
+    } else if (version && local.baseVersionId !== version.id) {
+        warning = "Dopo queste modifiche è stata salvata un'altra versione della parte: salvando, le modifiche la sostituiranno.";
+    }
+    return {
+        kind: 'local',
+        heading: 'Modifiche rimaste in questo browser',
+        detail: `Le modifiche fatte il ${day} ${span} non sono arrivate al server.`,
+        warning,
+        resumeLabel: warning ? 'Riprendi e sostituisci' : 'Riprendi le modifiche',
+        discardLabel: 'Scarta le modifiche'
+    };
+}
+
+/** Nome di file dal nome della parte, senza caratteri non ammessi. */
+function fileName(label: string): string {
+    return (
+        label
+            .replace(/[\\/:*?"<>|]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim() || 'parte'
+    );
+}
+
 /**
- * Editor di correzione di una versione: spartito disegnato da Verovio a sinistra, pagina originale a destra con la
- * battuta selezionata evidenziata. Le modifiche agiscono sul MusicXML e producono, al salvataggio, una nuova versione.
+ * Editor di correzione di una versione e di scrittura di una parte: spartito disegnato da Verovio a sinistra, pagina
+ * originale a destra con la battuta selezionata evidenziata. Le modifiche agiscono sul MusicXML e producono, al
+ * salvataggio, una nuova versione. La scrittura aggiunge la modalità di inserimento, con cursore e voci, tiene le battute
+ * sempre complete e salva da sola una bozza.
  */
 @Component({
     selector: 'app-score-editor-dialog',
@@ -78,6 +181,9 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         { label: '200%', value: 200 }
     ];
     protected readonly originLabel = originLabel;
+    protected readonly voices = writing.VOICES.map((voice) => ({ label: String(voice), value: voice }));
+    /** Editor di scrittura: bozze, modalità di inserimento e battute sempre complete. */
+    protected readonly writingMode: boolean;
 
     protected status: EditorStatus = 'loading';
     protected errorMessage = '';
@@ -113,9 +219,25 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     protected playing = false;
     protected preparingAudio = false;
 
+    /** Scrittura: modalità di inserimento, con il cursore al posto della selezione. */
+    protected inserting = false;
+    protected cursor: writing.WritingCursor = writing.startCursor();
+    /** Figura delle note scritte al cursore. */
+    protected figure: writing.WritingFigure = { type: 'quarter', dots: 0 };
+    protected cursorBox: CursorBox | null = null;
+    /** Bozza o copia nel browser da riprendere, prima di aprire lo spartito. */
+    protected choice: ResumeChoice | null = null;
+    /** Bozza della scrittura, finché l'editor possiede il blocco. */
+    protected keeper: PartDraftKeeper | null = null;
+    private source: WritingSource = 'version';
+    /** Versione da cui parte la scrittura, inviata al salvataggio; `null` per una parte senza versioni. */
+    private baseVersionId: number | null = null;
+    private serverDraft: ScoreDraft | null = null;
+    private localCopy: LocalDraftCopy | null = null;
+
     private score?: ScoreDocument;
     private initialSnapshot = '';
-    private readonly history = new EditHistory();
+    private history = new EditHistory();
     private readonly pageUrls = new Map<number, string>();
     private renderToken = 0;
     private renderFrame?: number;
@@ -130,41 +252,49 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         private readonly audio: ScoreAudioService,
         private readonly confirmService: ConfirmService,
         private readonly changeDetector: ChangeDetectorRef,
-        lockService: ScoreEditLockService
+        lockService: ScoreEditLockService,
+        private readonly draftService: ScoreDraftService,
+        private readonly apiErrors: ApiErrorService
     ) {
         this.data = config.data!;
+        this.writingMode = this.data.mode === 'writing';
         this.lock = lockService.forPart(this.data.trackId, this.data.scoreId);
     }
 
     async ngOnInit(): Promise<void> {
+        const { trackId, scoreId, versionId } = this.data;
         try {
             const [editor, reports] = await Promise.all([
-                firstValueFrom(this.playbackService.editor(this.data.trackId, this.data.scoreId, this.data.versionId)),
-                firstValueFrom(this.playbackService.errorReports(this.data.trackId)).catch(() => [] as ErrorReport[]),
+                versionId === null ? Promise.resolve(undefined) : firstValueFrom(this.playbackService.editor(trackId, scoreId, versionId)),
+                firstValueFrom(this.playbackService.errorReports(trackId)).catch(() => [] as ErrorReport[]),
                 // Senza il blocco l'editor si apre in sola lettura: lo stato del blocco dice perché.
                 this.lock.acquire()
             ]);
             this.editor = editor;
-            this.reports = reports.filter((report) => report.scoreId === this.data.scoreId && report.status === 'OPEN');
-            this.score = edits.openScore(editor.musicXml);
-            this.initialSnapshot = this.score.snapshot();
-            this.checks = this.score.checks();
-            this.selectedId = this.score.notes()[0]?.getAttribute('id') ?? null;
-            this.status = 'ready';
-            // Il contenitore dello spartito compare con lo stato «pronto»: la vista va aggiornata prima di disegnare.
-            this.changeDetector.detectChanges();
-            this.refreshSelection();
-            await this.render();
+            this.reports = reports.filter((report) => report.scoreId === scoreId && report.status === 'OPEN');
+            if (this.writingMode) await this.prepareWriting();
+            else if (editor) await this.open(editor.musicXml);
+            else throw new EditError('Scegli una versione da correggere');
         } catch (error) {
-            if (!(error instanceof EditError)) console.error(error);
-            this.status = 'error';
-            this.errorMessage = error instanceof EditError ? error.message : "Impossibile aprire la versione nell'editor: riprovare più tardi";
+            this.failed(error);
         }
         this.changeDetector.markForCheck();
     }
 
     ngOnDestroy(): void {
-        this.lock.release();
+        // Le ultime modifiche partono subito; la copia nel browser resta finché il server non le accetta.
+        // Il blocco si rilascia dopo l'ultimo salvataggio, che senza blocco sarebbe rifiutato.
+        const keeper = this.keeper;
+        const lock = this.lock;
+        if (keeper?.dirty) {
+            void keeper.flush().finally(() => {
+                keeper.stop();
+                lock.release();
+            });
+        } else {
+            keeper?.stop();
+            lock.release();
+        }
         this.stop();
         if (this.renderFrame !== undefined) cancelAnimationFrame(this.renderFrame);
         for (const url of this.pageUrls.values()) URL.revokeObjectURL(url);
@@ -190,6 +320,52 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         if (status === 'lost') return { heading: 'Un altro ha preso il controllo', detail: `${message ?? ''}: le modifiche non salvate restano qui finché non riprendi il controllo`, action: 'Riprendi il controllo' };
         if (status === 'unavailable') return { heading: 'Sola lettura', detail: message ?? '', action: 'Riprova' };
         return null;
+    }
+
+    /** Si può salvare: ci sono modifiche, oppure la scrittura parte da una bozza o da una parte nuova. */
+    protected get canSave(): boolean {
+        if (!this.score || this.saving || this.readOnly) return false;
+        return this.dirty || (this.writingMode && this.source !== 'version');
+    }
+
+    /** Stato della bozza, sotto il titolo dell'editor di scrittura. */
+    protected get draftLabel(): string {
+        const state: DraftState | undefined = this.keeper?.state();
+        if (!state) return this.readOnly ? 'Sola lettura: la bozza è di chi sta scrivendo' : 'Le modifiche si salvano da sole come bozza';
+        switch (state.status) {
+            case 'pending':
+                return 'Modifiche in attesa di essere salvate nella bozza';
+            case 'saving':
+                return 'Salvataggio della bozza…';
+            case 'offline':
+            case 'failed':
+                return state.message ?? 'Bozza non salvata';
+            case 'rejected':
+            case 'conflict':
+                return 'Bozza non salvata';
+            default:
+                return state.savedAt ? `Bozza salvata alle ${timeOf(state.savedAt)}` : 'Le modifiche si salvano da sole come bozza';
+        }
+    }
+
+    /** La bozza ripresa parte da una versione che non è più quella corrente della parte. */
+    protected get outdatedWarning(): string | null {
+        if (!this.writingMode || this.readOnly) return null;
+        const current = this.editor?.version.current ? this.editor.version.id : null;
+        if (this.source === 'version' || this.source === 'new' || this.baseVersionId === current) return null;
+        return "Dopo l'inizio della scrittura è stata salvata un'altra versione della parte: salvando, la bozza la sostituirà.";
+    }
+
+    /** Stato della modalità di inserimento: posizione del cursore e figura. */
+    protected get insertionLabel(): string {
+        if (!this.score) return '';
+        return `Inserimento · ${writing.cursorLabel(this.score, this.cursor)} · ${writing.figureLabel(this.figure)}`;
+    }
+
+    /** Avviso della bozza rifiutata o cambiata altrove, con le azioni possibili. */
+    protected get draftNotice(): DraftState | null {
+        const state = this.keeper?.state();
+        return state && (state.status === 'rejected' || state.status === 'conflict') ? state : null;
     }
 
     protected get pages(): number[] {
@@ -237,6 +413,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         let handled = true;
         if (command && key.toLowerCase() === 'z' && !event.shiftKey) this.undo();
         else if (command && (key.toLowerCase() === 'y' || (key.toLowerCase() === 'z' && event.shiftKey))) this.redo();
+        else if (this.writingMode && this.writingKey(event)) handled = true;
         else if (key === 'ArrowUp' || key === 'ArrowDown') this.move((key === 'ArrowUp' ? 1 : -1) * (command ? 7 : 1));
         else if (command || event.altKey) handled = false;
         else if (key === 'ArrowLeft' || key === 'ArrowRight') this.selectAdjacent(key === 'ArrowLeft' ? -1 : 1);
@@ -248,7 +425,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         else if (key === '-') this.alteration('flat');
         else if (key === '=') this.alteration('natural');
         else if (key === 'Delete' || key === 'Backspace') this.remove();
-        else if (key === 'Insert' || key === 'i') this.insert('after');
+        else if (!this.writingMode && (key === 'Insert' || key === 'i')) this.insert('after');
         else if (key === 't') this.tie();
         else if (key === ' ') void this.togglePlay();
         else if (key === 'Escape' && this.rangeEnd !== null) {
@@ -294,6 +471,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.rangeEnd = null;
         // Le teste delle note sono piccole: un clic accanto a una nota sceglie la nota più vicina della battuta.
         const id = noteId ?? this.nearestNote(target, event.clientX, event.clientY) ?? edits.firstNoteOf(this.score, measureIndex);
+        if (this.inserting) this.cursor = id ? writing.cursorAt(this.score, id) : writing.clampCursor(this.score, { ...this.cursor, measureIndex, offset: fraction(0) });
         if (id) this.select(id);
         else this.selectEmptyMeasure(measureIndex);
     }
@@ -316,15 +494,18 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     // Nota
 
     protected setType(type: NoteType): void {
-        this.noteChange((score, id) => edits.setNoteType(score, id, type));
+        if (this.inserting) this.setFigure(type);
+        else this.noteChange((score, id) => (this.writingMode ? writing.setWrittenDuration(score, id, { type, dots: 0 }) : edits.setNoteType(score, id, type)));
     }
 
     protected toggleDots(): void {
-        this.noteChange((score, id) => edits.cycleDots(score, id));
+        if (this.inserting) this.cycleFigureDots();
+        else this.noteChange((score, id) => (this.writingMode ? writing.cycleWrittenDots(score, id) : edits.cycleDots(score, id)));
     }
 
     protected toggleRest(): void {
-        this.noteChange((score, id) => edits.toggleRest(score, id));
+        if (this.inserting) this.writeRest();
+        else this.noteChange((score, id) => edits.toggleRest(score, id));
     }
 
     protected alteration(value: Alteration): void {
@@ -336,10 +517,13 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     }
 
     protected letter(step: Step): void {
-        this.noteChange((score, id) => edits.setPitchLetter(score, id, step));
+        if (this.inserting) this.writeStep(step);
+        else this.noteChange((score, id) => edits.setPitchLetter(score, id, step));
     }
 
+    /** Correzione: copia della nota prima o dopo di lei. Nella scrittura le note si inseriscono al cursore. */
     protected insert(where: 'before' | 'after'): void {
+        if (this.writingMode) return;
         this.noteChange((score, id) => edits.insertNote(score, id, where));
     }
 
@@ -347,16 +531,24 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.noteChange((score, id) => edits.addChordNote(score, id));
     }
 
+    /** Correzione: elimina la nota. Scrittura: la nota diventa una pausa, e una voce fatta solo di pause sparisce. */
     protected remove(): void {
-        this.noteChange((score, id) => edits.deleteNote(score, id));
+        this.noteChange((score, id) => {
+            if (!this.writingMode) return edits.deleteNote(score, id);
+            // Durante l'inserimento il cursore torna dove iniziava la nota cancellata, per riscriverla.
+            if (this.inserting) this.cursor = writing.cursorAt(score, id);
+            return writing.clearWrittenNote(score, id);
+        });
     }
 
     protected tie(): void {
-        this.noteChange((score, id) => edits.toggleTie(score, id));
+        if (this.inserting) this.writeTied();
+        else this.noteChange((score, id) => edits.toggleTie(score, id));
     }
 
     protected tuplet(actual: number): void {
-        this.noteChange((score, id) => edits.toggleTuplet(score, id, actual));
+        if (this.inserting) this.writeTuplet(actual);
+        else this.noteChange((score, id) => (this.writingMode ? writing.toggleWrittenTuplet(score, id, actual) : edits.toggleTuplet(score, id, actual)));
     }
 
     protected dynamic(value: edits.Dynamic | null): void {
@@ -370,7 +562,11 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     // Battuta e struttura
 
     protected applyTime(): void {
-        this.measureChange((score, index) => edits.setTime(score, index, this.timeBeats, this.timeBeatType));
+        this.measureChange((score, index) => {
+            edits.setTime(score, index, this.timeBeats, this.timeBeatType);
+            // Nella scrittura le battute restano complete anche con il nuovo metro.
+            if (this.writingMode) writing.completeMeasures(score, index);
+        });
     }
 
     protected applyKey(fifths: number): void {
@@ -442,6 +638,188 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
 
     protected applyTempo(value: number | null): void {
         this.measureChange((score, index) => edits.setTempo(score, index, value));
+    }
+
+    // Scrittura al cursore
+
+    /** Entra o esce dalla modalità di inserimento; il cursore parte dalla nota selezionata. */
+    protected toggleInsertion(): void {
+        if (!this.writingMode || !this.score) return;
+        if (!this.inserting && this.readOnly) {
+            this.message = "L'editor è in sola lettura: prendi il controllo per scrivere la parte";
+            this.changeDetector.markForCheck();
+            return;
+        }
+        this.inserting = !this.inserting;
+        if (this.inserting) {
+            const index = this.measure?.index ?? 0;
+            this.cursor = this.selectedId ? writing.cursorAt(this.score, this.selectedId) : writing.clampCursor(this.score, { ...this.cursor, measureIndex: index, offset: fraction(0) });
+        }
+        this.message = null;
+        this.placeCursor();
+        this.changeDetector.markForCheck();
+    }
+
+    protected setFigure(type: NoteType): void {
+        this.figure = { type, dots: 0 };
+        this.changeDetector.markForCheck();
+    }
+
+    /** Punti della figura: nessuno, uno, due. */
+    protected cycleFigureDots(): void {
+        this.figure = { ...this.figure, dots: (this.figure.dots + 1) % 3 };
+        this.changeDetector.markForCheck();
+    }
+
+    protected setVoice(voice: number): void {
+        if (!this.score) return;
+        this.cursor = writing.clampCursor(this.score, { ...this.cursor, voice });
+        this.placeCursor();
+        this.changeDetector.markForCheck();
+    }
+
+    /** Sposta il cursore di un elemento della voce e seleziona quello che inizia lì. */
+    protected moveCursor(delta: 1 | -1): void {
+        if (!this.score) return;
+        this.cursor = writing.moveCursor(this.score, this.cursor, delta);
+        const id = writing.noteAtCursor(this.score, this.cursor);
+        if (id) this.select(id);
+        else this.placeCursor();
+        this.changeDetector.markForCheck();
+    }
+
+    protected writeStep(step: Step): void {
+        this.write((score) => writing.writeNote(score, this.cursor, this.figure, step));
+    }
+
+    protected writeRest(): void {
+        this.write((score) => writing.writeRest(score, this.cursor, this.figure));
+    }
+
+    /** Nota legata alla precedente, della stessa altezza. */
+    protected writeTied(): void {
+        this.write((score) => writing.writeTied(score, this.cursor, this.figure));
+    }
+
+    /** Gruppo irregolare al cursore, della durata della figura: le note seguenti lo riempiono. */
+    protected writeTuplet(actual: number): void {
+        this.write((score) => {
+            const result = writing.writeTuplet(score, this.cursor, this.figure, actual);
+            this.figure = result.figure;
+            return result;
+        });
+    }
+
+    /** Aggiunge alla nota selezionata, e alle note legate a lei, la nota indicata sopra. */
+    protected chordPitch(step: Step): void {
+        this.noteChange((score, id) => writing.addChordPitch(score, id, step));
+    }
+
+    // Bozza della scrittura
+
+    /** Riprende la bozza o la copia nel browser proposta all'apertura. */
+    protected async resumeChoice(): Promise<void> {
+        const choice = this.choice;
+        if (!choice) return;
+        try {
+            await this.startWriting(choice.kind === 'local' ? 'local' : 'draft');
+        } catch (error) {
+            this.failed(error);
+        }
+        this.changeDetector.markForCheck();
+    }
+
+    /** Scarta la bozza o la copia nel browser proposta, e passa a ciò che resta da riprendere. */
+    protected async discardChoice(): Promise<void> {
+        const choice = this.choice;
+        if (!choice) return;
+        const { trackId, scoreId } = this.data;
+        const local = choice.kind === 'local';
+        const confirmed = await new Promise<boolean>((resolve) =>
+            this.confirmService.confirmDestructive({
+                title: local ? 'Scartare le modifiche?' : 'Scartare la bozza?',
+                consequence: local ? 'Le modifiche rimaste in questo browser andranno perse.' : 'La bozza andrà persa per tutti: non si potrà recuperare.',
+                actionLabel: local ? 'Scarta le modifiche' : 'Scarta la bozza',
+                key: 'score-editor-discard',
+                accept: () => resolve(true),
+                reject: () => resolve(false)
+            })
+        );
+        if (!confirmed || this.choice !== choice) return;
+        try {
+            if (local) {
+                await this.draftService.forgetLocalCopy(trackId, scoreId);
+                this.localCopy = null;
+            } else {
+                await this.draftService.discard(trackId, scoreId, this.lock.session);
+                this.serverDraft = null;
+            }
+            this.choice = null;
+            await this.decide();
+        } catch (error) {
+            this.failed(error);
+        }
+        this.changeDetector.markForCheck();
+    }
+
+    /** Scarica come MusicXML le modifiche rifiutate dal server, da ricaricare con il caricamento delle versioni. */
+    protected downloadCopy(): void {
+        const content = this.keeper?.content() ?? this.score?.cleanXml();
+        if (!content) return;
+        const url = URL.createObjectURL(new Blob([content], { type: 'application/vnd.recordare.musicxml+xml' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${fileName(this.data.partLabel)}.musicxml`;
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url));
+    }
+
+    /** Chiude l'editor tenendo la copia nel browser: sarà proposta alla prossima apertura della parte. */
+    protected keepCopy(): void {
+        this.keeper?.stop();
+        this.dialogRef.close();
+    }
+
+    protected discardCopy(): void {
+        this.confirmService.confirmDestructive({
+            title: 'Scartare le modifiche?',
+            consequence: 'Le modifiche rimaste in questo browser andranno perse e l’editor si chiuderà.',
+            actionLabel: 'Scarta le modifiche',
+            key: 'score-editor-discard',
+            accept: () => void this.keeper?.forget().then(() => this.dialogRef.close())
+        });
+    }
+
+    /** Dopo un conflitto: le modifiche di questa finestra sostituiscono la bozza salvata altrove. */
+    protected async keepMine(): Promise<void> {
+        try {
+            await this.keeper?.overwrite();
+        } catch {
+            this.message = 'Bozza non salvata: riprovare più tardi';
+        }
+        this.changeDetector.markForCheck();
+    }
+
+    /** Dopo un conflitto: si riparte dalla bozza salvata altrove; senza bozza si tengono le proprie modifiche. */
+    protected async loadOther(): Promise<void> {
+        const keeper = this.keeper;
+        if (!keeper) return;
+        try {
+            const draft = await this.draftService.draft(this.data.trackId, this.data.scoreId);
+            if (!draft) {
+                this.message = 'La bozza non c’è più: è stata salvata o scartata altrove. Le tue modifiche diventano la nuova bozza.';
+                await keeper.overwrite();
+            } else {
+                await keeper.reset(draft);
+                this.serverDraft = draft;
+                this.source = 'draft';
+                this.baseVersionId = draft.baseVersionId;
+                await this.open(draft.content);
+            }
+        } catch (error) {
+            this.failed(error);
+        }
+        this.changeDetector.markForCheck();
     }
 
     // Cronologia
@@ -517,35 +895,31 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
 
     // Salvataggio
 
-    protected save(approve: boolean): void {
-        if (!this.score || !this.editor || this.saving || !this.dirty || this.readOnly) return;
+    protected async save(approve: boolean): Promise<void> {
+        const score = this.score;
+        if (!score || !this.canSave || (!this.writingMode && !this.editor)) return;
         this.stop();
         this.saving = true;
-        const correction: ScoreCorrection = {
-            parentVersionId: this.editor.version.id,
-            content: this.score.cleanXml(),
-            approve,
-            measureSources: this.score.measureSources(),
-            origin: 'CORRECTION',
-            editSession: this.lock.session
-        };
-        this.playbackService
-            .correct(this.data.trackId, this.data.scoreId, correction, withErrorSummary('Correzione non salvata'))
-            .pipe(
-                first(),
-                finalize(() => {
-                    this.saving = false;
-                    this.changeDetector.markForCheck();
-                })
-            )
-            .subscribe({
-                next: (version: ScoreVersion) => {
-                    this.dirty = false;
-                    this.dialogRef.close(version);
-                },
-                // Chi ha perso il controllo passa in sola lettura: l'avviso del salvataggio dice chi lo ha preso.
-                error: (error: unknown) => this.lock.refused(error)
-            });
+        this.changeDetector.markForCheck();
+        const keeper = this.keeper;
+        try {
+            // La bozza non si salva mentre si salva la versione, che la elimina.
+            await keeper?.hold();
+            const correction: ScoreCorrection = this.writingMode
+                ? { parentVersionId: this.baseVersionId, content: score.cleanXml(), approve, origin: 'WRITING', editSession: this.lock.session }
+                : { parentVersionId: this.editor!.version.id, content: score.cleanXml(), approve, measureSources: score.measureSources(), origin: 'CORRECTION', editSession: this.lock.session };
+            const version = await this.submit(correction);
+            if (!version) {
+                keeper?.resume();
+                return;
+            }
+            this.dirty = false;
+            await keeper?.completed();
+            this.dialogRef.close(version);
+        } finally {
+            this.saving = false;
+            this.changeDetector.markForCheck();
+        }
     }
 
     /** Prende il blocco: dopo una conferma se lo possiede un altro, che passa in sola lettura. */
@@ -564,7 +938,25 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         });
     }
 
-    protected close(): void {
+    protected async close(): Promise<void> {
+        if (this.saving) return;
+        if (this.keeper) {
+            // Nella scrittura le modifiche restano nella bozza: chiudendo si salvano subito.
+            const keeper = this.keeper;
+            const saved = !keeper.dirty || (await keeper.flush());
+            if (saved || keeper.state().status === 'rejected') {
+                this.dialogRef.close();
+                return;
+            }
+            this.confirmService.confirmDiscard({
+                title: 'Bozza non salvata sul server',
+                consequence: 'Le ultime modifiche restano in questo browser: riaprendo l’editor sulla stessa parte potrai riprenderle.',
+                actionLabel: 'Esci',
+                key: 'score-editor-discard',
+                accept: () => this.dialogRef.close()
+            });
+            return;
+        }
         if (!this.dirty) {
             this.dialogRef.close();
             return;
@@ -579,6 +971,197 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     }
 
     // Funzioni interne
+
+    /** Apre il contenuto nell'editor e lo disegna. */
+    private async open(xml: string): Promise<void> {
+        this.score = edits.openScore(xml);
+        this.initialSnapshot = this.score.snapshot();
+        this.history = new EditHistory();
+        this.dirty = false;
+        this.checks = this.score.checks();
+        this.selectedId = this.score.notes()[0]?.getAttribute('id') ?? null;
+        this.emptyMeasureId = null;
+        this.rangeEnd = null;
+        this.cursor = writing.clampCursor(this.score, writing.startCursor());
+        this.choice = null;
+        this.status = 'ready';
+        // Il contenitore dello spartito compare con lo stato «pronto»: la vista va aggiornata prima di disegnare.
+        this.changeDetector.detectChanges();
+        this.refreshSelection();
+        await this.render();
+    }
+
+    private failed(error: unknown): void {
+        if (!(error instanceof EditError)) console.error(error);
+        this.status = 'error';
+        this.choice = null;
+        const fallback = this.writingMode ? "Impossibile aprire la parte nell'editor: riprovare più tardi" : "Impossibile aprire la versione nell'editor: riprovare più tardi";
+        this.errorMessage = error instanceof EditError ? error.message : fallback;
+    }
+
+    /** Scrittura: sceglie da dove partire tra copia nel browser, bozza, versione e parte nuova. */
+    private async prepareWriting(): Promise<void> {
+        const { trackId, scoreId } = this.data;
+        const [draft, local] = await Promise.all([this.draftService.draft(trackId, scoreId), this.lock.held ? this.draftService.localCopy(trackId, scoreId) : Promise.resolve(null)]);
+        this.serverDraft = draft;
+        this.localCopy = local;
+        if (!this.lock.held) {
+            // In sola lettura si vede ciò che sta scrivendo chi ha il blocco, se c'è, altrimenti la versione.
+            const content = draft?.content ?? this.editor?.musicXml;
+            if (!content) throw new EditError('La parte non ha ancora note scritte da mostrare');
+            this.source = draft ? 'draft' : 'version';
+            await this.open(content);
+            return;
+        }
+        if (local && draft && local.content === draft.content) {
+            // Il server ha già le modifiche della copia.
+            await this.draftService.forgetLocalCopy(trackId, scoreId);
+            this.localCopy = null;
+        }
+        await this.decide();
+    }
+
+    /** Prima la copia nel browser, poi la bozza; senza nulla da riprendere la versione o la parte nuova. */
+    private async decide(): Promise<void> {
+        const local = this.localCopy;
+        const draft = this.serverDraft;
+        const version = this.editor?.version ?? null;
+        if (local) return this.propose(localChoice(local, draft, version));
+        if (draft && version && !this.data.resume) return this.propose(draftChoice(draft, version));
+        if (draft) return this.startWriting('draft');
+        if (version) return this.startWriting('version');
+        if (this.data.initialContent) return this.startWriting('new');
+        throw new EditError('La parte non ha versioni né una bozza da scrivere');
+    }
+
+    private propose(choice: ResumeChoice): void {
+        this.choice = choice;
+        this.status = 'choosing';
+        this.changeDetector.markForCheck();
+    }
+
+    private async startWriting(source: WritingSource): Promise<void> {
+        const draft = this.serverDraft;
+        const local = this.localCopy;
+        const content = source === 'local' ? local!.content : source === 'draft' ? draft!.content : source === 'new' ? this.data.initialContent! : this.editor!.musicXml;
+        this.source = source;
+        this.baseVersionId = source === 'local' ? local!.baseVersionId : source === 'draft' ? draft!.baseVersionId : (this.editor?.version.id ?? null);
+        this.keeper?.stop();
+        this.keeper = this.draftService.keeper(this.data.trackId, this.data.scoreId, {
+            lock: this.lock,
+            content: () => this.score?.cleanXml() ?? content,
+            baseVersionId: this.baseVersionId,
+            entityVersion: draft?.entityVersion ?? null,
+            savedAt: source === 'draft' ? draft!.savedAt : null
+        });
+        await this.open(content);
+        // La copia nel browser e la parte nuova non sono ancora sul server.
+        if (source === 'local' || source === 'new') this.keeper.changed();
+    }
+
+    /** Invia la versione; nella scrittura chiede conferma se nel frattempo ne è stata salvata un'altra. `null` se non salvata. */
+    private async submit(correction: ScoreCorrection): Promise<ScoreVersion | null> {
+        const summary = withErrorSummary(this.writingMode ? 'Versione non salvata' : 'Correzione non salvata');
+        const context = this.writingMode ? withHandledErrors([OUTDATED], summary) : summary;
+        try {
+            return await firstValueFrom(this.playbackService.correct(this.data.trackId, this.data.scoreId, correction, context));
+        } catch (error) {
+            if (this.writingMode && !correction.confirmOutdated && error instanceof HttpErrorResponse && this.apiErrors.resolve(error).key === OUTDATED) {
+                const confirmed = await this.ask({
+                    title: 'Sostituire la versione salvata?',
+                    consequence: "Dopo l'inizio della scrittura è stata salvata un'altra versione della parte: la versione scritta diventerà quella corrente al suo posto.",
+                    actionLabel: 'Salva comunque'
+                });
+                return confirmed ? this.submit({ ...correction, confirmOutdated: true }) : null;
+            }
+            // Chi ha perso il controllo passa in sola lettura: l'avviso del salvataggio dice chi lo ha preso.
+            this.lock.refused(error);
+            return null;
+        }
+    }
+
+    private ask(request: { title: string; consequence: string; actionLabel: string }): Promise<boolean> {
+        return new Promise((resolve) => this.confirmService.confirmReversible({ ...request, key: 'score-editor-discard', accept: () => resolve(true), reject: () => resolve(false) }));
+    }
+
+    /** Scrittura al cursore: il cursore passa dopo ciò che è stato scritto, che resta selezionato. */
+    private write(change: (score: ScoreDocument) => writing.WriteResult): void {
+        if (!this.inserting) return;
+        this.apply((score) => {
+            const result = change(score);
+            this.cursor = result.cursor;
+            return result.noteId;
+        });
+    }
+
+    /** Tasti della scrittura: N per la modalità di inserimento e, durante l'inserimento, note, accordi, voci e gruppi. */
+    private writingKey(event: KeyboardEvent): boolean {
+        const key = event.key;
+        const command = event.ctrlKey || event.metaKey;
+        if (!command && !event.altKey && key.toLowerCase() === 'n') {
+            this.toggleInsertion();
+            return true;
+        }
+        if (!this.inserting) return false;
+        // Ctrl+1–9 sono riservati dal browser: le voci usano Ctrl+Alt, i gruppi irregolari Alt.
+        const digit = Number(/^(?:Digit|Numpad)([0-9])$/.exec(event.code)?.[1] ?? NaN);
+        if (command && event.altKey && digit >= 1 && digit <= 4) {
+            this.setVoice(digit);
+            return true;
+        }
+        if (event.altKey && !command && this.tuplets.some((option) => option.actual === digit)) {
+            this.writeTuplet(digit);
+            return true;
+        }
+        if (command || event.altKey) return false;
+        if (key === 'Escape') {
+            this.toggleInsertion();
+            return true;
+        }
+        if (key === 'ArrowLeft' || key === 'ArrowRight') {
+            this.moveCursor(key === 'ArrowLeft' ? -1 : 1);
+            return true;
+        }
+        if (/^[a-g]$/i.test(key)) {
+            const step = key.toUpperCase() as Step;
+            if (event.shiftKey) this.chordPitch(step);
+            else this.writeStep(step);
+            return true;
+        }
+        // Figure, punto, pausa, legatura, alterazioni e altezza seguono la modalità nei tasti comuni.
+        return false;
+    }
+
+    /** Cursore dell'inserimento: una barra prima dell'elemento che inizia al cursore, o alla fine della battuta. */
+    private placeCursor(): void {
+        const host = this.notationHost;
+        const pane = host?.parentElement;
+        const score = this.score;
+        if (!this.inserting || !score || !host || !pane) {
+            this.cursorBox = null;
+            return;
+        }
+        const measures = score.measures();
+        const drawnMeasure = this.drawnMeasure(measures, this.cursor.measureIndex);
+        const measure = measures[this.cursor.measureIndex];
+        if (!drawnMeasure || !measure) {
+            this.cursorBox = null;
+            this.changeDetector.markForCheck();
+            return;
+        }
+        const position = toNumber(this.cursor.offset) * score.stateAt(this.cursor.measureIndex).divisions;
+        const following = score
+            .events(measure)
+            .filter((event) => event.duration > 0 && event.start >= position - 1e-6)
+            .sort((left, right) => left.start - right.start || Number(left.voice !== String(this.cursor.voice)) - Number(right.voice !== String(this.cursor.voice)));
+        const next = following.find((event) => event.voice === String(this.cursor.voice)) ?? following[0];
+        const drawnNote = next ? host.querySelector(`[id="${next.notes[0].getAttribute('id')}"]`) : null;
+        const paneBox = pane.getBoundingClientRect();
+        const measureBox = drawnMeasure.getBoundingClientRect();
+        const x = drawnNote ? drawnNote.getBoundingClientRect().left - 4 : measureBox.right - 6;
+        this.cursorBox = { left: x - paneBox.left + pane.scrollLeft, top: measureBox.top - paneBox.top + pane.scrollTop, height: measureBox.height };
+        this.changeDetector.markForCheck();
+    }
 
     private noteChange(change: (score: ScoreDocument, id: string) => string | null | void): void {
         if (!this.selectedId) {
@@ -601,7 +1184,17 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
     }
 
     private async retakeLock(takeOver: boolean): Promise<void> {
-        await this.lock.acquire(takeOver);
+        const acquired = await this.lock.acquire(takeOver);
+        if (acquired && this.writingMode) {
+            try {
+                // Con il blocco ripreso le modifiche rifiutate ripartono verso il server; se chi aveva il blocco ha salvato
+                // una bozza, è un conflitto e decide l'autore. Senza bozza in corso la scrittura riparte da ciò che c'è.
+                if (this.keeper?.state().status === 'rejected') await this.keeper.retry();
+                else if (!this.keeper) await this.prepareWriting();
+            } catch (error) {
+                this.failed(error);
+            }
+        }
         this.changeDetector.markForCheck();
     }
 
@@ -623,6 +1216,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
                 this.emptyMeasureId = null;
             }
             this.message = null;
+            this.keeper?.changed();
         } catch (error) {
             this.score = ScoreDocument.restore(before, this.score.prefix);
             this.message = error instanceof EditError ? error.message : 'Modifica non riuscita';
@@ -636,6 +1230,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         this.stop();
         this.score = ScoreDocument.restore(snapshot, this.score.prefix);
         this.message = null;
+        this.keeper?.changed();
         this.afterChange();
     }
 
@@ -651,6 +1246,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
             this.emptyMeasureId = this.selectedId ? null : (score.measure(index).getAttribute('id') ?? null);
         }
         if (this.rangeEnd !== null && this.rangeEnd >= score.measures().length) this.rangeEnd = null;
+        if (this.writingMode) this.cursor = writing.clampCursor(score, this.cursor);
         this.refreshSelection();
         this.changeDetector.markForCheck();
         this.scheduleRender();
@@ -754,6 +1350,7 @@ export class ScoreEditorDialogComponent implements OnInit, OnDestroy {
         const selected = this.selectedId ? host.querySelector(`[id="${this.selectedId}"]`) : null;
         selected?.classList.add('is-selected');
         if (scroll) (selected ?? (this.measure ? this.drawnMeasure(measures, this.measure.index) : null))?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        this.placeCursor();
     }
 
     /** Battuta disegnata; le battute di una pausa di più battute usano quella che apre il gruppo. */

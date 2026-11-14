@@ -157,6 +157,41 @@ export interface DraftSummary {
     outdated: boolean;
 }
 
+/** Bozza dell'editor di scrittura, con il contenuto. */
+export interface ScoreDraft {
+    /** MusicXML non compresso con una sola parte. */
+    content: string;
+    /** Versione da cui è partita la scrittura; `null` per una parte senza versioni. */
+    baseVersionId: number | null;
+    measureCount: number;
+    savedBy?: string | null;
+    savedAt: string;
+    entityVersion: number;
+    /** Dopo l'inizio della scrittura è stata salvata un'altra versione della parte. */
+    outdated: boolean;
+}
+
+/** Bozza salvata: la versione da inviare con il salvataggio successivo. */
+export interface DraftSaved {
+    entityVersion: number;
+    savedAt: string;
+}
+
+/** Parte scritta da zero, aggiunta in fondo alla traccia. */
+export interface NewWrittenPart {
+    description: string | null;
+    instrumentIds: number[];
+    /** MusicXML iniziale, che diventa la bozza della parte. */
+    content: string;
+    /** Versione della traccia mostrata all'archivista; `null` per non controllarla. */
+    trackVersion: number | null;
+}
+
+export interface WrittenPart {
+    scoreId: number;
+    trackVersion: number;
+}
+
 export interface TrackPlayback {
     trackId: number;
     trackName?: string;

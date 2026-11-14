@@ -715,7 +715,7 @@ export function setTempo(score: ScoreDocument, index: number, bpm: number | null
     insertAtStart(measure, direction);
 }
 
-// Funzioni interne
+// Funzioni di supporto, usate anche dalla scrittura (`score-writing.ts`)
 
 const MARK_SOUNDS: Readonly<Record<StructureMark, string[]>> = {
     segno: ['segno'],
@@ -819,7 +819,7 @@ function barlineAt(measure: Element, location: 'left' | 'right'): Element {
 }
 
 /** Gli attributi che aprono la battuta, prima di note e avanzamenti; creati se richiesto. */
-function leadingAttributes(measure: Element, create = false): Element | null {
+export function leadingAttributes(measure: Element, create = false): Element | null {
     for (const item of children(measure)) {
         if (item.tagName === 'attributes') return item;
         if (['note', 'backup', 'forward'].includes(item.tagName)) break;
@@ -836,7 +836,7 @@ function insertAtStart(measure: Element, node: Element): void {
     measure.insertBefore(node, anchor ?? null);
 }
 
-function insertAtEnd(measure: Element, node: Element): void {
+export function insertAtEnd(measure: Element, node: Element): void {
     const right = children(measure, 'barline').find((barline) => (barline.getAttribute('location') ?? 'right') === 'right');
     measure.insertBefore(node, right ?? null);
 }
@@ -910,7 +910,7 @@ function removeNote(score: ScoreDocument, note: Element): void {
 }
 
 /** Figura e punti della nota; per le note senza `type` si ricavano dalla durata. */
-function figureOf(score: ScoreDocument, note: Element): { type: NoteType; dots: number } | null {
+export function figureOf(score: ScoreDocument, note: Element): { type: NoteType; dots: number } | null {
     const type = text(child(note, 'type'));
     if (noteTypeOption(type)) return { type: type as NoteType, dots: children(note, 'dot').length };
     const divisions = score.stateBefore(note).divisions;
@@ -920,7 +920,7 @@ function figureOf(score: ScoreDocument, note: Element): { type: NoteType; dots: 
     return inferType(duration / divisions, tuplet?.actual ?? 1, tuplet?.normal ?? 1);
 }
 
-function tupletOf(note: Element): { actual: number; normal: number } | null {
+export function tupletOf(note: Element): { actual: number; normal: number } | null {
     const modification = child(note, 'time-modification');
     const actual = integer(child(modification, 'actual-notes'));
     const normal = integer(child(modification, 'normal-notes'));
@@ -928,7 +928,7 @@ function tupletOf(note: Element): { actual: number; normal: number } | null {
 }
 
 /** Scrive figura, punti, gruppo irregolare e durata sulle note di un accordo. */
-function writeFigure(score: ScoreDocument, notes: Element[], type: NoteType, dots: number, tuplet: { actual: number; normal: number } | null): void {
+export function writeFigure(score: ScoreDocument, notes: Element[], type: NoteType, dots: number, tuplet: { actual: number; normal: number } | null): void {
     const quarters = noteQuarters(type, dots, tuplet?.actual ?? 1, tuplet?.normal ?? 1);
     const divisions = score.ensureDivisions(quarters, score.stateBefore(notes[0]).divisions);
     const duration = Math.round(divisions * toNumber(quarters));
@@ -947,7 +947,7 @@ function writeFigure(score: ScoreDocument, notes: Element[], type: NoteType, dot
     }
 }
 
-function writePitch(note: Element, step: Step, octave: number): void {
+export function writePitch(note: Element, step: Step, octave: number): void {
     const pitch = child(note, 'pitch');
     if (pitch) {
         setChildText(pitch, 'step', step, PITCH_ORDER);
@@ -976,7 +976,7 @@ function followTies(score: ScoreDocument, note: Element): void {
 }
 
 /** La nota con le note legate prima e dopo di lei. */
-function tieChain(score: ScoreDocument, note: Element): Element[] {
+export function tieChain(score: ScoreDocument, note: Element): Element[] {
     const chain = [note];
     let current: Element | null = note;
     while (current && hasTie(current, 'stop')) {
@@ -1027,17 +1027,17 @@ function neighbourEvent(score: ScoreDocument, note: Element, delta: 1 | -1): Not
     return (delta === 1 ? candidates[0] : candidates[candidates.length - 1]) ?? null;
 }
 
-function hasTie(note: Element, type: 'start' | 'stop'): boolean {
+export function hasTie(note: Element, type: 'start' | 'stop'): boolean {
     return children(note, 'tie').some((tie) => tie.getAttribute('type') === type);
 }
 
-function addTie(note: Element, type: 'start' | 'stop'): void {
+export function addTie(note: Element, type: 'start' | 'stop'): void {
     if (!hasTie(note, type)) insertOrdered(note, element(note.ownerDocument, 'tie', null, { type }), NOTE_ORDER);
     const notations = ensureChild(note, 'notations', NOTE_ORDER);
     if (!children(notations, 'tied').some((tied) => tied.getAttribute('type') === type)) notations.appendChild(element(note.ownerDocument, 'tied', null, { type }));
 }
 
-function removeTie(note: Element, type: 'start' | 'stop'): void {
+export function removeTie(note: Element, type: 'start' | 'stop'): void {
     for (const tie of children(note, 'tie')) if (tie.getAttribute('type') === type) tie.remove();
     const notations = child(note, 'notations');
     for (const tied of children(notations, 'tied')) if (tied.getAttribute('type') === type) tied.remove();
@@ -1045,7 +1045,7 @@ function removeTie(note: Element, type: 'start' | 'stop'): void {
 }
 
 /** Toglie le legature della nota anche dalle note a cui era legata. */
-function clearTies(score: ScoreDocument, note: Element): void {
+export function clearTies(score: ScoreDocument, note: Element): void {
     if (hasTie(note, 'start')) {
         const partner = tiePartner(score, note, 'next');
         if (partner) removeTie(partner, 'stop');
@@ -1070,17 +1070,17 @@ function removeSlurBetween(start: Element, stop: Element): void {
     }
 }
 
-function hasTuplet(note: Element, type: 'start' | 'stop'): boolean {
+export function hasTuplet(note: Element, type: 'start' | 'stop'): boolean {
     return children(child(note, 'notations'), 'tuplet').some((tuplet) => tuplet.getAttribute('type') === type);
 }
 
-function addTuplet(note: Element, type: 'start' | 'stop'): void {
+export function addTuplet(note: Element, type: 'start' | 'stop'): void {
     const notations = ensureChild(note, 'notations', NOTE_ORDER);
     notations.appendChild(element(note.ownerDocument, 'tuplet', null, type === 'start' ? { type, bracket: 'yes' } : { type }));
 }
 
 /** Altezza della nota intonata precedente nella stessa voce, per trasformare una pausa in nota. */
-function previousPitch(score: ScoreDocument, note: Element): { step: Step; octave: number } | null {
+export function previousPitch(score: ScoreDocument, note: Element): { step: Step; octave: number } | null {
     const notes = score.notes();
     const voice = voiceOf(note);
     for (let index = notes.indexOf(note) - 1; index >= 0; index--) {
@@ -1112,7 +1112,7 @@ function dynamicOf(note: Element): Dynamic | null {
 }
 
 /** Dopo una modifica delle note: ritorni all'inizio della battuta per le altre voci e travature per movimento. */
-function refreshMeasure(score: ScoreDocument, measure: Element): void {
+export function refreshMeasure(score: ScoreDocument, measure: Element): void {
     let position = 0;
     for (const item of children(measure)) {
         if (item.tagName === 'note') {

@@ -9,9 +9,9 @@ import { spawn } from 'node:child_process';
 
 /** Baseline misurata sul ramo principale, in punti percentuali. */
 const minimum = {
-    statements: 65,
-    branches: 55,
-    lines: 67
+    statements: 68,
+    branches: 59,
+    lines: 70
 };
 
 const argv = process.argv.slice(2);

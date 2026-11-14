@@ -33,6 +33,7 @@ export * from './printer.service';
 export * from './push-notification.service';
 export * from './push-subscription.service';
 export * from './score-audio.service';
+export * from './score-draft.service';
 export * from './score-edit-lock.service';
 export * from './score-playback.service';
 export * from './score-renderer.service';

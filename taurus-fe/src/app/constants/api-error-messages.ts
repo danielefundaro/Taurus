@@ -639,6 +639,7 @@ export const API_ERROR_MESSAGES: Readonly<Record<string, ApiErrorMessage>> = {
     'scoreWriting.contentInvalid': (args) => WRITING_PROBLEMS[formatApiErrorValue(args['reason'])] ?? "La parte scritta non è un MusicXML valido: annullare l'ultima modifica e riprovare",
     'scoreWriting.draftConflict': "La bozza è stata modificata altrove: riaprire l'editor",
     'scoreWriting.draftOutdated': "Nel frattempo è stata salvata un'altra versione della parte: confermare per sostituirla",
+    'scoreWriting.instrumentNotFound': 'Uno degli strumenti scelti non esiste più: ricaricare la pagina',
 
     // Onboarding
     'onboarding.disabled': 'La configurazione iniziale non è disponibile',
