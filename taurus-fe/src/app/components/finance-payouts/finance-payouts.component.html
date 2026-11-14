@@ -127,7 +127,7 @@
             </div>
 
             @if (presentCount || simulation.lines.length) {
-                <p-table [value]="simulation.lines" dataKey="userId" [loading]="simulationLoading" styleClass="payout-lines">
+                <p-table [value]="simulation.lines" dataKey="userId" [loading]="simulationLoading" class="payout-lines">
                     <ng-template #header>
                         <tr>
                             <th>Nome</th>
@@ -313,7 +313,7 @@
                     </ng-template>
                     <ng-template #body let-row>
                         <tr>
-                            <td><p-tableCheckbox [value]="row" [disabled]="row.line.due <= 0" /></td>
+                            <td><p-table-checkbox [value]="row" [disabled]="row.line.due <= 0" /></td>
                             <td>
                                 <strong>{{ row.line.eventName }}</strong>
                                 <small class="block text-muted-color">{{ row.line.eventDate | date: 'dd/MM/yyyy' }}</small>

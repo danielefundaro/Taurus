@@ -1,4 +1,4 @@
-import { HttpResponse, provideHttpClient } from '@angular/common/http';
+import { HttpResponse, provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
@@ -8,7 +8,7 @@ describe('OnboardingService', () => {
     let service: OnboardingService;
     let http: HttpTestingController;
     beforeEach(() => {
-        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+        TestBed.configureTestingModule({ providers: [provideHttpClient(withXhr()), provideHttpClientTesting()] });
         service = TestBed.inject(OnboardingService);
         http = TestBed.inject(HttpTestingController);
     });

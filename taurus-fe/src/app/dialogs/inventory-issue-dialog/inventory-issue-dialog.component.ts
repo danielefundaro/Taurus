@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { concatMap, first, from, Observable, toArray } from 'rxjs';
 import { ImportsModule } from '../../imports';
@@ -19,6 +19,7 @@ const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './inventory-issue-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './inventory-issue-dialog.component.scss'
 })
 export class InventoryIssueDialogComponent implements OnDestroy {

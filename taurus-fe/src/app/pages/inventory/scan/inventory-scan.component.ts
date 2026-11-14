@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { AfterViewChecked, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { Meta } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { DialogService } from 'primeng/dynamicdialog';
@@ -34,6 +34,7 @@ const ASSIGNMENT_LINKS: AssignmentLink[] = [
     imports: [ImportsModule, RouterModule, InventoryExpirationBadgeComponent],
     templateUrl: './inventory-scan.component.html',
     styleUrl: './inventory-scan.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService]
 })
 export class InventoryScanComponent implements OnInit, AfterViewChecked {

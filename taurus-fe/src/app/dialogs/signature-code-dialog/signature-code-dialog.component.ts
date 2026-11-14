@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputOtpModule } from 'primeng/inputotp';
 import { finalize, first } from 'rxjs';
@@ -36,6 +36,7 @@ const METHOD_ERRORS = ['signature.method.*'];
     standalone: true,
     imports: [ImportsModule, InputOtpModule],
     templateUrl: './signature-code-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './signature-code-dialog.component.scss'
 })
 export class SignatureCodeDialogComponent implements OnInit, OnDestroy {

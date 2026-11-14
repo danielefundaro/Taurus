@@ -1,9 +1,10 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, forkJoin, switchMap, timer } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { OnboardingContext, OnboardingIssue, OnboardingJob, OnboardingOutcome, OnboardingRow, OnboardingRowStatus, OnboardingSection, OnboardingSectionSummary } from '../../module';
 import { OnboardingService, withErrorSummary } from '../../service';
+import { FileSelectEvent } from 'primeng/fileupload';
 import { PaginatorModule } from 'primeng/paginator';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { StepperModule } from 'primeng/stepper';
@@ -18,6 +19,7 @@ const PROBLEM_PAGE_SIZE = 25;
     standalone: true,
     imports: [ImportsModule, PaginatorModule, ProgressBarModule, StepperModule],
     templateUrl: './onboarding.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './onboarding.component.scss'
 })
 export class OnboardingComponent implements OnInit {
@@ -187,7 +189,7 @@ export class OnboardingComponent implements OnInit {
         this.loadContext();
         if (Number.isFinite(id) && id > 0) this.loadJob(id, true);
     }
-    protected selectFile(event: { files: File[]; currentFiles: File[] }): void {
+    protected selectFile(event: FileSelectEvent): void {
         this.selectedFile = event.currentFiles?.[0] ?? event.files?.[0];
     }
     protected upload(): void {

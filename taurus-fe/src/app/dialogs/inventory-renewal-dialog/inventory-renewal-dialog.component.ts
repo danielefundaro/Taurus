@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { addMonths, fromLocalDate, toLocalDate } from '../../constants';
 import { ImportsModule } from '../../imports';
@@ -13,6 +13,7 @@ export interface InventoryRenewalDialogData {
     selector: 'app-inventory-renewal-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './inventory-renewal-dialog.component.html'
 })
 export class InventoryRenewalDialogComponent {

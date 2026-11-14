@@ -1,6 +1,6 @@
 import { AfterViewInit, Directive, ElementRef, inject, OnDestroy } from '@angular/core';
 
-/** L'elemento di un ToggleButton di PrimeNG: `p-toggleButton` diventa `p-togglebutton` nel DOM. */
+/** L'elemento di un ToggleButton di PrimeNG, nei due selettori che la 22 accetta. */
 const TOGGLE_BUTTON = 'p-togglebutton, p-toggle-button';
 
 /**
@@ -12,10 +12,11 @@ const TOGGLE_BUTTON = 'p-togglebutton, p-toggle-button';
  * non arriva: li cerca sotto l'host del SelectButton e li segue quando cambiano opzioni o stato.
  *
  * Nata nella fase 0 dell'aggiornamento della piattaforma come ToggleButtonRoleDirective, quando PrimeNG 19.1 aveva
- * tolto anche il ruolo; da togliere quando PrimeNG scriverà `aria-disabled` da sé.
+ * tolto anche il ruolo; da togliere quando PrimeNG scriverà `aria-disabled` da sé: la 22 non lo scrive ancora, e
+ * non riconosce più i selettori in camel case.
  */
 @Directive({
-    selector: 'p-togglebutton, p-toggleButton, p-toggle-button, p-selectbutton, p-selectButton, p-select-button',
+    selector: 'p-togglebutton, p-toggle-button, p-selectbutton, p-select-button',
     standalone: true
 })
 export class ToggleButtonDisabledDirective implements AfterViewInit, OnDestroy {

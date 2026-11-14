@@ -1,4 +1,4 @@
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, ChangeDetectionStrategy } from '@angular/core';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../imports';
 import { SignatureMethod, SignatureMethods } from '../../module';
@@ -12,6 +12,7 @@ import { SignatureService, ToastService, withErrorSummary } from '../../service'
     selector: 'app-signature-method-settings',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './signature-method-settings.component.html'
 })
 export class SignatureMethodSettingsComponent implements OnInit {

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ImportsModule } from '../../imports';
 import { FinancialAccount, FinancialCategory } from '../../module';
@@ -32,6 +32,7 @@ export interface PayoutSettlementDialogResult {
     selector: 'app-finance-payout-settlement-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './finance-payout-settlement-dialog.component.html'
 })
 export class FinancePayoutSettlementDialogComponent {

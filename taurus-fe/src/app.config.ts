@@ -1,25 +1,29 @@
-import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { ApplicationConfig, LOCALE_ID, provideAppInitializer, provideZoneChangeDetection } from '@angular/core';
+import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi, withXhr } from '@angular/common/http';
+import { ApplicationConfig, LOCALE_ID, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 import { definePreset } from '@primeuix/themes';
-import Aura from '@primeuix/themes/aura';
+import Aura from '@primeuix/themes/aura-compat';
 import { AutoRefreshTokenService, provideKeycloak, UserActivityService, withAutoRefreshToken } from 'keycloak-angular';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { HttpInterceptorService } from './app/interceptor/http-interceptor.service';
-import { ACCESSIBLE_LIGHT_SCHEME, accessibleComponents, neutralizePrimeNgAutoFocusDefault, PRIMENG_TRANSLATION_IT, publicPage } from './app/constants';
+import { accessibleComponents, accessibleSemantic, PRIMENG_TRANSLATION_IT, publicPage } from './app/constants';
 import { LoadingService } from './app/service';
-import { environment } from "./environments/environment";
+import { environment } from './environments/environment';
 
 /**
  * Il preset di partenza: Aura con i colori del tema portati sopra la soglia di contrasto. È il solo
  * tema delle pagine pubbliche, che non hanno il configuratore, e il primo disegno delle altre.
+ *
+ * <p>Le varianti `-compat` dei preset di PrimeNG 22 sono tarate sul font di base a 14 pixel
+ * (`assets/layout/_core.scss`); quelle standard lo assumono a 16. PrimeTek le mantiene fino a giugno
+ * 2027: il passaggio a 16 pixel va fatto prima.
  */
 const taurusPreset = definePreset(Aura, {
-    semantic: { colorScheme: { light: ACCESSIBLE_LIGHT_SCHEME } },
-    components: accessibleComponents('Aura')
+    semantic: accessibleSemantic(Aura),
+    components: accessibleComponents('Aura', Aura)
 });
 
 export const appConfig: ApplicationConfig = {
@@ -30,13 +34,13 @@ export const appConfig: ApplicationConfig = {
             config: {
                 url: environment.keycloak.baseurl,
                 realm: environment.keycloak.realm,
-                clientId: environment.keycloak.clientId,
+                clientId: environment.keycloak.clientId
             },
             // The public pages (legal documents, signature of a parent) work without login: Keycloak is not initialized there.
             initOptions: publicPage()
                 ? undefined
                 : {
-                      onLoad: 'login-required',
+                      onLoad: 'login-required'
                       // scope: 'openid profile email offline_access'
                   },
             features: [
@@ -45,11 +49,11 @@ export const appConfig: ApplicationConfig = {
                     onInactivityTimeout: 'logout'
                 })
             ],
-            providers: [AutoRefreshTokenService, UserActivityService],
+            providers: [AutoRefreshTokenService, UserActivityService]
         }),
-        // Prima del primo disegno: senza, i componenti di PrimeNG 21 escono con `autofocus="true"`.
-        provideAppInitializer(neutralizePrimeNgAutoFocusDefault),
         providePrimeNG({
+            // Letta da `assets/config.json` (`TAURUS_PRIMEUI_LICENSE`): senza, PrimeNG mostra il suo avviso.
+            license: environment.primeuiLicense || undefined,
             translation: PRIMENG_TRANSLATION_IT,
             theme: {
                 preset: taurusPreset,
@@ -61,9 +65,9 @@ export const appConfig: ApplicationConfig = {
         {
             provide: HTTP_INTERCEPTORS,
             useClass: HttpInterceptorService,
-            multi: true,
+            multi: true
         },
-        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClient(withXhr(), withInterceptorsFromDi()),
         MessageService,
         ConfirmationService,
         LoadingService,
@@ -72,6 +76,6 @@ export const appConfig: ApplicationConfig = {
         // il worker, e lasciarlo servito ma non registrato significa che una registrazione fatta una
         // volta sola sopravvive per sempre senza che nulla la aggiorni. Meglio che il locale si
         // comporti come la produzione, con AppUpdateService a far avanzare le versioni.
-        provideServiceWorker('ngsw-worker.js', { enabled: true, registrationStrategy: 'registerWhenStable:30000' }),
-    ],
-}
+        provideServiceWorker('ngsw-worker.js', { enabled: true, registrationStrategy: 'registerWhenStable:30000' })
+    ]
+};

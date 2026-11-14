@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { finalize, first, Observable } from 'rxjs';
 import { loanTemplateIssueMessage } from '../../../constants';
@@ -31,6 +31,7 @@ const SIGNATURE_REQUIREMENTS: { key: keyof SignatureRequirements; label: string;
     selector: 'app-inventory-loan-template',
     standalone: true,
     imports: [ImportsModule, ToggleSwitchModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './loan-template.component.html'
 })
 export class InventoryLoanTemplateComponent extends DetailPageBase implements OnInit {

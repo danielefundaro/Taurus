@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, effect, Renderer2, ViewChild } from '@angular/core';
+import { Component, effect, Renderer2, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
@@ -15,6 +15,7 @@ import { GuidedTourService, LayoutService, NotificationCenterService, PushNotifi
     standalone: true,
     imports: [CommonModule, ButtonModule, InlineAlertComponent, TopbarComponent, SidebarComponent, RouterModule, FooterComponent, GuidedTourComponent],
     templateUrl: './layout.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './layout.component.scss'
 })
 export class LayoutComponent {

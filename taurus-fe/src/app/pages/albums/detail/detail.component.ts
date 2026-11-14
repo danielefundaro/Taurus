@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
@@ -18,6 +18,7 @@ import { AlbumsService, ConfirmService, KeycloakService, PrinterService, ToastSe
     imports: [ImportsModule],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [AlbumsService, DialogService]
 })
 export class DetailComponent extends DetailPageBase implements OnInit {
@@ -191,7 +192,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         this.loading = true;
         this.albumsService
             .getById(Number(id))
-            .pipe(first(), finalize(() => (this.loading = false)))
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
             .subscribe({
                 next: (album: Albums) => {
                     this.album = album;

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { first } from 'rxjs';
 import { inventoryLoanSheetStatusLabel, inventoryLoanSheetStatusSeverity } from '../../constants';
 import { ImportsModule } from '../../imports';
@@ -14,6 +14,7 @@ import { UserInventoryService } from '../../service';
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './own-loan-sheets.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './own-loan-sheets.component.scss'
 })
 export class OwnLoanSheetsComponent implements OnInit {

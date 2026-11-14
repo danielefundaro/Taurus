@@ -1,8 +1,8 @@
-import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmService } from '../../service/confirm.service';
 
-@Component({ selector: 'app-dialog-shell', standalone: true, imports: [ButtonModule], templateUrl: './dialog-shell.component.html', styleUrl: './dialog-shell.component.scss' })
+@Component({ selector: 'app-dialog-shell', standalone: true, imports: [ButtonModule], templateUrl: './dialog-shell.component.html', changeDetection: ChangeDetectionStrategy.Eager, styleUrl: './dialog-shell.component.scss' })
 export class DialogShellComponent {
     @Input() heading = '';
     @Input() subtitle?: string;
@@ -20,7 +20,7 @@ export class DialogShellComponent {
     private interacted = false;
     private confirmationOpen = false;
 
-    constructor(private readonly confirmService: ConfirmService) { }
+    constructor(private readonly confirmService: ConfirmService) {}
 
     @HostListener('input')
     @HostListener('change')

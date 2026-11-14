@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { finalize, first } from 'rxjs';
 import { StateLabelsMap } from '../../../../constants';
@@ -23,6 +23,7 @@ const TRACK_PAGE_SIZE = 20;
     selector: 'app-preparation-program',
     imports: [ImportsModule, CdkDropList, CdkDrag, CdkDragHandle],
     templateUrl: './preparation-program.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './preparation-program.component.scss'
 })
 export class PreparationProgramComponent implements OnChanges {

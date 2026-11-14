@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DialogService } from 'primeng/dynamicdialog';
@@ -17,6 +17,7 @@ import { ListPageBase } from '../_shared/list-page.base';
     imports: [RouterModule, ImportsModule],
     templateUrl: './tracks.component.html',
     styleUrl: './tracks.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [TracksService, DialogService]
 })
 export class TracksComponent extends ListPageBase implements OnInit {

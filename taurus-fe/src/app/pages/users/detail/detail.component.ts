@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
@@ -19,6 +19,7 @@ import { CommonOpenSearchService } from '../../../service/common-open-search.ser
     imports: [ImportsModule, MultiSelectModule, CalendarEventsTableComponent, InventoryAssignmentsComponent, InventoryLoanSheetsComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [InstrumentsService]
 })
 export class DetailComponent extends DetailPageBase implements OnInit {
@@ -153,7 +154,10 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         this.loading = true;
         this.usersService
             .getById(Number(id))
-            .pipe(first(), finalize(() => (this.loading = false)))
+            .pipe(
+                first(),
+                finalize(() => (this.loading = false))
+            )
             .subscribe({
                 next: (user: Users) => {
                     this.user = user;

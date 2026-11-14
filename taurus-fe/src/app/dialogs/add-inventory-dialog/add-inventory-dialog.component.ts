@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ImportsModule } from '../../imports';
 import { inventoryLoanTypeOptions } from '../../constants';
@@ -9,6 +9,7 @@ import { InventoryCondition, InventoryItem, InventoryLoanType } from '../../modu
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './add-inventory-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './add-inventory-dialog.component.scss'
 })
 export class AddInventoryDialogComponent {
@@ -24,10 +25,7 @@ export class AddInventoryDialogComponent {
         assignments: []
     };
 
-    protected readonly loanTypes: { label: string; value: InventoryLoanType | null; description?: string }[] = [
-        { label: 'Non indicato', value: null },
-        ...inventoryLoanTypeOptions
-    ];
+    protected readonly loanTypes: { label: string; value: InventoryLoanType | null; description?: string }[] = [{ label: 'Non indicato', value: null }, ...inventoryLoanTypeOptions];
 
     protected readonly conditions: { label: string; value: InventoryCondition }[] = [
         { label: 'Nuovo', value: 'NEW' },
@@ -38,7 +36,7 @@ export class AddInventoryDialogComponent {
         { label: 'Fuori servizio', value: 'OUT_OF_SERVICE' }
     ];
 
-    constructor(private readonly dialogRef: DynamicDialogRef<AddInventoryDialogComponent>) { }
+    constructor(private readonly dialogRef: DynamicDialogRef<AddInventoryDialogComponent>) {}
 
     protected get canSave(): boolean {
         return !!this.item.inventoryNumber.trim() && !!this.item.name.trim();

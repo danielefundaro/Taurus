@@ -39,7 +39,7 @@
             <app-form-field label="Ruoli" forId="roles">
                 <p-multiselect inputId="roles" [(ngModel)]="user!.roles" [options]="roleOptions" optionLabel="name"
                     optionValue="code" display="chip" selectedItemsLabel="{0} ruoli selezionati" [filter]="true"
-                    filterBy="name" filterPlaceholder="Cerca un ruolo" emptyFilterMessage="Nessun ruolo trovato"
+                    filterBy="name" filterPlaceHolder="Cerca un ruolo" emptyFilterMessage="Nessun ruolo trovato"
                     placeholder="Seleziona uno o più ruoli" ariaLabel="Ruoli dell’utente" [disabled]="locked"
                     (ngModelChange)="isDirty = true" />
             </app-form-field>

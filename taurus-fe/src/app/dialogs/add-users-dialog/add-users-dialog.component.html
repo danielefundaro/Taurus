@@ -17,7 +17,7 @@
             [error]="shell.validationAttempted && !user.roles?.length ? 'Seleziona almeno un ruolo.' : undefined">
             <p-multiselect inputId="roles" [(ngModel)]="user.roles" [options]="roleOptions" optionLabel="name"
                 optionValue="code" display="chip" selectedItemsLabel="{0} ruoli selezionati" [filter]="true"
-                filterBy="name" filterPlaceholder="Cerca un ruolo" emptyFilterMessage="Nessun ruolo trovato"
+                filterBy="name" filterPlaceHolder="Cerca un ruolo" emptyFilterMessage="Nessun ruolo trovato"
                 placeholder="Seleziona uno o più ruoli" ariaLabel="Ruoli dell’utente" />
         </app-form-field>
         <app-form-field label="Stato"><label class="flex items-center gap-2"><p-checkbox [binary]="true"

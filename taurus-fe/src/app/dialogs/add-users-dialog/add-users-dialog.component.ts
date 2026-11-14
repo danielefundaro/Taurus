@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
@@ -20,6 +20,7 @@ import { FormFieldComponent } from '../../components/form-field/form-field.compo
     selector: 'app-add-users-dialog',
     imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, AutoCompleteModule, MultiSelectModule, CheckboxModule, DialogShellComponent, FormFieldComponent],
     templateUrl: './add-users-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './add-users-dialog.component.scss'
 })
 export class AddUsersDialogComponent {

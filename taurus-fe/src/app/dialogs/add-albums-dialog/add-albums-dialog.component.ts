@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { FloatLabelModule } from 'primeng/floatlabel';
@@ -15,6 +15,7 @@ import { FormFieldComponent } from '../../components/form-field/form-field.compo
     selector: 'app-add-albums-dialog',
     imports: [ButtonModule, InputTextModule, FloatLabelModule, TextareaModule, DatePickerModule, FormsModule, FluidModule, DialogShellComponent, FormFieldComponent],
     templateUrl: './add-albums-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './add-albums-dialog.component.scss'
 })
 export class AddAlbumsDialogComponent {

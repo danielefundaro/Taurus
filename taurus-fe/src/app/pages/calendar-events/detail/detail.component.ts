@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { Table } from 'primeng/table';
@@ -8,18 +8,7 @@ import { DangerZoneOperation } from '../../../components/danger-zone/danger-zone
 import { ImportsModule } from '../../../imports';
 import { DetailPageBase } from '../../_shared/detail-page.base';
 import { focusFragment } from '../../_shared/focus-fragment';
-import {
-    CalendarEventSeries,
-    CalendarEventSeriesPreview,
-    CalendarEventSeriesRequest,
-    CalendarEvents,
-    EventCost,
-    EventPreparationView,
-    FinancialEventSummary,
-    EventPresentUser,
-    RecurrenceWeekDay,
-    Users
-} from '../../../module';
+import { CalendarEventSeries, CalendarEventSeriesPreview, CalendarEventSeriesRequest, CalendarEvents, EventCost, EventPreparationView, FinancialEventSummary, EventPresentUser, RecurrenceWeekDay, Users } from '../../../module';
 import { DateConverterPipe } from '../../../pipe';
 import { CalendarEventSeriesService, CalendarEventsService, ConfirmService, EventPreparationService, FinanceService, KeycloakService, TenantFeatureService, ToastService, UsersService, withErrorSummary } from '../../../service';
 import { PreparationConfigurationComponent } from './preparation/preparation-configuration.component';
@@ -42,6 +31,7 @@ interface UserPresenceRow {
     imports: [ImportsModule, PreparationSummaryComponent, PreparationConfigurationComponent, PreparationConfirmationComponent, PreparationProgramComponent, PreparationMaterialsComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [CalendarEventsService, CalendarEventSeriesService]
 })
 export class DetailComponent extends DetailPageBase implements OnInit {
@@ -328,8 +318,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         if (updated.deletedCount) parts.push(`${updated.deletedCount} rimossi`);
         if (updated.keptExceptionCount) parts.push(`${updated.keptExceptionCount} lasciati come eccezioni`);
         if (updated.skippedPastCount) parts.push(`${updated.skippedPastCount} già passati e non riscritti`);
-        if (updated.outsideRuleExceptionCount)
-            parts.push(`${updated.outsideRuleExceptionCount} eccezioni restano fuori dalla nuova regola`);
+        if (updated.outsideRuleExceptionCount) parts.push(`${updated.outsideRuleExceptionCount} eccezioni restano fuori dalla nuova regola`);
 
         return `${parts.join(', ')}.`;
     }
@@ -373,20 +362,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
     protected get seriesSkippedMonthsLabel(): string {
         const skipped = this.seriesPreview?.skippedMonths ?? [];
         if (skipped.length === 0) return '';
-        const months = [
-            'gennaio',
-            'febbraio',
-            'marzo',
-            'aprile',
-            'maggio',
-            'giugno',
-            'luglio',
-            'agosto',
-            'settembre',
-            'ottobre',
-            'novembre',
-            'dicembre'
-        ];
+        const months = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
         const names = skipped.map((value) => {
             const [year, month] = value.split('-');
             return `${months[Number(month) - 1]} ${year}`;

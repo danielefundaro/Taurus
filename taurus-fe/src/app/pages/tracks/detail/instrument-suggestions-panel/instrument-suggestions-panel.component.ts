@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../../../imports';
 import { InstrumentSuggestionAction, InstrumentSuggestionDecision, InstrumentSuggestionName, InstrumentSuggestionPart, Instruments, SheetsMusic, Tracks } from '../../../../module';
@@ -38,6 +38,7 @@ export const INSTRUMENT_SUGGESTION_HANDLED_ERRORS = ['version.conflict', 'instru
     standalone: true,
     imports: [ImportsModule],
     templateUrl: './instrument-suggestions-panel.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './instrument-suggestions-panel.component.scss'
 })
 export class InstrumentSuggestionsPanelComponent implements OnChanges {

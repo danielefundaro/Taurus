@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { ImportsModule } from '../../imports';
 
 export const INVENTORY_EXPIRATION_WARNING_DAYS = 30;
@@ -15,6 +15,7 @@ interface ExpirationBadge {
     selector: 'app-inventory-expiration-badge',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     template: `
         @if (badge; as value) {
             <p-tag [value]="value.label" [severity]="value.severity" [icon]="value.icon" />

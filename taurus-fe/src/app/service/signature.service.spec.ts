@@ -1,4 +1,4 @@
-import { HttpContext, provideHttpClient } from '@angular/common/http';
+import { HttpContext, provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
@@ -12,7 +12,7 @@ describe('SignatureService', () => {
     const personal = `${environment.baseUrl}/user/signatures`;
 
     beforeEach(() => {
-        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+        TestBed.configureTestingModule({ providers: [provideHttpClient(withXhr()), provideHttpClientTesting()] });
         service = TestBed.inject(SignatureService);
         http = TestBed.inject(HttpTestingController);
     });

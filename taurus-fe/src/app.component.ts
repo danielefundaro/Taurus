@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -14,10 +14,10 @@ import { AppUpdateService, LayoutService, ListLayoutService, LocalStorageService
     standalone: true,
     imports: [RouterModule, ButtonModule, ConfirmDialogModule, ToastModule, LoadingSpinnerComponent],
     templateUrl: './app.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [PreferencesService]
 })
 export class AppComponent implements OnInit {
-
     readonly updateToastKey = AppUpdateService.TOAST_KEY;
 
     constructor(
@@ -29,7 +29,7 @@ export class AppComponent implements OnInit {
         private readonly listLayoutService: ListLayoutService,
         private readonly appUpdateService: AppUpdateService,
         private readonly tenantStatusService: TenantStatusService
-    ) { }
+    ) {}
 
     ngOnInit(): void {
         this.appUpdateService.init();

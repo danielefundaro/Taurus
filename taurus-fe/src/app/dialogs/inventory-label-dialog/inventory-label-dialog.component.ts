@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ImportsModule } from '../../imports';
 import { InventoryItem, InventoryLabelLayout, InventoryLabelRequest } from '../../module';
@@ -7,6 +7,7 @@ import { InventoryItem, InventoryLabelLayout, InventoryLabelRequest } from '../.
     selector: 'app-inventory-label-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './inventory-label-dialog.component.html'
 })
 export class InventoryLabelDialogComponent {

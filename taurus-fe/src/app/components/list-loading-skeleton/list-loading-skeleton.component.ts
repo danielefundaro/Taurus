@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ListLayout } from '../../service/list-layout.service';
 
@@ -6,6 +6,7 @@ import { ListLayout } from '../../service/list-layout.service';
     selector: 'app-list-loading-skeleton',
     standalone: true,
     imports: [SkeletonModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './list-loading-skeleton.component.html'
 })
 export class ListLoadingSkeletonComponent {

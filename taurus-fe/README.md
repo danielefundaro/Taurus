@@ -1,6 +1,6 @@
 # Taurus frontend
 
-Applicazione Angular 21 di Taurus per utenti e amministratori, con componenti PrimeNG 21 e autenticazione Keycloak (`keycloak-angular`). Il progetto nasce dal template Sakai.
+Applicazione Angular 22 di Taurus per utenti e amministratori, con componenti PrimeNG 22 e autenticazione Keycloak (`keycloak-angular`). Il progetto nasce dal template Sakai.
 
 ## Struttura
 
@@ -66,6 +66,7 @@ della rete interna nel bundle. Le intestazioni di sicurezza e la Content-Securit
 | `TAURUS_KEYCLOAK_REALM` | realm | `taurus` |
 | `TAURUS_KEYCLOAK_CLIENT_ID` | client OIDC | `web_app` |
 | `TAURUS_VAPID_PUBLIC_KEY` | chiave pubblica delle notifiche push | `CHANGE_ME` |
+| `TAURUS_PRIMEUI_LICENSE` | chiave della PrimeUI License, vedi [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | vuota, con l'avviso di PrimeNG |
 | `TAURUS_API_UPSTREAM` | indirizzo interno del backend | `http://backend:8080` |
 | `TAURUS_KEYCLOAK_UPSTREAM` | indirizzo interno di Keycloak | `http://keycloak:9080` |
 | `TAURUS_MAX_UPLOAD_SIZE` | limite del corpo delle richieste | `500m` |

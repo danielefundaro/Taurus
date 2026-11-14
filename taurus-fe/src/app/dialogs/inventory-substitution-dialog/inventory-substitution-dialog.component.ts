@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { first } from 'rxjs';
 import { addMonths, inventoryLoanTypeLabel, toLocalDate } from '../../constants';
@@ -15,6 +15,7 @@ export interface InventorySubstitutionDialogData {
     selector: 'app-inventory-substitution-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './inventory-substitution-dialog.component.html'
 })
 export class InventorySubstitutionDialogComponent implements OnInit {

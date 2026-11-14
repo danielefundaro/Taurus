@@ -246,6 +246,7 @@ services:
       TAURUS_KEYCLOAK_REALM: ${TAURUS_REALM:-taurus}
       TAURUS_KEYCLOAK_CLIENT_ID: ${TAURUS_OIDC_CLIENT_ID:-web_app}
       TAURUS_VAPID_PUBLIC_KEY: ${TAURUS_VAPID_PUBLIC_KEY}
+      TAURUS_PRIMEUI_LICENSE: ${TAURUS_PRIMEUI_LICENSE:-}
       TAURUS_MAX_UPLOAD_SIZE: ${TAURUS_MAX_UPLOAD_SIZE:-500m}
     # L'unica porta pubblicata, e solo sul loopback: davanti c'è il reverse proxy dell'host, che
     # termina TLS e inoltra qui. Dentro il container nginx gira senza privilegi e ascolta sulla 8080.

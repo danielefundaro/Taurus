@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { first } from 'rxjs';
 import { signatureActStatusLabel, signatureActStatusSeverity, signatureActTypeLabel, signaturePurposeLabel, signerRoleLabel } from '../../constants';
@@ -18,6 +18,7 @@ import { SignatureService } from '../../service';
     imports: [ImportsModule],
     templateUrl: './own-signature-acts.component.html',
     styleUrl: './own-signature-acts.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService, SignatureActFlow]
 })
 export class OwnSignatureActsComponent implements OnInit {

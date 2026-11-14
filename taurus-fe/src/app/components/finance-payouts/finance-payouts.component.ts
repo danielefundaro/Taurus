@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, inject, Input, OnInit, Output, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DialogService } from 'primeng/dynamicdialog';
 import { catchError, EMPTY, first, of, Subject, switchMap, timer } from 'rxjs';
@@ -93,6 +93,7 @@ const newRequestKey = (): string => {
     imports: [ImportsModule],
     templateUrl: './finance-payouts.component.html',
     styleUrl: './finance-payouts.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService]
 })
 export class FinancePayoutsComponent implements OnInit {

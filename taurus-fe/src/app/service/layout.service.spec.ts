@@ -12,6 +12,8 @@ describe('LayoutService', () => {
     let tenantStatus: TenantStatus;
     let service: LayoutService;
 
+    const start = location.pathname + location.search;
+
     beforeEach(() => {
         // Headless Chrome does not render view transitions: run the update callback directly
         spyOn(document as any, 'startViewTransition').and.callFake((update: () => void) => {
@@ -28,11 +30,15 @@ describe('LayoutService', () => {
             storage.set(key, value);
         });
 
+        // The real service, so that whenProvisioned decides on the page and on the status as in the application
+        const tenantStatusService = new TenantStatusService(null as any);
+        spyOn(tenantStatusService, 'load').and.callFake(() => of(tenantStatus));
+
         TestBed.configureTestingModule({
             providers: [
                 { provide: PreferencesService, useValue: preferencesService },
                 { provide: LocalStorageService, useValue: localStorageService },
-                { provide: TenantStatusService, useValue: { load: () => of(tenantStatus) } }
+                { provide: TenantStatusService, useValue: tenantStatusService }
             ]
         });
         service = TestBed.inject(LayoutService);
@@ -73,5 +79,25 @@ describe('LayoutService', () => {
         expect(preferencesService.count).not.toHaveBeenCalled();
         expect(storage.get('primary')?.value).toBe('blue');
         expect(storage.get('preset')?.value).toBe('Lara');
+    });
+
+    describe('on a public page', () => {
+        afterEach(() => history.replaceState(null, '', start));
+
+        it('keeps the layout local instead of asking the server for the preferences', () => {
+            history.replaceState(null, '', '/legal/terms');
+            storage.set('primary', { id: 3, key: 'primary', value: 'emerald' } as Preferences);
+            storage.delete('preset');
+            preferencesService.count.calls.reset();
+
+            service.layoutConfig.update((config) => ({ ...config, preset: 'Lara', primary: 'blue' }));
+            service.layoutState.update((state) => ({ ...state, staticMenuDesktopInactive: true }));
+            TestBed.tick();
+
+            expect(preferencesService.count).not.toHaveBeenCalled();
+            expect(preferencesService.update).not.toHaveBeenCalled();
+            expect(storage.get('primary')?.value).toBe('blue');
+            expect(storage.get('preset')?.value).toBe('Lara');
+        });
     });
 });

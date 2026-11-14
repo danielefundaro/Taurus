@@ -42,7 +42,7 @@ Finché questi campi non sono valorizzati e approvati, il runbook è utilizzabil
 
 | Componente | Tecnologia | Responsabilità | Porta locale | Stato persistente |
 | --- | --- | --- | --- | --- |
-| `taurus-fe` | Angular 21, Nginx 1.30 senza privilegi | SPA utente/amministrazione, PWA e Web Push; nel container serve anche da ingresso unico, inoltrando `/api` e `/auth` | `4200` in sviluppo, `8080` nel container | Nessuno; configurazione letta all'avvio del container (§4.2) |
+| `taurus-fe` | Angular 22, Nginx 1.30 senza privilegi | SPA utente/amministrazione, PWA e Web Push; nel container serve anche da ingresso unico, inoltrando `/api` e `/auth` | `4200` in sviluppo, `8080` nel container | Nessuno; configurazione letta all'avvio del container (§4.2) |
 | `taurus-be` | Java 25, Spring Boot 4.1, JHipster | API, processi asincroni, scheduler, migrazioni e accesso ai dati | `8080` | Media su filesystem; dati in PostgreSQL |
 | PostgreSQL | PostgreSQL 18.6 nel compose locale | Schema globale `public`, schemi tenant e database Keycloak | `5432` | Critico |
 | Keycloak | Keycloak 26.8.2 nel compose locale | OIDC, utenti, ruoli, tenant claim, login e-mail e temi | `9080`, `9443` locali | Database `taurus_keycloak` e provider custom |
@@ -201,6 +201,7 @@ bundle non finisce nessun indirizzo della rete interna.
 | `TAURUS_KEYCLOAK_REALM` | Realm | `taurus` |
 | `TAURUS_KEYCLOAK_CLIENT_ID` | Client OIDC, lo stesso del realm e del backend | `web_app` |
 | `TAURUS_VAPID_PUBLIC_KEY` | Chiave pubblica delle notifiche push | `CHANGE_ME`, che le disattiva |
+| `TAURUS_PRIMEUI_LICENSE` | Chiave della PrimeUI License di chi installa Taurus, Community o commerciale; si rinnova ogni anno (vedi `taurus-fe/THIRD_PARTY_NOTICES.md`) | vuota: l'applicazione funziona, ma PrimeNG mostra un avviso di licenza mancante |
 | `TAURUS_API_UPSTREAM` | Indirizzo interno del backend a cui inoltrare `/api` | `http://backend:8080` |
 | `TAURUS_KEYCLOAK_UPSTREAM` | Indirizzo interno di Keycloak a cui inoltrare `/auth` | `http://keycloak:9080` |
 | `TAURUS_MAX_UPLOAD_SIZE` | Limite del corpo delle richieste, da tenere con quello del backend | `500m` |

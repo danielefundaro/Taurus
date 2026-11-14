@@ -16,7 +16,8 @@ describe('ListLayoutService', () => {
         localStorageService = jasmine.createSpyObj<LocalStorageService>('LocalStorageService', ['getItem', 'setItem']);
         localStorageService.getItem.and.returnValue(null);
         tenantStatus = { tenantCode: 'tenant-a', provisioned: true };
-        const tenantStatusService = { load: () => of(tenantStatus) } as unknown as TenantStatusService;
+        const tenantStatusService = new TenantStatusService(null as any);
+        spyOn(tenantStatusService, 'load').and.callFake(() => of(tenantStatus));
         service = new ListLayoutService(preferencesService, localStorageService, tenantStatusService);
     });
 

@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { concatMap, finalize, first, from } from 'rxjs';
 import { InventoryExpirationBadgeComponent } from '../../../components/inventory-expiration-badge/inventory-expiration-badge.component';
@@ -38,6 +38,7 @@ const EXPIRATION_ERRORS: readonly string[] = ['inventory.loanDuration.*', 'inven
     imports: [ImportsModule, InventoryExpirationBadgeComponent, InventoryIssueListComponent],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [UsersService, DialogService]
 })
 export class InventoryDetailComponent extends DetailPageBase implements OnInit {

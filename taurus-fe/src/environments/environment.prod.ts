@@ -11,6 +11,9 @@ export const environment = {
     // La chiave pubblica VAPID appartiene all'installazione e deve arrivare dalla configurazione:
     // finché vale CHANGE_ME le notifiche push restano disattivate invece di fallire alla sottoscrizione.
     vapidPublicKey: 'CHANGE_ME',
+    // La chiave di PrimeUI appartiene a chi installa Taurus e arriva dalla configurazione: senza,
+    // PrimeNG scrive un avviso in console e mostra il suo banner.
+    primeuiLicense: '',
     keycloak: {
         baseurl: '/auth',
         realm: 'taurus',

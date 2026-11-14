@@ -1,29 +1,22 @@
-import { CommonModule, DatePipe } from "@angular/common";
-import { Component, Input } from "@angular/core";
-import { FormsModule } from "@angular/forms";
-import { DatePickerModule } from "primeng/datepicker";
-import { FloatLabelModule } from "primeng/floatlabel";
-import { TableLazyLoadEvent, TableModule } from "primeng/table";
-import { first } from "rxjs";
-import { CalendarEvents, Page, UsersCalendarEventsCriteria } from "../../module";
-import { DateConverterPipe } from "../../pipe";
-import { UsersService } from "../../service";
+import { CommonModule, DatePipe } from '@angular/common';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { DatePickerModule } from 'primeng/datepicker';
+import { FloatLabelModule } from 'primeng/floatlabel';
+import { TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { first } from 'rxjs';
+import { CalendarEvents, Page, UsersCalendarEventsCriteria } from '../../module';
+import { DateConverterPipe } from '../../pipe';
+import { UsersService } from '../../service';
 
 @Component({
     selector: 'app-calendar-events-table',
-    imports: [
-        CommonModule,
-        FormsModule,
-        TableModule,
-        FloatLabelModule,
-        DatePickerModule,
-        DatePipe,
-    ],
+    imports: [CommonModule, FormsModule, TableModule, FloatLabelModule, DatePickerModule, DatePipe],
     templateUrl: './calendar-events-table.component.html',
-    styleUrl: './calendar-events-table.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './calendar-events-table.component.scss'
 })
 export class CalendarEventsTableComponent {
-
     protected totalRecords: number = 0;
     protected startDate?: Date;
     protected endDate?: Date;
@@ -38,8 +31,8 @@ export class CalendarEventsTableComponent {
     }
     constructor(
         private readonly usersService: UsersService,
-        private readonly dateConverterPipe: DateConverterPipe,
-    ) { }
+        private readonly dateConverterPipe: DateConverterPipe
+    ) {}
 
     protected onLazyLoadCalendarEvents(event: TableLazyLoadEvent): void {
         this.tableLazyLoadEvent = event;

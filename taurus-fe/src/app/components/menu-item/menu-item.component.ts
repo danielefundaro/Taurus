@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostBinding, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostBinding, Input, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { isActive, NavigationEnd, Router, RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { RippleModule } from 'primeng/ripple';
@@ -10,14 +10,10 @@ import { HasRolesDirective } from './../../directive';
 
 @Component({
     selector: '[app-menuitem]',
-    imports: [
-        CommonModule,
-        RouterModule,
-        RippleModule,
-        HasRolesDirective
-    ],
+    imports: [CommonModule, RouterModule, RippleModule, HasRolesDirective],
     templateUrl: './menu-item.component.html',
     styleUrl: './menu-item.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [LayoutService]
 })
 export class MenuItemComponent implements OnInit, OnDestroy {

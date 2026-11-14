@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { catchError, debounceTime, of, Subject, switchMap } from 'rxjs';
@@ -29,6 +29,7 @@ export const PAYOUT_ROUNDING_STEPS = [0, 1, 2, 5, 10, 20];
     selector: 'app-finance-payout-setting-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './finance-payout-setting-dialog.component.html'
 })
 export class FinancePayoutSettingDialogComponent implements OnInit {

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ImportsModule } from '../../imports';
 import { FinancialCategory } from '../../module';
@@ -7,6 +7,7 @@ import { FinancialCategory } from '../../module';
     selector: 'app-finance-category-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './finance-category-dialog.component.html'
 })
 export class FinanceCategoryDialogComponent {

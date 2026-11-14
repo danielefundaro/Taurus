@@ -1,14 +1,14 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, computed, inject, PLATFORM_ID, signal } from '@angular/core';
+import { Component, computed, inject, PLATFORM_ID, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { $t, updatePreset, updateSurfacePalette } from '@primeuix/themes';
-import Aura from '@primeuix/themes/aura';
-import Lara from '@primeuix/themes/lara';
-import Nora from '@primeuix/themes/nora';
+import Aura from '@primeuix/themes/aura-compat';
+import Lara from '@primeuix/themes/lara-compat';
+import Nora from '@primeuix/themes/nora-compat';
 import { PrimeNG } from 'primeng/config';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { ACCESSIBLE_LIGHT_SCHEME, accessibleComponents } from '../../constants';
+import { ACCESSIBLE_LIGHT_SCHEME, accessibleComponents, accessibleSemantic } from '../../constants';
 import { ToggleButtonDisabledDirective } from '../../directive/toggle-button-disabled.directive';
 import { LayoutService } from '../../service';
 
@@ -41,14 +41,10 @@ declare type SurfacesType = {
 @Component({
     selector: 'app-configurator',
     standalone: true,
-    imports: [
-        CommonModule,
-        FormsModule,
-        SelectButtonModule,
-        ToggleButtonDisabledDirective,
-    ],
+    imports: [CommonModule, FormsModule, SelectButtonModule, ToggleButtonDisabledDirective],
     templateUrl: './configurator.component.html',
     styleUrl: './configurator.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     host: {
         class: 'hidden absolute top-13 right-0 w-72 p-4 bg-surface-0 dark:bg-surface-900 border border-surface rounded-border origin-top shadow-[0px_3px_5px_rgba(0,0,0,0.02),0px_0px_2px_rgba(0,0,0,0.05),0px_1px_4px_rgba(0,0,0,0.08)]'
     }
@@ -246,11 +242,16 @@ export class ConfiguratorComponent {
     getPresetExt() {
         const color: SurfacesType = this.primaryColors().find((c) => c.name === this.selectedPrimaryColor()) || {};
         const preset = this.layoutService.layoutConfig().preset;
+        const presetTokens = presets[preset as KeyOfType<typeof presets>] ?? Aura;
+        // Il testo attenuato vale per i due modi, con la metà scura del preset: in `colorScheme.light`
+        // sostituirebbe il token `light-dark()` della 3 anche nel modo scuro.
+        const text = accessibleSemantic(presetTokens).text;
 
         if (color.name === 'noir') {
             return {
-                components: accessibleComponents(preset),
+                components: accessibleComponents(preset, presetTokens),
                 semantic: {
+                    text,
                     primary: {
                         50: '{surface.50}',
                         100: '{surface.100}',
@@ -272,7 +273,6 @@ export class ConfiguratorComponent {
                                 hoverColor: '{primary.800}',
                                 activeColor: '{primary.700}'
                             },
-                            text: ACCESSIBLE_LIGHT_SCHEME.text,
                             highlight: {
                                 background: '{primary.950}',
                                 focusBackground: '{primary.700}',
@@ -299,13 +299,13 @@ export class ConfiguratorComponent {
             };
         } else if (preset === 'Nora') {
             return {
-                components: accessibleComponents(preset),
+                components: accessibleComponents(preset, presetTokens),
                 semantic: {
+                    text,
                     primary: color.palette,
                     colorScheme: {
                         light: {
                             primary: ACCESSIBLE_LIGHT_SCHEME.primary,
-                            text: ACCESSIBLE_LIGHT_SCHEME.text,
                             highlight: {
                                 background: '{primary.700}',
                                 focusBackground: '{primary.800}',
@@ -332,13 +332,13 @@ export class ConfiguratorComponent {
             };
         } else {
             return {
-                components: accessibleComponents(preset),
+                components: accessibleComponents(preset, presetTokens),
                 semantic: {
+                    text,
                     primary: color.palette,
                     colorScheme: {
                         light: {
                             primary: ACCESSIBLE_LIGHT_SCHEME.primary,
-                            text: ACCESSIBLE_LIGHT_SCHEME.text,
                             highlight: {
                                 background: '{primary.50}',
                                 focusBackground: '{primary.100}',
@@ -389,7 +389,9 @@ export class ConfiguratorComponent {
         this.layoutService.layoutConfig.update((state) => ({ ...state, preset: event }));
         const preset = presets[event as KeyOfType<typeof presets>];
         const surfacePalette = this.surfaces.find((s) => s.name === this.selectedSurfaceColor())?.palette;
-        $t().preset(preset).preset(this.getPresetExt()).surfacePalette(surfacePalette).use({ useDefaultOptions: true });
+        const theme = $t().preset(preset).preset(this.getPresetExt());
+        // Dalla 3 di @primeuix/themes la palette non può mancare: senza una superficie scelta resta quella del preset.
+        (surfacePalette ? theme.surfacePalette(surfacePalette) : theme).use({ useDefaultOptions: true });
     }
 
     onMenuModeChange(event: string) {

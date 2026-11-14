@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { finalize, first } from 'rxjs';
 import { ImportsModule } from '../../imports';
@@ -27,6 +27,7 @@ export const MAX_REPORT_LENGTH = 1000;
     selector: 'app-score-report-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './score-report-dialog.component.html'
 })
 export class ScoreReportDialogComponent {

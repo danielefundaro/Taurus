@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { StyleClassModule } from 'primeng/styleclass';
 import { LayoutService } from '../../service';
@@ -6,13 +6,10 @@ import { ConfiguratorComponent } from '../configurator/configurator.component';
 
 @Component({
     selector: 'app-floating-configurator',
-    imports: [
-        ButtonModule,
-        StyleClassModule,
-        ConfiguratorComponent,
-    ],
+    imports: [ButtonModule, StyleClassModule, ConfiguratorComponent],
     templateUrl: './floating-configurator.component.html',
-    styleUrl: './floating-configurator.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './floating-configurator.component.scss'
 })
 export class FloatingConfiguratorComponent {
     LayoutService = inject(LayoutService);

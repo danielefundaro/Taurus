@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
@@ -12,7 +12,7 @@ describe('TenantFeatureService', () => {
     let http: HttpTestingController;
 
     beforeEach(() => {
-        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+        TestBed.configureTestingModule({ providers: [provideHttpClient(withXhr()), provideHttpClientTesting()] });
         service = TestBed.inject(TenantFeatureService);
         http = TestBed.inject(HttpTestingController);
     });
@@ -139,7 +139,7 @@ describe('TenantFeatureService on a public page', () => {
 
     it('reads no flags, because a public page has no session nor tenant', fakeAsync(() => {
         history.replaceState(null, '', '/legal/terms');
-        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+        TestBed.configureTestingModule({ providers: [provideHttpClient(withXhr()), provideHttpClientTesting()] });
         TestBed.inject(TenantFeatureService);
         const http = TestBed.inject(HttpTestingController);
 

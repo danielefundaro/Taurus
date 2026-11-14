@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { ImportsModule } from '../../imports';
 import { SignatureAct, SignatureAssociationSignerOption } from '../../module';
@@ -15,6 +15,7 @@ export interface SignatureSignerDialogData {
     selector: 'app-signature-signer-dialog',
     standalone: true,
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './signature-signer-dialog.component.html'
 })
 export class SignatureSignerDialogComponent {

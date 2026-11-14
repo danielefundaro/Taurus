@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { NavigationEnd, Router } from '@angular/router';
@@ -56,7 +56,7 @@ describe('GuidedTourService', () => {
         toast = jasmine.createSpyObj<ToastService>('ToastService', ['info', 'warn', 'success']);
         TestBed.configureTestingModule({
             providers: [
-                provideHttpClient(),
+                provideHttpClient(withXhr()),
                 provideHttpClientTesting(),
                 { provide: Router, useValue: router },
                 { provide: KeycloakService, useValue: { currentUserId: 'user-1', currentUserTenantCode: 'banda', currentUserRole: RoleEnums.USER } },

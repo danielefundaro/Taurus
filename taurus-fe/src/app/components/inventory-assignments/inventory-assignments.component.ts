@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, OnInit, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { first } from 'rxjs';
 import { inventoryAssignmentStatusLabel, inventoryDecisionLabel, inventoryReturnStatusLabel } from '../../constants';
 import { ImportsModule } from '../../imports';
@@ -12,6 +12,7 @@ import { InventoryExpirationBadgeComponent } from '../inventory-expiration-badge
     standalone: true,
     imports: [ImportsModule, DetailSectionComponent, InventoryExpirationBadgeComponent],
     templateUrl: './inventory-assignments.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './inventory-assignments.component.scss'
 })
 export class InventoryAssignmentsComponent implements OnInit, OnChanges {
@@ -38,7 +39,7 @@ export class InventoryAssignmentsComponent implements OnInit, OnChanges {
     constructor(
         private readonly inventoryService: InventoryService,
         private readonly toastService: ToastService
-    ) { }
+    ) {}
 
     ngOnInit(): void {
         this.load();

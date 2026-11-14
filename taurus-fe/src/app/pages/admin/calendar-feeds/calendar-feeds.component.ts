@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { CalendarFeedPanelComponent } from '../../../components/calendar-feed-panel/calendar-feed-panel.component';
 import { ImportsModule } from '../../../imports';
 
@@ -7,6 +7,7 @@ import { ImportsModule } from '../../../imports';
     standalone: true,
     imports: [ImportsModule, CalendarFeedPanelComponent],
     templateUrl: './calendar-feeds.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrl: './calendar-feeds.component.scss'
 })
-export class CalendarFeedsComponent { }
+export class CalendarFeedsComponent {}

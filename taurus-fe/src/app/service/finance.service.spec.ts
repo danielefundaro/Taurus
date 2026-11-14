@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
@@ -8,7 +8,7 @@ describe('FinanceService', () => {
     let service: FinanceService;
     let http: HttpTestingController;
     beforeEach(() => {
-        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+        TestBed.configureTestingModule({ providers: [provideHttpClient(withXhr()), provideHttpClientTesting()] });
         service = TestBed.inject(FinanceService);
         http = TestBed.inject(HttpTestingController);
     });
@@ -32,9 +32,7 @@ describe('FinanceService', () => {
     });
 
     it('sends every movement filter as a query parameter', () => {
-        service
-            .getMovements({ page: 1, size: 50, year: 2026, nature: 'TRANSFER', counterparty: 'Rossi', reconciled: false, query: '' })
-            .subscribe();
+        service.getMovements({ page: 1, size: 50, year: 2026, nature: 'TRANSFER', counterparty: 'Rossi', reconciled: false, query: '' }).subscribe();
 
         const request = http.expectOne((candidate) => candidate.url === `${environment.baseUrl}/finance/movements`);
         expect(request.request.params.get('page')).toBe('1');

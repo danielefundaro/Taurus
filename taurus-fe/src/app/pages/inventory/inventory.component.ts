@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { DialogService } from 'primeng/dynamicdialog';
@@ -25,6 +25,7 @@ const MAX_SIGNED_DECISIONS = 50;
     standalone: true,
     imports: [RouterModule, ImportsModule, InventoryExpirationBadgeComponent, OwnLoanSheetsComponent, OwnSignatureActsComponent],
     templateUrl: './inventory.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService]
 })
 export class InventoryComponent extends ListPageBase implements OnInit {

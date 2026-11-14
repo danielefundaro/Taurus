@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../environments/environment';
@@ -13,7 +13,7 @@ describe('ScorePlaybackService', () => {
 
     beforeEach(() => {
         keycloak.currentUserRole = RoleEnums.ARCHIVIST;
-        TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), { provide: KeycloakService, useValue: keycloak }] });
+        TestBed.configureTestingModule({ providers: [provideHttpClient(withXhr()), provideHttpClientTesting(), { provide: KeycloakService, useValue: keycloak }] });
         service = TestBed.inject(ScorePlaybackService);
         http = TestBed.inject(HttpTestingController);
     });

@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, Input, OnChanges, ChangeDetectionStrategy } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { first, Observable } from 'rxjs';
 import { InventoryIssueDialogComponent } from '../../dialogs/inventory-issue-dialog/inventory-issue-dialog.component';
@@ -17,6 +17,7 @@ import { ConfirmService, InventoryService, ToastService, UserInventoryService } 
     imports: [ImportsModule],
     templateUrl: './inventory-issue-list.component.html',
     styleUrl: './inventory-issue-list.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [DialogService]
 })
 export class InventoryIssueListComponent implements OnChanges {
@@ -45,7 +46,7 @@ export class InventoryIssueListComponent implements OnChanges {
         private readonly dialogService: DialogService,
         private readonly confirmService: ConfirmService,
         private readonly toastService: ToastService
-    ) { }
+    ) {}
 
     protected get personal(): boolean {
         return !!this.assignmentId;
@@ -63,9 +64,7 @@ export class InventoryIssueListComponent implements OnChanges {
                 modal: true,
                 width: '28rem',
                 breakpoints: { '767px': 'calc(100vw - 1rem)' },
-                data: this.personal
-                    ? { assignmentId: this.assignmentId, maxQuantity: this.totalQuantity }
-                    : { itemId: this.itemId, maxQuantity: this.totalQuantity }
+                data: this.personal ? { assignmentId: this.assignmentId, maxQuantity: this.totalQuantity } : { itemId: this.itemId, maxQuantity: this.totalQuantity }
             })
             ?.onClose.pipe(first())
             .subscribe((issue) => {
@@ -94,9 +93,7 @@ export class InventoryIssueListComponent implements OnChanges {
             input.value = '';
             return;
         }
-        const upload: Observable<unknown> = this.personal
-            ? this.userInventoryService.uploadIssuePhoto(issue.id, file)
-            : this.inventoryService.uploadIssuePhoto(issue.id, file);
+        const upload: Observable<unknown> = this.personal ? this.userInventoryService.uploadIssuePhoto(issue.id, file) : this.inventoryService.uploadIssuePhoto(issue.id, file);
         upload.pipe(first()).subscribe(() => {
             input.value = '';
             this.load();

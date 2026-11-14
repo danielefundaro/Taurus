@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { AutoFocus } from 'primeng/autofocus';
@@ -6,11 +6,11 @@ import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
 import { InputOtpModule } from 'primeng/inputotp';
 import { SelectModule } from 'primeng/select';
-import { neutralizePrimeNgAutoFocusDefault } from './primeng-autofocus';
 
 @Component({
     standalone: true,
     imports: [FormsModule, AutoFocus, ButtonModule, DatePickerModule, InputOtpModule, SelectModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     template: `
         <div id="plain">
             <p-button label="Salva" />
@@ -27,11 +27,15 @@ class HostComponent {
     focus: boolean | undefined = undefined;
 }
 
-describe('neutralizePrimeNgAutoFocusDefault', () => {
+/**
+ * Con PrimeNG 21 l'AutoFocus scriveva `autofocus="true"` su ogni componente che non lo chiedeva, e
+ * l'applicazione lo correggeva all'avvio. PrimeNG 22 legge il valore con `booleanAttribute`, che
+ * tratta il valore assente come `false`, e la correzione è stata tolta: questi test controllano che
+ * il comportamento resti quello voluto.
+ */
+describe('AutoFocus di PrimeNG', () => {
     let fixture: ComponentFixture<HostComponent>;
     const element = (selector: string): HTMLElement => fixture.nativeElement.querySelector(selector);
-
-    beforeAll(() => neutralizePrimeNgAutoFocusDefault());
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({ imports: [HostComponent] }).compileComponents();
@@ -59,13 +63,5 @@ describe('neutralizePrimeNgAutoFocusDefault', () => {
         fixture.componentInstance.focus = false;
         fixture.detectChanges();
         expect(element('#directive').hasAttribute('autofocus')).toBeFalse();
-    });
-
-    it('si applica una volta sola anche se chiamata di nuovo', () => {
-        const patched = AutoFocus.prototype.onAfterContentChecked;
-
-        neutralizePrimeNgAutoFocusDefault();
-
-        expect(AutoFocus.prototype.onAfterContentChecked).toBe(patched);
     });
 });

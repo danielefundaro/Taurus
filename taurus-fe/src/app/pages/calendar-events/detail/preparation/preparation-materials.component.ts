@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { finalize, first } from 'rxjs';
 import { inventoryConditionLabel } from '../../../../constants';
@@ -16,6 +16,7 @@ type MaterialRow = EventPreparationMaterial & { key: number };
 @Component({
     selector: 'app-preparation-materials',
     imports: [ImportsModule],
+    changeDetection: ChangeDetectionStrategy.Eager,
     templateUrl: './preparation-materials.component.html'
 })
 export class PreparationMaterialsComponent implements OnChanges {

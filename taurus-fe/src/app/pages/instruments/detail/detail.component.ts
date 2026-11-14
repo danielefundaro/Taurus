@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SelectItem } from 'primeng/api';
 import { delay, finalize, first } from 'rxjs';
@@ -15,6 +15,7 @@ const SCALE = [0, 2, 4, 5, 7, 9, 11, 12];
     imports: [ImportsModule],
     templateUrl: './detail.component.html',
     styleUrl: './detail.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
     providers: [InstrumentsService]
 })
 export class DetailComponent extends DetailPageBase implements OnInit {
@@ -130,7 +131,7 @@ export class DetailComponent extends DetailPageBase implements OnInit {
 
     protected onSoundChange(program: number | null): void {
         this.instrument.soundProgram = program;
-        this.instrument.soundBank = program === null ? null : this.instrument.soundBank ?? 0;
+        this.instrument.soundBank = program === null ? null : (this.instrument.soundBank ?? 0);
         this.markPlaybackDirty();
     }
 
@@ -165,10 +166,20 @@ export class DetailComponent extends DetailPageBase implements OnInit {
         try {
             if (this.percussion) {
                 const key = this.instrument.percussionKey ?? 38;
-                await this.audio.preview([0, 0.5, 1, 1.5].map((at) => ({ key, at, duration: 0.3 })), null, 0, true);
+                await this.audio.preview(
+                    [0, 0.5, 1, 1.5].map((at) => ({ key, at, duration: 0.3 })),
+                    null,
+                    0,
+                    true
+                );
             } else {
                 const base = 60 + (this.instrument.transpositionSemitones ?? 0);
-                await this.audio.preview(SCALE.map((step, index) => ({ key: base + step, at: index * 0.4, duration: 0.38 })), this.instrument.soundProgram ?? 0, this.instrument.soundBank ?? 0, false);
+                await this.audio.preview(
+                    SCALE.map((step, index) => ({ key: base + step, at: index * 0.4, duration: 0.38 })),
+                    this.instrument.soundProgram ?? 0,
+                    this.instrument.soundBank ?? 0,
+                    false
+                );
             }
         } catch {
             this.toastService.error('Prova non disponibile', 'Impossibile caricare i suoni: riprovare più tardi.');

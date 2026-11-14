@@ -1,4 +1,4 @@
-import { Component, ElementRef } from '@angular/core';
+import { Component, ElementRef, ChangeDetectionStrategy } from '@angular/core';
 import { MenuComponent } from '../menu/menu.component';
 
 @Component({
@@ -6,8 +6,9 @@ import { MenuComponent } from '../menu/menu.component';
     standalone: true,
     imports: [MenuComponent],
     templateUrl: './sidebar.component.html',
-    styleUrl: './sidebar.component.scss',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './sidebar.component.scss'
 })
 export class SidebarComponent {
-    constructor(public el: ElementRef) { }
+    constructor(public el: ElementRef) {}
 }
