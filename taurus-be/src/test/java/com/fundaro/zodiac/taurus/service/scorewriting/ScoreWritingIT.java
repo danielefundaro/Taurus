@@ -17,7 +17,9 @@ import com.fundaro.zodiac.taurus.service.dto.scoreplayback.ScorePlaybackDtos.Sco
 import com.fundaro.zodiac.taurus.service.dto.scorewriting.ScoreWritingDtos.DraftRequestDTO;
 import com.fundaro.zodiac.taurus.service.dto.scorewriting.ScoreWritingDtos.DraftSavedDTO;
 import com.fundaro.zodiac.taurus.service.dto.scorewriting.ScoreWritingDtos.EditLockDTO;
+import com.fundaro.zodiac.taurus.service.dto.scorewriting.ScoreWritingDtos.NewWrittenPartDTO;
 import com.fundaro.zodiac.taurus.service.dto.scorewriting.ScoreWritingDtos.ScoreDraftDTO;
+import com.fundaro.zodiac.taurus.service.dto.scorewriting.ScoreWritingDtos.WrittenPartDTO;
 import com.fundaro.zodiac.taurus.service.scoreplayback.ScorePlaybackService;
 import com.fundaro.zodiac.taurus.service.scoreplayback.ScoreVersionService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
@@ -114,6 +116,9 @@ class ScoreWritingIT {
 
     @Autowired
     private ScoreWritingCleanup cleanup;
+
+    @Autowired
+    private WrittenPartService writtenPartService;
 
     private final String tenantCode = "score-writing-it-" + UUID.randomUUID();
     private Long tenantId;
@@ -252,6 +257,61 @@ class ScoreWritingIT {
 
         assertThat(count("score_edit_lock")).isZero();
         assertThat(count("score_draft")).isZero();
+    }
+
+    @Test
+    void aPartWrittenFromScratchStartsAsADraftAtTheEndOfTheTrack() {
+        Long version = inTenant(() -> entityManager.find(Tracks.class, trackId).getEntityVersion());
+        Long bass = inTenant(() -> entityManager.createQuery("select i.id from Instruments i where i.name = 'Basso 1°'", Long.class).getSingleResult());
+
+        assertThatThrownBy(() -> inTenant(() -> writtenPartService.create(
+            trackId, new NewWrittenPartDTO("Basso 2°", List.of(bass), TUBA, version + 1), archivist("mario", "Mario", "Rossi")
+        ))).isInstanceOfSatisfying(RequestAlertException.class, error -> assertThat(error.getErrorKey()).isEqualTo("version.conflict"));
+        assertThatThrownBy(() -> inTenant(() -> writtenPartService.create(
+            trackId, new NewWrittenPartDTO("Basso 2°", List.of(bass, -1L), TUBA, version), archivist("mario", "Mario", "Rossi")
+        ))).isInstanceOfSatisfying(RequestAlertException.class, error -> assertThat(error.getErrorKey()).isEqualTo("scoreWriting.instrumentNotFound"));
+        assertThatThrownBy(() -> inTenant(() -> writtenPartService.create(
+            trackId, new NewWrittenPartDTO("Basso 2°", List.of(bass), "<score-partwise/>", version), archivist("mario", "Mario", "Rossi")
+        ))).isInstanceOfSatisfying(RequestAlertException.class, error -> assertThat(error.getErrorKey()).isEqualTo("scoreWriting.contentInvalid"));
+        assertThat(count("sheet_music")).isEqualTo(1);
+
+        WrittenPartDTO created = inTenant(() -> writtenPartService.create(
+            trackId, new NewWrittenPartDTO("  Basso 2°  ", List.of(bass, bass), TUBA, version), archivist("mario", "Mario", "Rossi")
+        ));
+
+        assertThat(created.trackVersion()).isEqualTo(inTenant(() -> entityManager.find(Tracks.class, trackId).getEntityVersion())).isNotEqualTo(version);
+        Tracks track = inTenant(() -> {
+            Tracks found = entityManager.find(Tracks.class, trackId);
+            found.getScores().forEach(score -> {
+                score.getInstruments().size();
+                score.getMedia().size();
+            });
+            return found;
+        });
+        assertThat(track.getScores()).extracting(SheetsMusic::getId).containsExactly(partId, created.scoreId());
+        SheetsMusic written = track.getScores().get(1);
+        assertThat(written.getDescription()).isEqualTo("Basso 2°");
+        assertThat(written.getMedia()).isEmpty();
+        assertThat(written.getInstruments()).extracting(Instruments::getId).containsExactly(bass);
+        ScoreDraftDTO draft = inTenant(() -> draftService.get(trackId, created.scoreId())).orElseThrow();
+        assertThat(draft.baseVersionId()).isNull();
+        // The author's name comes from the users of the tenant: here only the column says who saved it.
+        assertThat(jdbcTemplate.queryForObject("SELECT saved_by FROM " + schema() + ".score_draft WHERE target_id = ?", String.class, created.scoreId()))
+            .isEqualTo("mario");
+        assertThat(draft.measureCount()).isEqualTo(1);
+        assertThat(draft.outdated()).isFalse();
+        PartPlaybackDTO listed = inTenant(() -> playbackService.overview(trackId, archivist("lucia", "Lucia", "Bianchi"))).parts().stream()
+            .filter(part -> part.scoreId().equals(created.scoreId())).findFirst().orElseThrow();
+        assertThat(listed.draft()).isNotNull();
+        assertThat(listed.version()).isNull();
+        assertThat(listed.hasPages()).isFalse();
+
+        // The editor opens with the lock and replaces the first draft.
+        inTenant(() -> lockService.acquire(trackId, created.scoreId(), MARIO_EDITOR, false, archivist("mario", "Mario", "Rossi")));
+        DraftSavedDTO saved = inTenant(() -> draftService.save(
+            trackId, created.scoreId(), new DraftRequestDTO(MARIO_EDITOR, TUBA, null, draft.entityVersion()), archivist("mario", "Mario", "Rossi")
+        ));
+        assertThat(saved.entityVersion()).isGreaterThan(draft.entityVersion());
     }
 
     private <T> T inTenant(java.util.function.Supplier<T> action) {

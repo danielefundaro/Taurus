@@ -7,6 +7,7 @@ import com.fundaro.zodiac.taurus.repository.TenantsRepository;
 import com.fundaro.zodiac.taurus.service.TenantFeatureService;
 import com.fundaro.zodiac.taurus.service.scorewriting.ScoreDraftService;
 import com.fundaro.zodiac.taurus.service.scorewriting.ScoreEditLockService;
+import com.fundaro.zodiac.taurus.service.scorewriting.WrittenPartService;
 import com.fundaro.zodiac.taurus.web.rest.errors.RequestAlertException;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -27,15 +28,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * The edit lock serves the correction editor too and needs only score playback; the drafts need the writing editor,
- * which in turn needs score playback and its installation.
+ * The edit lock serves the correction editor too and needs only score playback; drafts and written parts need the
+ * writing editor, which in turn needs score playback and its installation.
  */
 class ScoreWritingResourceFeatureTest {
 
     private final TenantsRepository repository = mock(TenantsRepository.class);
     private final ApplicationProperties properties = new ApplicationProperties();
     private final TenantFeatureInterceptor interceptor = new TenantFeatureInterceptor(new TenantFeatureService(repository, properties));
-    private final ScoreWritingResource resource = new ScoreWritingResource(mock(ScoreEditLockService.class), mock(ScoreDraftService.class));
+    private final ScoreWritingResource resource = new ScoreWritingResource(
+        mock(ScoreEditLockService.class),
+        mock(ScoreDraftService.class),
+        mock(WrittenPartService.class)
+    );
 
     @Test
     void theLockNeedsOnlyThePlaybackAndTheDraftsNeedTheWriting() {
@@ -50,7 +55,7 @@ class ScoreWritingResourceFeatureTest {
             .filter(method -> AnnotatedElementUtils.hasAnnotation(method, RequestMapping.class))
             .toList();
         assertThat(endpoints).extracting(Method::getName)
-            .containsExactlyInAnyOrder("acquireLock", "renewLock", "releaseLock", "draft", "saveDraft", "discardDraft");
+            .containsExactlyInAnyOrder("acquireLock", "renewLock", "releaseLock", "draft", "saveDraft", "discardDraft", "createWrittenPart");
 
         for (Method endpoint : endpoints) {
             HandlerMethod handler = new HandlerMethod(resource, endpoint);

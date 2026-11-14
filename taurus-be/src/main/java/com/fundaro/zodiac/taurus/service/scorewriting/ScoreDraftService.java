@@ -148,6 +148,21 @@ public class ScoreDraftService {
         if (repository.deleteAllByTargets(PART, List.of(part.getId())) > 0) metrics.draft("discarded");
     }
 
+    /** Stores the first draft of a part just created for the writing editor, which nobody can be writing yet. */
+    void start(Long partId, Content content, AbstractAuthenticationToken token) {
+        String actor = actor(token);
+        ScoreDraft draft = new ScoreDraft();
+        draft.initializeAudit(actor);
+        draft.setTargetType(PART);
+        draft.setTargetId(partId);
+        draft.setContent(content.compressed());
+        draft.setMeasureCount(content.measureCount());
+        draft.setSavedBy(actor);
+        draft.setSavedAt(ZonedDateTime.now());
+        repository.saveAndFlush(draft);
+        metrics.draft("saved");
+    }
+
     /** Removes the draft of a part that received a new version from the writing editor. */
     public void remove(Long partId) {
         repository.deleteAllByTargets(PART, List.of(partId));

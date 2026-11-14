@@ -109,6 +109,27 @@ class ScoreDraftServiceTest {
     }
 
     @Test
+    void startsTheDraftOfANewWrittenPartWithoutTheLock() {
+        ScoreDraftService.Content content = service.readContent(TUBA);
+
+        service.start(12L, content, mario());
+
+        ArgumentCaptor<ScoreDraft> draft = ArgumentCaptor.forClass(ScoreDraft.class);
+        verify(repository).saveAndFlush(draft.capture());
+        assertThat(draft.getValue()).satisfies(stored -> {
+            assertThat(stored.getTargetType()).isEqualTo(ScoreEditTarget.PART);
+            assertThat(stored.getTargetId()).isEqualTo(12L);
+            assertThat(stored.getBaseVersionId()).isNull();
+            assertThat(stored.getMeasureCount()).isEqualTo(2);
+            assertThat(stored.getSavedBy()).isEqualTo("mario");
+            assertThat(stored.getSavedAt()).isNotNull();
+            assertThat(stored.getContent()).isEqualTo(content.compressed());
+        });
+        verify(lockService, never()).requireHeld(any(), any(), any());
+        assertThat(registry.counter("taurus.score.writing.drafts", "outcome", "saved").count()).isEqualTo(1);
+    }
+
+    @Test
     void replacesTheDraftTheEditorReadAndRefusesOneThatChangedOrWasRemoved() {
         ScoreDraft existing = draft(ZonedDateTime.now().minusSeconds(10));
         when(repository.findByTargetTypeAndTargetId(ScoreEditTarget.PART, 9L)).thenReturn(Optional.of(existing));

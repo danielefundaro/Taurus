@@ -996,6 +996,7 @@ La guida non mostra all'utente gli errori delle proprie chiamate automatiche: i 
 | `scoreWriting.draftConflict` | 409 | La bozza sul server è cambiata, o è stata eliminata, dopo che l'editor l'ha letta | — | «La bozza è stata modificata altrove: riaprire l'editor» |
 | `scoreWriting.draftTooFrequent` | 429 | Salvataggio della stessa bozza prima dell'intervallo minimo dal precedente | — | Nessuno: l'editor riprova al salvataggio successivo |
 | `scoreWriting.draftOutdated` | 409 | Salvataggio di una versione scritta quando un'altra versione è diventata corrente dopo l'inizio della scrittura, senza la conferma esplicita | — | «Nel frattempo è stata salvata un'altra versione della parte: confermare per sostituirla» |
+| `scoreWriting.instrumentNotFound` | 400 | Uno degli strumenti scelti per una parte scritta da zero non esiste o è stato eliminato | — | «Uno degli strumenti scelti non esiste più: ricaricare la pagina» |
 
 ### Onboarding
 
